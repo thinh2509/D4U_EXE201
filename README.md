@@ -18,6 +18,7 @@ D4U is an MVP marketplace connecting Student Designers and SMEs with project app
 - Entity dictionary: `Entity_Dictionary_D4U.md`
 - Full requirement: `Requirement.md`
 - Agent guide: `AGENTS.md`
+- GitHub workflow: `GITHUB_WORKFLOW_D4U.md`
 - Project skill: `.codex/skills/d4u-mvp-dotnet`
 
 ## Run API
@@ -50,3 +51,18 @@ For multi-agent work, split by ownership:
 - QA Reviewer: read-only review against MVP checklist.
 
 Keep the first build MVP-only. Post-MVP features are listed in `MVP_D4U.md`.
+
+## GitHub Workflow
+
+Use branch + PR flow for implementation:
+
+```powershell
+git pull --ff-only origin main
+git switch -c feat/<scope>-<short-description>
+dotnet build D4U.Api/D4U.Api.csproj
+git add .
+git commit -m "feat(scope): summary"
+git push -u origin HEAD
+```
+
+Full workflow: `GITHUB_WORKFLOW_D4U.md`.

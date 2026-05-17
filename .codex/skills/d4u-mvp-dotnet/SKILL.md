@@ -16,6 +16,7 @@ Read only the files needed for the task:
 - Product scope: `MVP_D4U.md`
 - Implementation backlog: `BACKLOG_D4U_MVP.md`
 - Technical stack: `TECH_STACK_D4U.md`
+- GitHub workflow: `GITHUB_WORKFLOW_D4U.md`
 - Schema source: `D4U_ERD.dbml`
 - Entity details: `Entity_Dictionary_D4U.md`
 - Full future scope, only when asked: `Requirement.md`
@@ -23,6 +24,8 @@ Read only the files needed for the task:
 Use `references/agent-workflow.md` when planning or delegating work across agents.
 Use `references/backend-guidelines.md` when implementing .NET code.
 Use `references/mvp-boundaries.md` when deciding whether a feature belongs in MVP.
+
+When the user asks to use GitHub commands, follow `GITHUB_WORKFLOW_D4U.md`: branch from `main`, implement one slice, build/test, commit with conventional commit, push branch, and create a PR. Do not merge to `main` unless the user explicitly asks.
 
 ## MVP Boundary
 

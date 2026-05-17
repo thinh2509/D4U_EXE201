@@ -1,0 +1,9 @@
+<type>(<scope>): <summary>
+
+# Types: feat, fix, docs, test, refactor, chore
+# Example: feat(projects): implement create and publish flow
+#
+# Body:
+# - What changed?
+# - Why?
+# - Backlog item(s):

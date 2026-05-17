@@ -8,6 +8,7 @@ Source of truth lien quan:
 
 - MVP scope: `MVP_D4U.md`
 - MVP backlog: `BACKLOG_D4U_MVP.md`
+- GitHub workflow: `GITHUB_WORKFLOW_D4U.md`
 - ERD MVP: `D4U_ERD.dbml`
 - Entity dictionary: `Entity_Dictionary_D4U.md`
 - Agent guide: `AGENTS.md`
