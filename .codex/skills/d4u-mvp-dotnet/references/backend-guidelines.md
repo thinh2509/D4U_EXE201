@@ -7,6 +7,10 @@
 - EF Core with Npgsql provider.
 - Swagger/OpenAPI enabled in development.
 - Controllers for HTTP boundary; services for business rules; DbContext for persistence.
+- JWT bearer authentication with refresh sessions.
+- FluentValidation for request DTO validation.
+- ProblemDetails for API errors.
+- Built-in rate limiting for sensitive endpoints.
 
 ## Code Style
 
@@ -16,6 +20,8 @@
 - Prefer `DateTimeOffset` for new timestamp properties unless an existing file already uses `DateTime`.
 - Keep controllers thin and return DTOs, not EF entities, when implementing real endpoints.
 - Put validation close to command/request handling.
+- Use `/api/v1/...` route prefixes for MVP endpoints.
+- Use `ProblemDetails` with stable error codes for business failures.
 
 ## EF Core Modeling
 
@@ -25,6 +31,18 @@
 - Use explicit relationships for all foreign keys in the ERD.
 - Keep soft-delete fields such as `DeletedAt` nullable.
 - Seed `subscription_plans` and initial `design_categories`.
+- Use `jsonb` for structured audit metadata when full mappings are implemented.
+
+## Security and Infrastructure Defaults
+
+- Use `PasswordHasher<TUser>` for MVP password hashing.
+- Access token TTL: 15 minutes.
+- Refresh token TTL: 14 days.
+- Store refresh token hashes only.
+- Use explicit CORS origins from configuration.
+- Never trust client-submitted payment success; rely on provider webhook or mock provider confirmation.
+- Payment provider integration should go through `IPaymentProvider`.
+- File storage integration should go through an abstraction so local storage and object storage can be swapped.
 
 ## MVP Business Rules
 

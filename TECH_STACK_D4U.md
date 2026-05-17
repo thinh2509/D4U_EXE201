@@ -45,6 +45,23 @@ MVP authentication:
 - Refresh token stored as hash in `user_sessions`.
 - Role-based authorization: `STUDENT`, `SME`, `ADMIN`.
 
+Recommended packages/services:
+
+- JWT bearer authentication: `Microsoft.AspNetCore.Authentication.JwtBearer`.
+- Password hashing: `Microsoft.AspNetCore.Identity.PasswordHasher<TUser>` for MVP.
+- Optional future upgrade: BCrypt or Argon2 if the team wants an explicit password hashing library.
+
+JWT defaults:
+
+- Access token TTL: 15 minutes.
+- Refresh token TTL: 14 days.
+- Issuer: `Jwt__Issuer`.
+- Audience: `Jwt__Audience`.
+- Signing key: `Jwt__SigningKey`.
+- Store only refresh token hash, never the raw refresh token.
+- Rotate refresh token on refresh.
+- Revoke refresh token on logout.
+
 Out of MVP:
 
 - Social login.
@@ -77,6 +94,120 @@ MVP direction:
 - Provider can be PayOS, VNPAY, or a mocked provider behind an interface.
 - Webhook handling must be idempotent.
 - Escrow, payment, disbursement, and wallet transaction updates must be transactionally consistent.
+
+Payment abstraction:
+
+- Define `IPaymentProvider`.
+- Implement `MockPaymentProvider` for MVP/local development.
+- Add PayOS/VNPAY adapters later behind the same interface.
+- Store provider transaction id and enforce uniqueness per provider.
+
+### 2.6. Validation
+
+Recommended MVP approach:
+
+- Use FluentValidation for request DTO validation.
+- Keep business rule validation inside application services.
+- Return validation errors as `ProblemDetails`.
+
+Recommended package:
+
+- `FluentValidation.AspNetCore`
+
+### 2.7. Error Handling
+
+Use centralized exception handling.
+
+Recommended approach:
+
+- Use ASP.NET Core `ProblemDetails`.
+- Add global exception middleware or `IExceptionHandler`.
+- Map known business exceptions to stable error codes.
+- Do not leak stack traces outside development.
+
+Error response shape:
+
+```json
+{
+  "type": "https://docs.d4u.local/errors/project-budget-exceeds-plan",
+  "title": "Project budget exceeds plan limit",
+  "status": 400,
+  "detail": "Project budget exceeds the current subscription plan limit.",
+  "errorCode": "PROJECT_BUDGET_EXCEEDS_PLAN"
+}
+```
+
+### 2.8. CORS
+
+MVP API should define an explicit CORS policy.
+
+Local development:
+
+- Allow frontend origins configured by `Cors__AllowedOrigins`.
+- Do not use wildcard origins with credentials.
+
+Example config:
+
+```json
+{
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:5173"
+    ]
+  }
+}
+```
+
+### 2.9. Rate Limiting
+
+Use ASP.NET Core rate limiting for sensitive endpoints.
+
+Recommended MVP limits:
+
+- Login/register: strict per IP and per email.
+- Refresh token: moderate per user/session.
+- File upload metadata creation: moderate per user.
+- Payment creation/webhook: strict and idempotent.
+
+Recommended package:
+
+- Built-in `Microsoft.AspNetCore.RateLimiting`
+
+### 2.10. Background Jobs
+
+MVP can start with hosted services. Upgrade to a durable job runner later if needed.
+
+Use background jobs for:
+
+- Expiring offers.
+- Auto-approving overdue reviews if enabled.
+- Marking stale payments as expired.
+- Notification retries.
+- Withdrawal processing reminders.
+
+Recommended MVP option:
+
+- `BackgroundService` hosted services with database polling.
+
+Recommended post-MVP option:
+
+- Hangfire with PostgreSQL storage.
+
+### 2.11. Observability
+
+Use structured logs and request correlation.
+
+Recommended:
+
+- Built-in `ILogger<T>` for MVP.
+- Add request correlation id middleware.
+- Log payment webhook idempotency key/provider transaction id.
+- Log escrow/wallet state transitions.
+
+Optional package:
+
+- Serilog for structured sink support when deployment target is known.
 
 ## 3. Solution Structure
 
@@ -264,22 +395,32 @@ Tables:
 
 ## 6. API Conventions
 
-### 6.1. Route Style
+### 6.1. Versioning
+
+Use versioned API routes from the start:
+
+```text
+/api/v1/...
+```
+
+MVP can keep one version, but controllers should use the `v1` prefix to avoid future breaking route changes.
+
+### 6.2. Route Style
 
 Use plural resources:
 
 ```text
-/api/auth/register
-/api/auth/login
-/api/projects
-/api/projects/{projectId}
-/api/projects/{projectId}/applications
-/api/offers/{offerId}/accept
-/api/submissions/{submissionId}/approve
-/api/wallets/me
+/api/v1/auth/register
+/api/v1/auth/login
+/api/v1/projects
+/api/v1/projects/{projectId}
+/api/v1/projects/{projectId}/applications
+/api/v1/offers/{offerId}/accept
+/api/v1/submissions/{submissionId}/approve
+/api/v1/wallets/me
 ```
 
-### 6.2. Response Style
+### 6.3. Response Style
 
 Use response DTOs. Do not return EF entities directly.
 
@@ -303,7 +444,7 @@ Error example:
 }
 ```
 
-### 6.3. HTTP Status Codes
+### 6.4. HTTP Status Codes
 
 - `200 OK`: successful read/update/action.
 - `201 Created`: resource created.
@@ -313,6 +454,35 @@ Error example:
 - `403 Forbidden`: authenticated but not allowed.
 - `404 Not Found`: missing resource or hidden by ownership rule.
 - `409 Conflict`: duplicate application, invalid state transition, or idempotency conflict.
+
+### 6.5. Pagination
+
+List endpoints should support pagination:
+
+```text
+?page=1&pageSize=20
+```
+
+Rules:
+
+- Default `pageSize`: 20.
+- Max `pageSize`: 100.
+- Return total count only when needed by UI; avoid expensive counts for high-volume tables later.
+
+### 6.6. Idempotency
+
+Use idempotency for:
+
+- Payment webhook processing.
+- Payment creation if provider supports it.
+- Escrow release.
+- Dispute resolution money movement.
+
+Recommended header for client-triggered commands:
+
+```text
+Idempotency-Key: <uuid>
+```
 
 ## 7. Authorization Rules
 
@@ -375,6 +545,25 @@ Seed minimum data:
 - Subscription plans: BASIC, PRO, PREMIUM.
 - Design categories from `MVP_D4U.md`.
 - Optional development Admin user.
+
+### 8.5. PostgreSQL Naming
+
+Use explicit mapping for now. If the project later adopts a naming convention package, use it consistently.
+
+Optional package:
+
+- `EFCore.NamingConventions`
+
+If used, configure snake_case globally and avoid duplicating manual column mappings unnecessarily.
+
+### 8.6. JSON Columns
+
+Use `jsonb` for structured metadata fields such as audit `before_json` and `after_json` when implementing full mappings.
+
+Rules:
+
+- Use string storage only for very simple MVP placeholders.
+- Prefer typed value objects or `JsonDocument` for structured data.
 
 ## 9. State Machines
 
@@ -458,6 +647,15 @@ Recommended test database:
 - PostgreSQL test container if available.
 - Separate local PostgreSQL database if containers are not available.
 
+Recommended test packages:
+
+- `xunit`
+- `xunit.runner.visualstudio`
+- `FluentAssertions`
+- `Microsoft.AspNetCore.Mvc.Testing`
+- `Testcontainers.PostgreSql`
+- `Microsoft.EntityFrameworkCore.InMemory` only for simple unit tests, not relational behavior.
+
 ### 11.3. MVP Workflow Tests
 
 Priority flows:
@@ -495,15 +693,45 @@ Write audit logs for:
 - Withdrawal processing.
 - User status changes.
 
-## 13. Local Development
+## 13. Security Baseline
 
-### 13.1. Prerequisites
+### 13.1. Secrets
+
+- Never commit real secrets.
+- Use user secrets locally.
+- Use environment variables or a secret manager in deployment.
+- Keep `appsettings.json` safe for defaults only.
+
+### 13.2. Passwords
+
+- Never log raw passwords.
+- Never store raw passwords.
+- Use `PasswordHasher<TUser>` in MVP.
+- Recommended password policy: minimum 8 characters, at least one letter and one number.
+
+### 13.3. File Access
+
+- Validate extension and MIME type.
+- Store file metadata in database.
+- Use private visibility by default.
+- Use signed URLs or authorized download endpoints.
+
+### 13.4. Payment Webhooks
+
+- Validate webhook signature when the provider supports it.
+- Log provider event id and transaction id.
+- Make webhook handling idempotent.
+- Do not trust client-submitted payment success.
+
+## 14. Local Development
+
+### 14.1. Prerequisites
 
 - .NET SDK that can target .NET 8.
 - PostgreSQL.
 - Optional: pgAdmin or another database client.
 
-### 13.2. Connection String
+### 14.2. Connection String
 
 Set in `D4U.Api/appsettings.json` or user secrets:
 
@@ -521,7 +749,28 @@ Prefer user secrets for real credentials:
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
 ```
 
-### 13.3. Run
+### 14.3. Docker Compose for PostgreSQL
+
+Recommended local database:
+
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: d4u_mvp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - d4u_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  d4u_postgres_data:
+```
+
+### 14.4. Run
 
 ```powershell
 dotnet restore D4U.Api/D4U.Api.csproj
@@ -541,7 +790,24 @@ Health check:
 http://localhost:5000/health
 ```
 
-## 14. MVP Deployment Direction
+## 15. CI/CD
+
+Current CI:
+
+- GitHub Actions builds `D4U.Api` on push and PR to `main`.
+
+Recommended CI policy:
+
+- `dotnet restore`
+- `dotnet build --configuration Release`
+- `dotnet test --configuration Release`
+- Fail the workflow when tests fail once a test project exists.
+
+Current note:
+
+- The existing workflow uses `continue-on-error: true` for `dotnet test` because no test project may exist yet. Remove that once tests are added.
+
+## 16. MVP Deployment Direction
 
 Recommended simple MVP deployment:
 
@@ -562,7 +828,39 @@ Required environment variables:
 - `Storage__Provider`
 - `Storage__Bucket`
 
-## 15. Agent Usage Guidance
+## 17. Recommended NuGet Packages
+
+Core:
+
+- `Npgsql.EntityFrameworkCore.PostgreSQL`
+- `Microsoft.EntityFrameworkCore.Design`
+- `Swashbuckle.AspNetCore`
+
+Auth/security:
+
+- `Microsoft.AspNetCore.Authentication.JwtBearer`
+- `Microsoft.AspNetCore.Identity`
+
+Validation:
+
+- `FluentValidation.AspNetCore`
+
+Testing:
+
+- `xunit`
+- `xunit.runner.visualstudio`
+- `FluentAssertions`
+- `Microsoft.AspNetCore.Mvc.Testing`
+- `Testcontainers.PostgreSql`
+
+Optional later:
+
+- `Serilog.AspNetCore`
+- `EFCore.NamingConventions`
+- `Hangfire.AspNetCore`
+- `Hangfire.PostgreSql`
+
+## 18. Agent Usage Guidance
 
 When using Codex agents, use:
 
@@ -596,7 +894,7 @@ For review:
 Use the D4U MVP .NET skill. Review the Projects slice against MVP_D4U.md, D4U_ERD.dbml, and TECH_STACK_D4U.md. Do not edit files. Report bugs, risks, and missing tests.
 ```
 
-## 16. Non-MVP Guardrail
+## 19. Non-MVP Guardrail
 
 Do not implement unless explicitly requested:
 
