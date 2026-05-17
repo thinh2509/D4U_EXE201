@@ -1,115 +1,108 @@
 # D4U MVP Description
 
-## 1. Muc tieu MVP
+## 1. MVP Goal
 
-MVP cua D4U tap trung chung minh mot luong gia tri cot loi: SME co the dang yeu cau thiet ke, Student co the ung tuyen va thuc hien cong viec, tien duoc giu qua escrow, san pham duoc nop theo milestone, SME duyet ket qua, Student nhan tien vao vi va hai ben co the danh gia nhau sau khi du an hoan thanh.
+The D4U MVP validates the core marketplace loop: an SME posts a design project, a Student Designer applies or receives an offer, the SME funds escrow, the Student submits Sketch and Final deliverables, the SME reviews the work, funds are released to the Student wallet, and both parties can rate each other.
 
-MVP khong co muc tieu xay dung day du tat ca tinh nang marketplace lon ngay tu dau. Muc tieu chinh la tao ra mot phien ban co the van hanh that voi du lieu that, thanh toan sandbox hoac provider MVP, va du luong nghiep vu de kiem chung nhu cau thi truong.
+The MVP is intentionally narrower than the full D4U product. It should be production-shaped enough to validate real workflows, but small enough to build, test, and iterate quickly.
 
-## 2. Dinh nghia thanh cong
+## 2. Definition of Success
 
-MVP duoc xem la hoan thanh khi:
+The MVP is complete when:
 
-- Guest co the dang ky va dang nhap bang email/password.
-- Student va SME co the tao profile toi thieu.
-- Admin co the duyet xac minh Student.
-- SME co the tao va publish project trong gioi han goi Basic.
-- Student co the xem open project va gui application.
-- SME co the chon Student, tao offer va thanh toan escrow.
-- Student co the chap nhan offer va bat dau project.
-- Student co the nop Sketch va Final voi file hop le.
-- SME co the approve, request revision, report invalid file hoac open dispute.
-- Khi Final approved, tien escrow duoc release vao wallet Student sau khi tru platform fee.
-- Student co the tao withdrawal request.
-- Hai ben co the rating sau khi project completed.
-- Admin co the xu ly dispute co ban.
-- He thong co notification in-app cho cac su kien quan trong.
+- Guests can register and log in with email/password.
+- Students and SMEs can create their required profiles.
+- Admin can approve or reject Student verification.
+- SMEs can create and publish projects within subscription limits.
+- Students can view open projects and submit applications.
+- SMEs can select a Student, create an offer, and fund escrow.
+- Students can accept funded offers and start projects.
+- Students can submit Sketch and Final files.
+- SMEs can approve, request revision, report invalid files, or open disputes.
+- Final approval releases escrow into the Student wallet after platform fee deduction.
+- Students can create withdrawal requests.
+- Both parties can rate each other after project completion.
+- Admin can resolve basic disputes.
+- In-app notifications are created for important events.
 
-## 3. Actor trong MVP
+## 3. MVP Actors
 
 ### 3.1. Guest
 
-Guest la nguoi chua dang nhap. Trong MVP, Guest chi can:
+A non-authenticated visitor. MVP capabilities:
 
-- Dang ky tai khoan.
-- Dang nhap.
-- Chon role Student hoac SME khi tao tai khoan.
+- Register.
+- Log in.
+- Choose Student or SME role during onboarding.
 
-### 3.2. Student
+### 3.2. Student Designer
 
-Student la sinh vien thiet ke nhan project tu SME.
+A Student Designer receives and completes design work. MVP capabilities:
 
-Student trong MVP co the:
-
-- Tao va cap nhat profile sinh vien.
-- Upload tai lieu xac minh sinh vien.
-- Xem danh sach open project.
-- Gui application vao project.
-- Nhan va chap nhan offer.
-- Upload submission cho Sketch, Final va Revision.
-- Xem review action tu SME.
-- Tham gia dispute neu co van de.
-- Nhan tien vao wallet sau khi project completed.
-- Tao withdrawal request.
-- Danh gia SME sau khi project completed.
+- Create and update Student profile.
+- Upload verification document metadata.
+- Browse open projects.
+- Submit project applications.
+- Receive, accept, or reject offers.
+- Submit Sketch, Final, and Revision files.
+- Respond to review results.
+- Participate in disputes.
+- Receive money in wallet after successful completion.
+- Create withdrawal requests.
+- Rate SMEs after completed projects.
 
 ### 3.3. SME
 
-SME la doanh nghiep can thue thiet ke.
+An SME hires Student Designers. MVP capabilities:
 
-SME trong MVP co the:
-
-- Tao va cap nhat profile doanh nghiep.
-- Co subscription mac dinh hoac duoc gan goi Basic/Pro/Premium.
-- Tao draft project.
-- Publish open project neu khong vuot gioi han subscription.
-- Xem applications tu Student.
-- Chon Student va tao offer.
-- Thanh toan escrow.
-- Review Sketch va Final.
-- Request revision.
-- Report invalid file.
-- Open dispute.
-- Danh gia Student sau khi project completed.
+- Create and update SME profile.
+- Use an assigned subscription plan.
+- Create draft projects.
+- Publish open projects.
+- Review applications.
+- Create offers.
+- Fund escrow.
+- Review Sketch and Final submissions.
+- Request revisions.
+- Report invalid files.
+- Open disputes.
+- Rate Students after completed projects.
 
 ### 3.4. Admin
 
-Admin la nguoi van hanh he thong.
+An Admin operates the platform. MVP capabilities:
 
-Admin trong MVP co the:
+- Approve or reject Student verification.
+- View users, profiles, projects, payments, and disputes.
+- Resolve disputes with a money allocation decision.
+- Support refund/disbursement cases.
+- View audit logs.
 
-- Duyet hoac tu choi student verification.
-- Xem user, profile, project, payment va dispute.
-- Xu ly dispute bang cach nhap quyet dinh va phan bo tien.
-- Ho tro refund/disbursement trong cac case dispute.
-- Xem audit log.
+## 4. MVP Functional Scope
 
-## 4. Scope chuc nang MVP
+### 4.1. Authentication and Account
 
-### 4.1. Authentication va account
+MVP authentication is email/password only.
 
-MVP chi can email/password login.
+Required:
 
-Chuc nang can co:
+- Register with email, username, password, full name, and role.
+- Log in with email/password.
+- Hash passwords before persistence.
+- Create refresh sessions.
+- Revoke refresh sessions on logout.
+- Track account status: `PENDING`, `ACTIVE`, `SUSPENDED`, `BANNED`, `DELETED`.
+- Block suspended, banned, and deleted users from protected business actions.
 
-- Dang ky tai khoan voi email, username, password, full name va role.
-- Dang nhap bang email/password.
-- Hash password.
-- Tao refresh session.
-- Dang xuat bang cach revoke session.
-- Quan ly status tai khoan: PENDING, ACTIVE, SUSPENDED, BANNED, DELETED.
-- Chan nguoi dung bi suspend/ban/deleted thuc hien hanh dong nghiep vu.
+Out of MVP:
 
-Khong thuoc MVP:
-
-- Google login.
+- Social login.
 - SSO.
-- Multi-factor authentication.
-- Advanced device management.
+- MFA.
 
-### 4.2. Student profile va verification
+### 4.2. Student Profile and Verification
 
-Student profile toi thieu gom:
+Student profile includes:
 
 - School.
 - Major.
@@ -118,167 +111,154 @@ Student profile toi thieu gom:
 - Verification status.
 - Average rating.
 - Completed projects count.
-- Can withdraw.
+- Withdrawal eligibility.
 
-Student verification flow:
+Verification flow:
 
-1. Student upload tai lieu xac minh.
-2. He thong tao verification request.
-3. Admin xem file va approve/reject.
-4. Neu reject, Admin nhap rejection reason.
-5. He thong cap nhat verification status tren Student profile.
+1. Student uploads verification document metadata.
+2. System creates a verification request.
+3. Admin reviews the document.
+4. Admin approves or rejects.
+5. If rejected, Admin provides a rejection reason.
+6. Student profile verification status is updated.
 
-Trong MVP, verification co the anh huong den quyen rut tien hoac quyen nhan project tuy theo quy tac van hanh.
+### 4.3. SME Profile and Subscription
 
-### 4.3. SME profile va subscription
-
-SME profile toi thieu gom:
+SME profile includes:
 
 - Company name.
 - Representative name.
 - Phone number.
 - Business field.
-- Logo optional.
+- Optional logo.
 - Average rating.
 - Completed projects count.
 - Active open project count.
 
-Subscription MVP:
+MVP subscription plans:
 
 | Plan | Monthly price | Platform fee | Active open projects | Max budget |
 | --- | ---: | ---: | ---: | ---: |
-| BASIC | 0 VND | 10% | 2 | 5.000.000 VND |
-| PRO | 199.000 VND | 7% | 10 | 20.000.000 VND |
-| PREMIUM | 499.000 VND | 5% | Unlimited | Unlimited |
+| BASIC | 0 VND | 10% | 2 | 5,000,000 VND |
+| PRO | 199,000 VND | 7% | 10 | 20,000,000 VND |
+| PREMIUM | 499,000 VND | 5% | Unlimited | Unlimited |
 
-MVP can enforce subscription khi SME publish project:
+Subscription rules:
 
-- Kiem tra so active open project.
-- Kiem tra budget co vuot plan hay khong.
-- Lay platform fee rate tu plan tai thoi diem tao escrow.
+- Enforce active open project limit when publishing.
+- Enforce max project budget when publishing.
+- Use the plan platform fee rate when creating escrow.
 
-Thanh toan subscription tu dong chua bat buoc trong MVP.
+Automated subscription billing is not part of MVP.
 
-### 4.4. Project creation
+### 4.4. Project Creation
 
-SME tao project voi cac truong:
+SME creates a project with:
 
 - Title.
 - Brief.
 - Usage purpose.
 - Design category.
-- Project type: OPEN hoac PRIVATE.
+- Project type: `OPEN` or `PRIVATE`.
 - Budget amount.
 - Total deadline.
 - Sketch deadline.
 - Final deadline.
 - Max revision rounds.
 - Confidential flag.
-- Allow student portfolio flag.
+- Student portfolio permission flag.
 - Attachments.
 
-Quy tac:
+Rules:
 
-- Budget phai lon hon 0.
-- Sketch deadline phai truoc hoac bang Final deadline.
-- Final deadline phai truoc hoac bang Total deadline.
-- SME chi publish duoc khi khong vuot gioi han subscription.
-- Project publish open se co status OPEN.
-- Project private se co status PRIVATE_INVITED sau khi moi Student.
+- Budget must be greater than zero.
+- Sketch deadline must be before or equal to Final deadline.
+- Final deadline must be before or equal to Total deadline.
+- SME can publish only when subscription limits allow it.
+- Published open projects use status `OPEN`.
+- Private invited projects use status `PRIVATE_INVITED`.
 
-### 4.5. Application va offer
+### 4.5. Applications and Offers
 
 Open project flow:
 
-1. Student xem project status OPEN.
-2. Student gui application gom proposed price, cover letter va estimated duration.
-3. Moi Student chi ung tuyen mot lan cho mot project.
-4. SME xem danh sach application.
-5. SME chon mot application.
-6. He thong tao offer cho Student.
+1. Student views an `OPEN` project.
+2. Student submits an application with proposed price, cover letter, and estimated duration.
+3. A Student can apply only once per project.
+4. SME reviews applications.
+5. SME selects one application.
+6. System creates an offer.
 
 Private project flow:
 
-1. SME tao project loai PRIVATE.
-2. SME chon Student can moi.
-3. He thong tao offer khong can application.
+1. SME creates a `PRIVATE` project.
+2. SME selects the Student to invite.
+3. System creates an offer without requiring an application.
 
-Offer trong MVP:
+Offer rules:
 
-- Offer ban dau co status PENDING_PAYMENT.
-- Sau khi SME thanh toan escrow thanh cong, offer chuyen WAITING_ACCEPTANCE.
-- Student co the ACCEPTED hoac REJECTED.
-- Neu Student chap nhan, project chuyen IN_PROGRESS.
+- Offer starts as `PENDING_PAYMENT`.
+- After escrow payment succeeds, offer becomes `WAITING_ACCEPTANCE`.
+- Student can accept or reject.
+- Accepted offer selects the Student and starts the execution flow.
 
-### 4.6. Escrow va payment
+### 4.6. Escrow and Payment
 
-Escrow la co che giu tien de bao ve ca SME va Student.
+Escrow protects both SME and Student.
 
 Flow:
 
-1. SME chon Student va tao offer.
-2. He thong tao escrow voi amount bang offered amount.
-3. SME thanh toan qua provider sandbox hoac provider MVP.
-4. Payment SUCCESS thi escrow chuyen FUNDED.
-5. Offer chuyen WAITING_ACCEPTANCE.
-6. Student chap nhan offer.
-7. Project chuyen IN_PROGRESS.
+1. SME selects Student and creates an offer.
+2. System creates escrow for the offered amount.
+3. SME pays through MVP sandbox/provider.
+4. Payment success marks escrow as `FUNDED`.
+5. Offer becomes `WAITING_ACCEPTANCE`.
+6. Student accepts offer.
+7. Project becomes `IN_PROGRESS`.
 
-Du lieu can luu:
+Rules:
 
-- Escrow amount.
-- Currency.
-- Platform fee rate.
-- Platform fee amount.
-- Payment provider.
-- Provider transaction id.
-- Payment status.
-- Paid at.
+- Project cannot start until escrow is funded.
+- Escrow in `DISPUTED` status cannot be released.
+- Provider transaction id must be unique per provider.
+- Payment webhooks must be idempotent.
 
-Quy tac:
+### 4.7. Sketch and Final Milestones
 
-- Project khong duoc bat dau neu escrow chua FUNDED.
-- Escrow DISPUTED thi khong duoc release.
-- Provider transaction id phai unique theo provider.
+Every in-progress project has two milestones:
 
-### 4.7. Milestone Sketch va Final
-
-Moi project IN_PROGRESS co 2 milestone:
-
-- SKETCH.
-- FINAL.
+- `SKETCH`
+- `FINAL`
 
 Sketch flow:
 
-1. Student nop Sketch submission.
-2. He thong luu submission va submission files.
-3. Project chuyen SKETCH_SUBMITTED hoac SKETCH_IN_REVIEW.
-4. SME review Sketch.
-5. SME co the approve, request revision, report invalid file hoac open dispute.
+1. Student submits Sketch.
+2. System stores submission and files.
+3. Project moves to Sketch review.
+4. SME approves, requests revision, reports invalid file, or opens dispute.
 
 Final flow:
 
-1. Student chi nop Final sau khi Sketch approved hoac auto-approved.
-2. Student upload Final files.
-3. Project chuyen FINAL_SUBMITTED hoac FINAL_IN_REVIEW.
-4. SME review Final.
-5. Neu approve Final, project chuyen COMPLETED.
-6. He thong release escrow va cong tien vao wallet Student.
+1. Student submits Final only after Sketch is approved or auto-approved.
+2. System stores Final files.
+3. SME reviews Final.
+4. Final approval completes the project.
+5. System releases escrow and credits Student wallet.
 
-### 4.8. Submission va file
+### 4.8. Submissions and Files
 
-Submission gom:
+Submission includes:
 
 - Project.
 - Milestone.
 - Student submitter.
-- Submission type: SKETCH, FINAL, REVISION.
+- Submission type: `SKETCH`, `FINAL`, `REVISION`.
 - Revision round.
 - Description.
 - Status.
-- Submitted at.
+- Submitted timestamp.
 
-File upload trong MVP can luu metadata:
+File metadata includes:
 
 - Storage provider.
 - Bucket.
@@ -288,9 +268,9 @@ File upload trong MVP can luu metadata:
 - Extension.
 - File size.
 - Visibility.
-- Scan status optional.
+- Optional scan status.
 
-File extensions cho phep:
+Allowed extensions:
 
 - jpg, jpeg, png, webp.
 - pdf.
@@ -300,141 +280,138 @@ File extensions cho phep:
 - psd.
 - svg.
 
-Quy tac:
+Rules:
 
-- File private phai truy cap qua signed URL hoac co che tuong duong.
-- Original final file chi nen downloadable sau khi Final approved hoac Admin cho phep trong dispute.
-- Watermarked file co the dung de SME review truoc khi release file goc.
+- Private files require signed URL or controlled access.
+- Original Final files should become downloadable only after Final approval or Admin dispute decision.
+- Watermarked files may be used for review previews.
 
-### 4.9. Review, revision va invalid file
+### 4.9. Review, Revision, and Invalid Files
 
-SME co cac action review:
+SME review actions:
 
-- APPROVE_SKETCH.
-- APPROVE_FINAL.
-- REQUEST_REVISION.
-- REPORT_INVALID_FILE.
-- OPEN_DISPUTE.
+- `APPROVE_SKETCH`
+- `APPROVE_FINAL`
+- `REQUEST_REVISION`
+- `REPORT_INVALID_FILE`
+- `OPEN_DISPUTE`
 
 Revision flow:
 
-1. SME request revision tren submission.
-2. He thong tao revision request voi requested changes va due date.
-3. Project chuyen REVISION_REQUESTED.
-4. Student nop lai submission type REVISION.
-5. SME review lai.
-6. So revision round khong vuot max revision rounds cua project.
+1. SME requests revision on a submission.
+2. System creates revision request with requested changes and due date.
+3. Project moves to `REVISION_REQUESTED`.
+4. Student submits a revision.
+5. SME reviews again.
+6. Revision round cannot exceed the project max revision rounds.
 
 Invalid file flow:
 
-1. SME report invalid file.
-2. SME chon reason: EMPTY_FILE, CANNOT_OPEN, WRONG_FORMAT, UNRELATED, BROKEN_LINK hoac OTHER.
-3. He thong tao invalid file report va reupload due date.
-4. Student upload lai file bang submission/revision moi.
-5. SME review lai hoac mo dispute neu khong dong thuan.
+1. SME reports invalid file.
+2. SME selects a reason: `EMPTY_FILE`, `CANNOT_OPEN`, `WRONG_FORMAT`, `UNRELATED`, `BROKEN_LINK`, or `OTHER`.
+3. System creates invalid file report with reupload due date.
+4. Student uploads corrected files through a new submission/revision.
+5. SME reviews again or opens dispute.
 
-### 4.10. Completion va disbursement
+### 4.10. Completion and Disbursement
 
-Khi Final approved:
+When Final is approved:
 
-1. Project chuyen COMPLETED.
-2. Escrow chuyen RELEASE_PENDING.
-3. He thong tinh platform fee amount.
-4. He thong tao disbursement.
-5. He thong cong net amount vao wallet Student.
-6. He thong tao wallet transaction loai DISBURSEMENT_CREDIT.
-7. Escrow chuyen RELEASED.
-8. Project co rating due date trong 7 ngay.
+1. Project becomes `COMPLETED`.
+2. Escrow becomes `RELEASE_PENDING`.
+3. System calculates platform fee.
+4. System creates disbursement.
+5. System credits Student wallet with net amount.
+6. System creates wallet transaction `DISBURSEMENT_CREDIT`.
+7. Escrow becomes `RELEASED`.
+8. Rating due date is set to 7 days after completion.
 
-Cong thuc:
+Formula:
 
 ```text
 platform_fee_amount = escrow.amount * platform_fee_rate
 net_amount = escrow.amount - platform_fee_amount
 ```
 
-### 4.11. Wallet va withdrawal
+### 4.11. Wallet and Withdrawal
 
-Wallet MVP cua Student gom:
+Student wallet includes:
 
 - Available balance.
 - Pending balance.
 - Locked balance.
 - Status.
 
-Student co the them payment method dang BANK_ACCOUNT:
+Payment method:
 
-- Account holder name.
+- Bank account holder name.
 - Masked account number.
-- Provider token optional.
-- Is default.
+- Optional provider token.
+- Default flag.
 
 Withdrawal flow:
 
-1. Student chon payment method.
-2. Student nhap amount.
-3. He thong kiem tra wallet ACTIVE va `can_withdraw = true`.
-4. He thong kiem tra amount toi thieu 50.000 VND.
-5. He thong tinh fee 5.000 VND va net amount.
-6. He thong tao withdrawal request PENDING.
-7. Admin/Finance xu ly request.
-8. Neu success, request completed va wallet transaction ghi debit.
-9. Neu failed, he thong hoan lai so du bang transaction WITHDRAWAL_FAILED_REVERSAL.
+1. Student selects payment method.
+2. Student enters amount.
+3. System checks wallet is `ACTIVE`.
+4. System checks `can_withdraw = true`.
+5. System checks minimum amount is 50,000 VND.
+6. System applies 5,000 VND fee.
+7. System creates withdrawal request.
+8. Admin/Finance processes request.
+9. Success creates debit transaction.
+10. Failure creates reversal transaction.
 
 ### 4.12. Dispute MVP
 
-Dispute MVP can xu ly cac tinh huong:
+Dispute covers:
 
-- SME khong dong y chat luong san pham.
-- Student cho rang SME yeu cau ngoai brief.
-- File bi bao loi nhung hai ben khong dong thuan.
-- Project bi tre han hoac can refund.
-- Escrow can chia tien mot phan.
+- Quality disagreement.
+- Scope disagreement.
+- Invalid file disagreement.
+- Delayed delivery.
+- Refund or partial payout decisions.
 
 Flow:
 
-1. Student hoac SME open dispute.
-2. Project chuyen DISPUTED.
-3. Escrow chuyen DISPUTED neu da funded.
-4. Hai ben upload evidence hoac comment.
-5. Admin review project, submission, file, payment va evidence.
-6. Admin nhap decision type, rationale va phan bo tien:
-   - SME refund amount.
-   - Student payout amount.
-   - Platform fee amount.
-7. He thong tao refund/disbursement tuong ung.
-8. Dispute chuyen RESOLVED.
+1. Student or SME opens dispute.
+2. Project becomes `DISPUTED`.
+3. Funded escrow becomes `DISPUTED`.
+4. Parties upload evidence or comments.
+5. Admin reviews project, files, submissions, payment, and evidence.
+6. Admin enters decision type, rationale, SME refund amount, Student payout amount, and platform fee amount.
+7. System creates refund and/or disbursement as needed.
+8. Dispute becomes `RESOLVED`.
 
-Trong MVP, decision duoc luu truc tiep tren bang `disputes` de don gian hoa. Bang decision rieng va appeal co the them o phase sau.
+In MVP, the decision is stored directly on `disputes`. Separate decision and appeal tables are post-MVP.
 
 ### 4.13. Rating
 
-Rating chi mo sau khi project COMPLETED.
+Rules:
 
-Quy tac:
-
-- Student rating SME.
-- SME rating Student.
-- Moi cap rater/rated/project chi co mot rating.
-- Rating value tu 1 den 5.
-- Comment toi da 500 ky tu.
-- Rating window: 7 ngay sau completed.
-- Sau khi rating, he thong cap nhat average rating va completed projects count tren profile.
+- Rating is available only after `COMPLETED`.
+- Student rates SME.
+- SME rates Student.
+- One rating per project/rater/rated user.
+- Rating value is 1 to 5.
+- Comment maximum is 500 characters.
+- Rating window is 7 days after completion.
+- Rating updates average rating and completed project count.
 
 ### 4.14. Notification
 
-MVP chi can in-app notification.
+MVP uses in-app notifications only.
 
-Su kien can gui notification:
+Events:
 
-- Student verification approved/rejected.
+- Verification approved/rejected.
 - Project published.
-- Application moi.
-- Offer moi.
+- New application.
+- New offer.
 - Payment success/failed.
 - Offer accepted/rejected.
-- Submission moi.
-- Review action moi.
+- New submission.
+- Review action.
 - Revision request.
 - Invalid file report.
 - Dispute opened/resolved.
@@ -442,123 +419,123 @@ Su kien can gui notification:
 - Withdrawal request status changed.
 - Rating received.
 
-Notification co status:
+Statuses:
 
-- UNREAD.
-- READ.
+- `UNREAD`
+- `READ`
 
-### 4.15. Audit log
+### 4.15. Audit Log
 
-Audit log MVP ghi nhan cac hanh dong quan trong:
+Audit important actions:
 
-- Admin approve/reject verification.
-- SME publish/cancel project.
-- Project status changed.
-- Payment success/failed webhook.
+- Admin verification decision.
+- SME project publish/cancel.
+- Project status change.
+- Payment webhook success/failed.
 - Escrow funded/released/refunded/disputed.
-- Admin resolve dispute.
-- Wallet balance changed.
-- Withdrawal processed.
-- User suspended/banned.
+- Admin dispute resolution.
+- Wallet balance change.
+- Withdrawal processing.
+- User status change.
 
-Audit log can luu:
+Audit fields:
 
 - Actor user.
 - Action.
 - Entity type.
 - Entity id.
-- Before json.
-- After json.
+- Before JSON.
+- After JSON.
 - IP address.
 - User agent.
-- Created at.
+- Created timestamp.
 
-## 5. Luong nghiep vu chinh
+## 5. Main Business Flows
 
-### 5.1. Luong dang ky va onboarding
+### 5.1. Registration and Onboarding
 
-1. Guest dang ky voi role Student hoac SME.
-2. He thong tao user status PENDING hoac ACTIVE tuy quy tac email verification.
-3. User dang nhap.
-4. Student tao student profile; SME tao SME profile.
-5. Student nop verification neu can.
-6. Admin approve verification.
+1. Guest registers as Student or SME.
+2. System creates user.
+3. User logs in.
+4. Student creates Student profile; SME creates SME profile.
+5. Student submits verification if required.
+6. Admin approves verification.
 
-Ket qua mong doi:
+Expected result:
 
-- User co profile hop le.
-- Student co the ung tuyen.
-- SME co the tao project.
+- User has a valid profile.
+- Student can apply.
+- SME can create projects.
 
-### 5.2. Luong project open
+### 5.2. Open Project Flow
 
-1. SME tao project DRAFT.
-2. SME upload attachments.
-3. SME publish project.
-4. He thong validate subscription.
-5. Project chuyen OPEN.
-6. Student gui application.
-7. SME chon application.
-8. He thong tao offer va escrow.
-9. SME thanh toan.
-10. Student chap nhan offer.
-11. Project chuyen IN_PROGRESS.
+1. SME creates project draft.
+2. SME uploads attachments.
+3. SME publishes project.
+4. System validates subscription.
+5. Project becomes `OPEN`.
+6. Student submits application.
+7. SME selects application.
+8. System creates offer and escrow.
+9. SME pays escrow.
+10. Student accepts offer.
+11. Project becomes `IN_PROGRESS`.
 
-Ket qua mong doi:
+Expected result:
 
-- Project co selected student.
-- Escrow FUNDED.
-- Sketch va Final milestone san sang.
+- Project has selected Student.
+- Escrow is `FUNDED`.
+- Sketch and Final milestones are ready.
 
-### 5.3. Luong thuc hien project
+### 5.3. Execution Flow
 
-1. Student nop Sketch.
-2. SME approve Sketch hoac request revision.
-3. Student nop revision neu co.
-4. Sketch approved.
-5. Student nop Final.
-6. SME approve Final hoac request revision/report invalid/open dispute.
-7. Final approved.
-8. Project COMPLETED.
+1. Student submits Sketch.
+2. SME approves or requests revision.
+3. Student submits revision if needed.
+4. Sketch is approved.
+5. Student submits Final.
+6. SME approves, requests revision, reports invalid file, or opens dispute.
+7. Final is approved.
+8. Project is completed.
 
-Ket qua mong doi:
+Expected result:
 
-- Submission va review action duoc ghi day du.
-- Status project/milestone/submission nhat quan.
+- Submission and review actions are recorded.
+- Project, milestone, and submission statuses remain consistent.
 
-### 5.4. Luong thanh toan va giai ngan
+### 5.4. Money Flow
 
-1. SME payment SUCCESS.
-2. Escrow FUNDED.
-3. Project completed.
-4. Escrow RELEASE_PENDING.
-5. He thong tao disbursement.
-6. Wallet Student tang available balance.
-7. Escrow RELEASED.
+1. SME payment succeeds.
+2. Escrow is funded.
+3. Project is completed.
+4. Escrow moves to release pending.
+5. System creates disbursement.
+6. Student wallet is credited.
+7. Escrow is released.
 
-Ket qua mong doi:
+Expected result:
 
-- Platform fee duoc tinh dung theo subscription plan.
-- Wallet transaction ghi nhan so du sau giao dich.
+- Platform fee is calculated correctly.
+- Wallet transaction stores balance after transaction.
 
-### 5.5. Luong dispute
+### 5.5. Dispute Flow
 
-1. Mot ben open dispute.
-2. Project va escrow chuyen DISPUTED.
-3. Hai ben nop evidence.
-4. Admin review.
-5. Admin ra decision.
-6. He thong tao refund/disbursement.
-7. Dispute RESOLVED.
+1. A party opens dispute.
+2. Project and escrow become disputed.
+3. Parties submit evidence.
+4. Admin reviews.
+5. Admin resolves.
+6. System creates refund/disbursement.
+7. Dispute is resolved.
 
-Ket qua mong doi:
+Expected result:
 
-- Escrow khong release khi dispute open.
-- Quyet dinh Admin co rationale va phan bo tien ro rang.
+- Escrow cannot be released while dispute is open.
+- Admin decision has clear rationale and money allocation.
 
-## 6. Data model MVP
+## 6. MVP Data Model
 
-ERD MVP tuong ung gom 34 entity:
+The MVP ERD has 34 entities:
 
 - `users`
 - `user_sessions`
@@ -595,9 +572,9 @@ ERD MVP tuong ung gom 34 entity:
 - `notifications`
 - `audit_logs`
 
-Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML dung cho dbdiagram.io nam trong `D4U_ERD.dbml`.
+Detailed attributes and relationships are in `Entity_Dictionary_D4U.md`. DBML for dbdiagram.io is in `D4U_ERD.dbml`.
 
-## 7. API nhom chuc nang goi y
+## 7. Suggested API Groups
 
 ### 7.1. Auth
 
@@ -625,7 +602,7 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - `POST /projects/{id}/publish`
 - `POST /projects/{id}/cancel`
 
-### 7.4. Applications va offers
+### 7.4. Applications and Offers
 
 - `POST /projects/{id}/applications`
 - `GET /projects/{id}/applications`
@@ -633,13 +610,13 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - `POST /offers/{id}/accept`
 - `POST /offers/{id}/reject`
 
-### 7.5. Payments va escrow
+### 7.5. Payments and Escrow
 
 - `POST /offers/{id}/payment`
 - `POST /payments/webhook`
 - `GET /projects/{id}/escrow`
 
-### 7.6. Submissions va review
+### 7.6. Submissions and Review
 
 - `POST /projects/{id}/submissions`
 - `GET /projects/{id}/submissions`
@@ -661,22 +638,22 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - `POST /withdrawal-requests`
 - `POST /admin/withdrawal-requests/{id}/process`
 
-### 7.9. Ratings va notifications
+### 7.9. Ratings and Notifications
 
 - `POST /projects/{id}/ratings`
 - `GET /notifications`
 - `POST /notifications/{id}/read`
 
-## 8. Uu tien build MVP
+## 8. Build Priority
 
 ### Phase 1: Foundation
 
 - Auth email/password.
 - Role authorization.
 - User/profile CRUD.
-- File upload metadata.
-- Design categories seed.
-- Subscription plans seed.
+- File metadata.
+- Design category seed.
+- Subscription plan seed.
 
 ### Phase 2: Marketplace
 
@@ -685,7 +662,7 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - Offer flow.
 - Project status history.
 
-### Phase 3: Payment va project execution
+### Phase 3: Payment and Execution
 
 - Escrow creation.
 - Payment sandbox.
@@ -695,7 +672,7 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - Revision request.
 - Invalid file report.
 
-### Phase 4: Completion va money movement
+### Phase 4: Completion and Money Movement
 
 - Final approval.
 - Disbursement.
@@ -704,7 +681,7 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - Payment method.
 - Withdrawal request.
 
-### Phase 5: Trust va operation
+### Phase 5: Trust and Operations
 
 - Student verification admin.
 - Dispute open/evidence/resolve.
@@ -712,89 +689,88 @@ Chi tiet attribute va relationship nam trong `Entity_Dictionary_D4U.md`. Ma DBML
 - In-app notification.
 - Audit log.
 
-## 9. Ngoai pham vi MVP
+## 9. Out of MVP
 
-Nhung tinh nang sau khong nen lam trong MVP dau tien:
-
-- Chat realtime.
+- Realtime chat.
 - Social login.
-- Portfolio builder chi tiet.
-- Skill/software matching nang cao.
+- Detailed portfolio builder.
+- Skill/software matching.
 - AI recommendation.
-- Subscription billing tu dong phuc tap.
+- Automated subscription billing.
 - Dispute appeal.
-- Reputation ledger rieng.
-- User warning workflow day du.
+- Reputation ledger.
+- User warning workflow.
 - Email/push notification delivery pipeline.
 - Contract/e-signature.
-- KYC ngan hang nang cao.
-- Mobile native app.
+- Advanced bank KYC.
+- Native mobile app.
 
-## 10. Rui ro MVP va cach giam thieu
+## 10. MVP Risks and Mitigation
 
-### 10.1. Payment va escrow phuc tap hon du kien
+### 10.1. Payment and escrow complexity
 
-Giam thieu:
+Mitigation:
 
-- Dung payment sandbox trong MVP.
-- Tach ro payment, escrow, disbursement va wallet transaction.
-- Dam bao webhook idempotent.
+- Start with sandbox payment.
+- Keep payment, escrow, disbursement, and wallet transaction separate.
+- Make webhook handling idempotent.
 
-### 10.2. Dispute co nhieu edge case
+### 10.2. Dispute edge cases
 
-Giam thieu:
+Mitigation:
 
-- MVP chi can dispute decision truc tiep tren bang `disputes`.
-- Admin nhap manual phan bo tien.
-- Appeal dua sang phase sau.
+- Store the MVP decision directly on `disputes`.
+- Let Admin manually allocate money.
+- Move appeals to a later phase.
 
-### 10.3. File design co dinh dang kho xu ly
+### 10.3. Difficult design file formats
 
-Giam thieu:
+Mitigation:
 
-- Luu metadata va file goc trong object storage.
-- Watermark chi ap dung duoc cho file preview.
-- File Figma/AI/PSD/ZIP co the review bang download permission sau khi co rule.
+- Store original files in object storage.
+- Store metadata in PostgreSQL.
+- Apply watermark only to previewable formats.
+- Use permission rules for Figma/AI/PSD/ZIP files.
 
-### 10.4. Scope bi phong to
+### 10.4. Scope creep
 
-Giam thieu:
+Mitigation:
 
-- Chi build theo 34 entity MVP.
-- Moi feature moi phai tra loi: co can de pass MVP acceptance criteria khong?
-- Neu khong, dua vao phase sau.
+- Build only against the 34-entity MVP.
+- Ask whether every new feature is required by the MVP checklist.
+- Move non-required features to a later phase.
 
-## 11. Checklist nghiem thu MVP
+## 11. MVP Acceptance Checklist
 
-- [ ] Guest dang ky thanh cong.
-- [ ] User dang nhap/dang xuat thanh cong.
-- [ ] Student tao profile thanh cong.
-- [ ] SME tao profile thanh cong.
-- [ ] Admin duyet hoac tu choi Student verification.
-- [ ] Seed duoc Basic, Pro, Premium plans.
-- [ ] SME Basic khong publish duoc qua 2 active open projects.
-- [ ] SME Basic khong publish duoc project qua 5.000.000 VND.
-- [ ] SME tao va publish open project thanh cong.
-- [ ] Student xem danh sach open projects.
-- [ ] Student gui application thanh cong.
-- [ ] SME xem application list.
-- [ ] SME tao offer cho Student.
-- [ ] SME thanh toan escrow sandbox thanh cong.
-- [ ] Student chap nhan offer.
-- [ ] Project chuyen IN_PROGRESS.
-- [ ] He thong tao Sketch va Final milestones.
-- [ ] Student nop Sketch voi file hop le.
-- [ ] SME approve Sketch.
-- [ ] SME request revision khi can.
-- [ ] Student nop Revision.
-- [ ] Student nop Final.
-- [ ] SME approve Final.
-- [ ] Project chuyen COMPLETED.
-- [ ] Escrow release thanh cong.
-- [ ] Wallet Student duoc cong net amount.
-- [ ] Student tao withdrawal request hop le.
-- [ ] Student va SME rating nhau trong 7 ngay.
-- [ ] Student hoac SME open dispute.
-- [ ] Admin resolve dispute.
-- [ ] Notification in-app duoc tao cho event chinh.
-- [ ] Audit log ghi lai action quan trong.
+- [ ] Guest can register.
+- [ ] User can log in and log out.
+- [ ] Student can create profile.
+- [ ] SME can create profile.
+- [ ] Admin can approve or reject Student verification.
+- [ ] Basic, Pro, and Premium plans are seeded.
+- [ ] Basic SME cannot publish more than 2 active open projects.
+- [ ] Basic SME cannot publish a project above 5,000,000 VND.
+- [ ] SME can create and publish an open project.
+- [ ] Student can view open projects.
+- [ ] Student can submit application.
+- [ ] SME can view applications.
+- [ ] SME can create offer.
+- [ ] SME can fund escrow through sandbox payment.
+- [ ] Student can accept offer.
+- [ ] Project becomes `IN_PROGRESS`.
+- [ ] System creates Sketch and Final milestones.
+- [ ] Student can submit Sketch with valid files.
+- [ ] SME can approve Sketch.
+- [ ] SME can request revision.
+- [ ] Student can submit Revision.
+- [ ] Student can submit Final.
+- [ ] SME can approve Final.
+- [ ] Project becomes `COMPLETED`.
+- [ ] Escrow releases successfully.
+- [ ] Student wallet is credited with net amount.
+- [ ] Student can create a valid withdrawal request.
+- [ ] Student and SME can rate each other within 7 days.
+- [ ] Student or SME can open dispute.
+- [ ] Admin can resolve dispute.
+- [ ] In-app notifications are created for key events.
+- [ ] Audit logs are created for important actions.

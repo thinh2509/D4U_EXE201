@@ -1,6 +1,6 @@
 # D4U MVP
 
-D4U is an MVP marketplace connecting Student Designers and SMEs with project applications, offers, escrow payment, sketch/final submissions, review, dispute handling, wallet withdrawal, rating, notifications, and audit logs.
+D4U is an MVP marketplace that connects Student Designers with SMEs. The MVP focuses on project posting, applications, offers, escrow payment, sketch/final submissions, review, disputes, wallet withdrawal, ratings, in-app notifications, and audit logs.
 
 ## Stack
 
@@ -48,7 +48,7 @@ For multi-agent work, split by ownership:
 
 - Schema Worker: entities, enums, DbContext, migrations.
 - Feature Worker: one vertical slice such as Projects, Offers, Submissions, Wallets.
-- QA Reviewer: read-only review against MVP checklist.
+- QA Reviewer: read-only review against the MVP checklist.
 
 Keep the first build MVP-only. Post-MVP features are listed in `MVP_D4U.md`.
 

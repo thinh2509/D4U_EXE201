@@ -1,27 +1,27 @@
 # D4U MVP Technical Stack
 
-## 1. Muc tieu tai lieu
+## 1. Purpose
 
-Tai lieu nay dinh nghia tech stack, kien truc, convention va chien luoc phat trien cho D4U MVP. Day la tai lieu ky thuat chinh de developer va Codex agents implement project theo cung mot huong, tranh tu y mo rong scope ngoai MVP.
+This document defines the technical stack, architecture, conventions, and implementation strategy for the D4U MVP. It is the main technical guide for developers and Codex agents so implementation stays consistent and MVP-only.
 
-Source of truth lien quan:
+Related source of truth:
 
 - MVP scope: `MVP_D4U.md`
 - MVP backlog: `BACKLOG_D4U_MVP.md`
 - GitHub workflow: `GITHUB_WORKFLOW_D4U.md`
-- ERD MVP: `D4U_ERD.dbml`
+- MVP ERD: `D4U_ERD.dbml`
 - Entity dictionary: `Entity_Dictionary_D4U.md`
 - Agent guide: `AGENTS.md`
 - Project skill: `.codex/skills/d4u-mvp-dotnet`
 
-## 2. Tech stack chinh
+## 2. Core Stack
 
 ### 2.1. Backend
 
 - Framework: ASP.NET Core Web API
 - Target framework: .NET 8 (`net8.0`)
 - Language: C#
-- API style: REST API
+- API style: REST
 - Documentation: Swagger/OpenAPI
 - ORM: Entity Framework Core 8
 - PostgreSQL provider: Npgsql.EntityFrameworkCore.PostgreSQL
@@ -29,12 +29,11 @@ Source of truth lien quan:
 ### 2.2. Database
 
 - Database: PostgreSQL
-- Migration: EF Core Migrations
+- Migrations: EF Core Migrations
 - ID strategy: UUID/GUID
-- Money type: `decimal(12,2)`
-- Timestamp type in C#: `DateTimeOffset`
-- Timestamp type in PostgreSQL: timestamp/timestamptz depending EF provider mapping
-- Naming convention: snake_case for table/column names
+- Money fields: `decimal(12,2)`
+- C# timestamp type: `DateTimeOffset`
+- Database naming: snake_case tables and columns
 
 ### 2.3. Authentication
 
@@ -44,15 +43,15 @@ MVP authentication:
 - Password hashing.
 - JWT access token.
 - Refresh token stored as hash in `user_sessions`.
-- Role-based authorization: STUDENT, SME, ADMIN.
+- Role-based authorization: `STUDENT`, `SME`, `ADMIN`.
 
-Not MVP:
+Out of MVP:
 
 - Social login.
 - SSO.
 - MFA.
 
-### 2.4. File storage
+### 2.4. File Storage
 
 MVP direction:
 
@@ -77,11 +76,11 @@ MVP direction:
 - Payment sandbox first.
 - Provider can be PayOS, VNPAY, or a mocked provider behind an interface.
 - Webhook handling must be idempotent.
-- Escrow, payment, disbursement and wallet transaction must be transactionally consistent.
+- Escrow, payment, disbursement, and wallet transaction updates must be transactionally consistent.
 
-## 3. Solution structure
+## 3. Solution Structure
 
-Initial structure:
+Current simple structure:
 
 ```text
 D4U.Api/
@@ -97,7 +96,7 @@ D4U.Api/
   Program.cs
 ```
 
-Recommended as project grows:
+Recommended structure when the project grows:
 
 ```text
 D4U.sln
@@ -111,50 +110,32 @@ tests/
   D4U.IntegrationTests/
 ```
 
-For MVP speed, one Web API project is acceptable at first. Split into multiple projects when module boundaries become painful or tests need clearer isolation.
+For MVP speed, one Web API project is acceptable. Split into multiple projects when module boundaries or tests become difficult to manage.
 
-## 4. Architecture layers
+## 4. Architecture Layers
 
-### 4.1. API layer
+### 4.1. API Layer
 
 Responsibilities:
 
 - HTTP routing.
 - Authentication and authorization attributes.
 - Request/response DTO binding.
-- Returning proper HTTP status codes.
+- HTTP status codes.
 - No business logic beyond basic input shape.
 
-Examples:
-
-- `ProjectsController`
-- `ApplicationsController`
-- `OffersController`
-- `PaymentsController`
-- `SubmissionsController`
-- `WalletsController`
-- `AdminController`
-
-### 4.2. Application layer
+### 4.2. Application Layer
 
 Responsibilities:
 
 - Use cases.
 - Business rules.
 - Validation.
-- Authorization-by-ownership checks that need database data.
+- Ownership checks that require database data.
 - Transaction orchestration.
-- Notification/audit event creation.
+- Notification and audit event creation.
 
-Examples:
-
-- `PublishProjectService`
-- `CreateApplicationService`
-- `AcceptOfferService`
-- `ApproveFinalSubmissionService`
-- `ResolveDisputeService`
-
-### 4.3. Domain layer
+### 4.3. Domain Layer
 
 Responsibilities:
 
@@ -163,9 +144,9 @@ Responsibilities:
 - State transition helpers.
 - Core business constants.
 
-Keep domain independent from ASP.NET-specific concepts.
+Keep the domain layer independent from ASP.NET-specific concepts.
 
-### 4.4. Infrastructure layer
+### 4.4. Infrastructure Layer
 
 Responsibilities:
 
@@ -175,18 +156,11 @@ Responsibilities:
 - External integrations: payment provider, file storage, email later.
 - System clock abstraction if needed.
 
-## 5. MVP module boundaries
+## 5. MVP Module Boundaries
 
 ### 5.1. Auth
 
-Owns:
-
-- Register.
-- Login.
-- Refresh token.
-- Logout.
-- Password hashing.
-- JWT issuing.
+Owns register, login, refresh token, logout, password hashing, and JWT issuing.
 
 Tables:
 
@@ -195,12 +169,7 @@ Tables:
 
 ### 5.2. Profiles
 
-Owns:
-
-- Student profile.
-- SME profile.
-- Admin profile.
-- Student verification.
+Owns Student profile, SME profile, Admin profile, and Student verification.
 
 Tables:
 
@@ -212,12 +181,7 @@ Tables:
 
 ### 5.3. Subscription
 
-Owns:
-
-- Basic/Pro/Premium seed.
-- Current SME subscription.
-- Project publishing limits.
-- Platform fee rate lookup.
+Owns Basic/Pro/Premium seed data, current SME subscription, project publishing limits, and platform fee rate lookup.
 
 Tables:
 
@@ -226,13 +190,7 @@ Tables:
 
 ### 5.4. Projects
 
-Owns:
-
-- Project draft.
-- Publish/cancel.
-- Project listing/detail.
-- Attachments.
-- Status history.
+Owns project drafts, publish/cancel, listing/detail, attachments, and status history.
 
 Tables:
 
@@ -241,29 +199,18 @@ Tables:
 - `project_status_histories`
 - `design_categories`
 
-### 5.5. Applications and offers
+### 5.5. Applications and Offers
 
-Owns:
-
-- Student application.
-- SME offer.
-- Student accept/reject.
+Owns Student applications, SME offers, and Student accept/reject.
 
 Tables:
 
 - `project_applications`
 - `project_offers`
 
-### 5.6. Payments and escrow
+### 5.6. Payments and Escrow
 
-Owns:
-
-- Escrow creation.
-- Payment creation.
-- Payment webhook.
-- Escrow status.
-- Refund.
-- Disbursement.
+Owns escrow creation, payment creation, payment webhook, escrow status, refund, and disbursement.
 
 Tables:
 
@@ -272,16 +219,9 @@ Tables:
 - `refunds`
 - `disbursements`
 
-### 5.7. Project execution
+### 5.7. Project Execution
 
-Owns:
-
-- Milestone creation.
-- Sketch submission.
-- Final submission.
-- Review action.
-- Revision request.
-- Invalid file report.
+Owns milestone creation, Sketch submission, Final submission, review action, revision request, and invalid file report.
 
 Tables:
 
@@ -294,12 +234,7 @@ Tables:
 
 ### 5.8. Wallets
 
-Owns:
-
-- Wallet balance.
-- Wallet ledger.
-- Payment methods.
-- Withdrawal request.
+Owns wallet balance, wallet ledger, payment methods, and withdrawal requests.
 
 Tables:
 
@@ -310,25 +245,16 @@ Tables:
 
 ### 5.9. Disputes
 
-Owns:
-
-- Open dispute.
-- Evidence.
-- Admin resolution.
-- Refund/disbursement decision execution.
+Owns open dispute, evidence, Admin resolution, and refund/disbursement decision execution.
 
 Tables:
 
 - `disputes`
 - `dispute_evidences`
 
-### 5.10. Trust and operations
+### 5.10. Trust and Operations
 
-Owns:
-
-- Ratings.
-- In-app notifications.
-- Audit logs.
+Owns ratings, in-app notifications, and audit logs.
 
 Tables:
 
@@ -336,9 +262,9 @@ Tables:
 - `notifications`
 - `audit_logs`
 
-## 6. API conventions
+## 6. API Conventions
 
-### 6.1. Route style
+### 6.1. Route Style
 
 Use plural resources:
 
@@ -353,9 +279,9 @@ Use plural resources:
 /api/wallets/me
 ```
 
-### 6.2. Response style
+### 6.2. Response Style
 
-Use consistent response DTOs. Avoid returning EF entities directly.
+Use response DTOs. Do not return EF entities directly.
 
 Success example:
 
@@ -377,53 +303,53 @@ Error example:
 }
 ```
 
-### 6.3. HTTP status codes
+### 6.3. HTTP Status Codes
 
 - `200 OK`: successful read/update/action.
 - `201 Created`: resource created.
-- `204 No Content`: successful delete/revoke with no body.
+- `204 No Content`: successful action with no body.
 - `400 Bad Request`: invalid input or business validation failure.
 - `401 Unauthorized`: not authenticated.
 - `403 Forbidden`: authenticated but not allowed.
-- `404 Not Found`: resource not found or hidden by ownership rule.
-- `409 Conflict`: duplicate application, invalid state transition, idempotency conflict.
+- `404 Not Found`: missing resource or hidden by ownership rule.
+- `409 Conflict`: duplicate application, invalid state transition, or idempotency conflict.
 
-## 7. Authorization rules
+## 7. Authorization Rules
 
-### 7.1. Role checks
+### 7.1. Role Checks
 
-- Student endpoints require role STUDENT.
-- SME project creation/review endpoints require role SME.
-- Admin operation endpoints require role ADMIN.
+- Student endpoints require `STUDENT`.
+- SME project creation/review endpoints require `SME`.
+- Admin operation endpoints require `ADMIN`.
 
-### 7.2. Ownership checks
+### 7.2. Ownership Checks
 
 Always check ownership for:
 
 - SME editing/reviewing only own projects.
-- Student submitting only selected project.
-- Student viewing own wallet and withdrawal requests.
-- User accessing own files unless admin or explicit project permission.
+- Student submitting only selected projects.
+- Student viewing own wallet and withdrawals.
+- User accessing own files unless Admin or explicit project permission applies.
 
-### 7.3. Blocked users
+### 7.3. Blocked Users
 
-Users with status `SUSPENDED`, `BANNED`, or `DELETED` must not perform protected business actions.
+Users with `SUSPENDED`, `BANNED`, or `DELETED` status must not perform protected business actions.
 
-## 8. EF Core conventions
+## 8. EF Core Conventions
 
-### 8.1. Entity mapping
+### 8.1. Entity Mapping
 
 - Map tables and columns explicitly to snake_case.
 - Configure indexes from `D4U_ERD.dbml`.
 - Configure decimal precision for money fields.
-- Configure max lengths from ERD.
+- Configure max lengths from the ERD.
 - Configure relationships explicitly.
 
 ### 8.2. Enums
 
 Recommended MVP approach:
 
-- Store enum values as strings in PostgreSQL for readability.
+- Store enum values as strings for readability.
 - Keep C# enums in `Domain/Enums`.
 - Convert with EF Core `.HasConversion<string>()`.
 
@@ -442,38 +368,36 @@ If `dotnet-ef` is missing:
 dotnet tool install --global dotnet-ef
 ```
 
-### 8.4. Seed data
+### 8.4. Seed Data
 
 Seed minimum data:
 
 - Subscription plans: BASIC, PRO, PREMIUM.
 - Design categories from `MVP_D4U.md`.
-- Optional first admin user only in development.
+- Optional development Admin user.
 
-## 9. State machines
+## 9. State Machines
 
 ### 9.1. Project
 
 Important states:
 
-- DRAFT
-- OPEN
-- OFFER_SELECTED
-- PAYMENT_SECURED
-- WAITING_FOR_ACCEPTANCE
-- IN_PROGRESS
-- SKETCH_IN_REVIEW
-- REVISION_REQUESTED
-- FINAL_IN_REVIEW
-- COMPLETED
-- DISPUTED
-- CANCELLED
+- `DRAFT`
+- `OPEN`
+- `OFFER_SELECTED`
+- `PAYMENT_SECURED`
+- `WAITING_FOR_ACCEPTANCE`
+- `IN_PROGRESS`
+- `SKETCH_IN_REVIEW`
+- `REVISION_REQUESTED`
+- `FINAL_IN_REVIEW`
+- `COMPLETED`
+- `DISPUTED`
+- `CANCELLED`
 
 Always write `project_status_histories` when project status changes.
 
 ### 9.2. Offer
-
-Flow:
 
 ```text
 PENDING_PAYMENT -> WAITING_ACCEPTANCE -> ACCEPTED
@@ -484,8 +408,6 @@ WAITING_ACCEPTANCE -> EXPIRED
 
 ### 9.3. Escrow
 
-Flow:
-
 ```text
 PENDING_PAYMENT -> FUNDED -> RELEASE_PENDING -> RELEASED
 FUNDED -> DISPUTED -> RELEASED
@@ -495,27 +417,25 @@ FUNDED -> REFUNDED
 
 ### 9.4. Milestone
 
-Flow:
-
 ```text
 PENDING -> SUBMITTED -> IN_REVIEW -> APPROVED
 IN_REVIEW -> REVISION_REQUESTED
 IN_REVIEW -> AUTO_APPROVED
 ```
 
-## 10. Transaction boundaries
+## 10. Transaction Boundaries
 
-Use database transaction for:
+Use database transactions for:
 
 - Payment webhook updates payment + escrow + offer/project status.
-- Student accepts offer + project starts + milestones created.
+- Student accepts offer + project starts + milestones are created.
 - Final approval + disbursement + wallet credit + wallet transaction + escrow release.
 - Dispute resolution + refund/disbursement + escrow/project status update.
 - Withdrawal processing + wallet debit + wallet transaction.
 
-## 11. Testing strategy
+## 11. Testing Strategy
 
-### 11.1. Unit tests
+### 11.1. Unit Tests
 
 Use for:
 
@@ -524,7 +444,7 @@ Use for:
 - Platform fee calculation.
 - Wallet balance calculation.
 
-### 11.2. Integration tests
+### 11.2. Integration Tests
 
 Use for:
 
@@ -538,7 +458,7 @@ Recommended test database:
 - PostgreSQL test container if available.
 - Separate local PostgreSQL database if containers are not available.
 
-### 11.3. MVP workflow tests
+### 11.3. MVP Workflow Tests
 
 Priority flows:
 
@@ -551,9 +471,9 @@ Priority flows:
 7. Escrow releases to wallet.
 8. Student creates withdrawal request.
 9. Dispute blocks escrow release.
-10. Rating is allowed after completed and duplicate rating fails.
+10. Rating is allowed after completion and duplicate rating fails.
 
-## 12. Logging and audit
+## 12. Logging and Audit
 
 Use structured logs for:
 
@@ -568,14 +488,14 @@ Write audit logs for:
 
 - Admin verification decisions.
 - Project publish/cancel.
-- Payment success/failure webhook.
+- Payment webhook success/failure.
 - Escrow funded/released/refunded/disputed.
 - Admin dispute resolution.
 - Wallet balance changes.
 - Withdrawal processing.
 - User status changes.
 
-## 13. Local development
+## 13. Local Development
 
 ### 13.1. Prerequisites
 
@@ -583,7 +503,7 @@ Write audit logs for:
 - PostgreSQL.
 - Optional: pgAdmin or another database client.
 
-### 13.2. Connection string
+### 13.2. Connection String
 
 Set in `D4U.Api/appsettings.json` or user secrets:
 
@@ -621,7 +541,7 @@ Health check:
 http://localhost:5000/health
 ```
 
-## 14. Deployment direction for MVP
+## 14. MVP Deployment Direction
 
 Recommended simple MVP deployment:
 
@@ -642,9 +562,9 @@ Required environment variables:
 - `Storage__Provider`
 - `Storage__Bucket`
 
-## 15. Agent usage guidance
+## 15. Agent Usage Guidance
 
-When using Codex agents, use the project skill:
+When using Codex agents, use:
 
 ```text
 Use the D4U MVP .NET skill.
@@ -676,12 +596,12 @@ For review:
 Use the D4U MVP .NET skill. Review the Projects slice against MVP_D4U.md, D4U_ERD.dbml, and TECH_STACK_D4U.md. Do not edit files. Report bugs, risks, and missing tests.
 ```
 
-## 16. Non-MVP guardrail
+## 16. Non-MVP Guardrail
 
-Do not implement these unless explicitly requested:
+Do not implement unless explicitly requested:
 
 - AI recommendation.
-- Chat realtime.
+- Realtime chat.
 - Social login.
 - Portfolio builder.
 - Skill/software matching.

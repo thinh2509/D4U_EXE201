@@ -1,45 +1,45 @@
 # D4U GitHub Workflow
 
-Tai lieu nay dinh nghia quy trinh dung Git/GitHub khi vibe coding voi Codex agents cho D4U MVP.
+This document defines the Git and GitHub workflow for vibe coding with Codex agents on the D4U MVP.
 
-## 1. Nguyen tac chinh
+## 1. Core Rules
 
-- Khong commit truc tiep len `main` khi dang implement feature.
-- Moi MVP slice phai lam tren mot branch rieng.
-- Moi branch nen nho, tap trung vao mot backlog group hoac mot vertical slice.
-- Commit message dung conventional commits.
-- Push branch len GitHub va tao Pull Request.
-- PR phai mo ta scope, test da chay, va backlog item lien quan.
-- Chi merge khi build pass va review xong.
+- Do not implement feature work directly on `main`.
+- Create one branch per MVP slice.
+- Keep branches small and focused.
+- Use conventional commit messages.
+- Push the branch and open a Pull Request.
+- Every PR must describe scope, validation, and related backlog items.
+- Merge only after build and review are complete.
 
-## 2. Source of truth truoc khi code
+## 2. Source of Truth Before Coding
 
-Truoc moi task, agent phai doc:
+Before each task, agents should read:
 
 - `BACKLOG_D4U_MVP.md`
 - `MVP_D4U.md`
 - `TECH_STACK_D4U.md`
-- `D4U_ERD.dbml` neu task cham database
-- `Entity_Dictionary_D4U.md` neu task cham entity/schema
+- `D4U_ERD.dbml` for database work
+- `Entity_Dictionary_D4U.md` for entity/schema work
 
-## 3. Branch naming
+## 3. Branch Naming
 
-Dung format:
+Use:
 
 ```text
 <type>/<scope>-<short-description>
 ```
 
-Type hop le:
+Valid types:
 
-- `feat`: tinh nang moi.
-- `fix`: sua loi.
-- `docs`: tai lieu.
-- `test`: them/sua test.
-- `refactor`: refactor khong doi behavior.
-- `chore`: cau hinh, tooling, cleanup.
+- `feat`: new feature.
+- `fix`: bug fix.
+- `docs`: documentation.
+- `test`: tests.
+- `refactor`: behavior-preserving code change.
+- `chore`: configuration, tooling, cleanup.
 
-Vi du:
+Examples:
 
 ```text
 feat/schema-mvp-entities
@@ -49,15 +49,15 @@ fix/escrow-release-transaction
 docs/update-mvp-backlog
 ```
 
-## 4. Commit message
+## 4. Commit Messages
 
-Dung conventional commits:
+Use conventional commits:
 
 ```text
 <type>(<scope>): <summary>
 ```
 
-Vi du:
+Examples:
 
 ```text
 feat(schema): add MVP EF entities
@@ -66,15 +66,15 @@ fix(wallets): prevent negative available balance
 docs(backlog): mark project slice complete
 ```
 
-Quy tac:
+Rules:
 
-- Summary viet tieng Anh ngan gon.
-- Khong ket thuc bang dau cham.
-- Moi commit nen build duoc neu co the.
+- Use a short English summary.
+- Do not end the summary with a period.
+- Prefer commits that can still build.
 
-## 5. Quy trinh lam viec chuan
+## 5. Standard Workflow
 
-### 5.1. Bat dau task moi
+### 5.1. Start a New Task
 
 ```powershell
 git status --short
@@ -82,29 +82,27 @@ git pull --ff-only origin main
 git switch -c feat/<scope>-<short-description>
 ```
 
-Neu branch da ton tai:
+If the branch already exists:
 
 ```powershell
 git switch feat/<scope>-<short-description>
 git rebase main
 ```
 
-### 5.2. Trong khi code
-
-Kiem tra thay doi:
+### 5.2. While Coding
 
 ```powershell
 git status --short
 git diff
 ```
 
-Build/test truoc commit:
+Validate before commit:
 
 ```powershell
 dotnet build D4U.Api/D4U.Api.csproj
 ```
 
-Neu co test project:
+If a test project exists:
 
 ```powershell
 dotnet test
@@ -118,67 +116,67 @@ git status --short
 git commit -m "feat(scope): summary"
 ```
 
-### 5.4. Push branch
+### 5.4. Push Branch
 
 ```powershell
 git push -u origin HEAD
 ```
 
-### 5.5. Tao PR bang GitHub CLI neu co `gh`
+### 5.5. Create PR with GitHub CLI
+
+If `gh` is installed:
 
 ```powershell
 gh pr create --base main --head <branch-name> --title "feat(scope): summary" --body-file .github/PULL_REQUEST_TEMPLATE.md
 ```
 
-Neu can xem trang thai PR:
+Check PR status:
 
 ```powershell
 gh pr status
 gh pr checks
 ```
 
-### 5.6. Neu chua co GitHub CLI
+### 5.6. Fallback Without GitHub CLI
 
-Dung fallback:
+1. Push the branch with `git push -u origin HEAD`.
+2. Open `https://github.com/thinh2509/D4U_EXE201`.
+3. Click "Compare & pull request".
+4. Fill in `.github/PULL_REQUEST_TEMPLATE.md`.
 
-1. Push branch bang `git push -u origin HEAD`.
-2. Mo repo GitHub: `https://github.com/thinh2509/D4U_EXE201`.
-3. Bam "Compare & pull request".
-4. Copy noi dung template tu `.github/PULL_REQUEST_TEMPLATE.md`.
+## 6. PR Checklist
 
-## 6. PR checklist
+Every PR must include:
 
-Moi PR phai co:
+- Change summary.
+- Related backlog items.
+- MVP scope confirmation.
+- Build/test commands run.
+- Risks or unfinished work, if any.
 
-- Summary thay doi.
-- Backlog items lien quan.
-- Scope trong MVP.
-- Test/build da chay.
-- Rui ro hoac viec chua lam neu co.
+Do not merge a PR when:
 
-Khong merge PR neu:
+- It adds post-MVP features without explicit approval.
+- `dotnet build` fails.
+- It changes payment, escrow, wallet, or money movement without careful validation.
+- It changes schema without updating docs when needed.
 
-- Co thay doi ngoai MVP khong duoc user yeu cau.
-- `dotnet build` fail.
-- Cham payment/wallet/escrow ma khong co test hoac review ky.
-- Cham schema ma khong cap nhat ERD/dictionary/backlog neu can.
+## 7. Agent Command Pattern
 
-## 7. Agent command pattern
-
-Khi dung agent, prompt nen co dang:
+Use prompts like:
 
 ```text
 Use the D4U MVP .NET skill.
 Create branch feat/<scope>-<short-description>.
 Implement MVP slice: <slice name>.
-Use BACKLOG_D4U_MVP.md as checklist.
+Use BACKLOG_D4U_MVP.md as the checklist.
 Run dotnet build.
-Commit using conventional commit.
-Push branch to origin.
+Commit using a conventional commit.
+Push the branch to origin.
 Do not merge to main.
 ```
 
-Vi du:
+Example:
 
 ```text
 Use the D4U MVP .NET skill.
@@ -190,22 +188,22 @@ Push branch to origin.
 Do not merge to main.
 ```
 
-## 8. Main branch protection khuyen nghi tren GitHub
+## 8. Recommended GitHub Branch Protection
 
-Trong GitHub repo settings, nen bat:
+In GitHub repository settings, enable:
 
 - Require a pull request before merging.
 - Require approvals.
 - Require status checks to pass before merging.
 - Require branches to be up to date before merging.
 - Block force pushes.
-- Block deletions.
+- Block branch deletions.
 
-Neu chua co CI, co the bat PR requirement truoc, them CI sau.
+If CI is not complete yet, enable PR requirement first and add CI checks later.
 
-## 9. Viec agent phai cap nhat sau moi slice
+## 9. Required Updates After Each Slice
 
-- Cap nhat `BACKLOG_D4U_MVP.md` item da xong.
-- Cap nhat docs neu thay doi API/schema/tech convention.
-- Dam bao `README.md` van dung cach run.
-- Khong sua `Requirement.md` de hop ly hoa code; chi sua khi user thay doi yeu cau.
+- Update `BACKLOG_D4U_MVP.md` for completed items.
+- Update docs when API, schema, or technical conventions change.
+- Keep `README.md` accurate.
+- Do not edit `Requirement.md` just to justify implementation decisions; edit it only when the user changes requirements.

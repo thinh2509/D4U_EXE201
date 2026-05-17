@@ -23,9 +23,9 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 
 - Keep implementation MVP-only unless the user explicitly expands scope.
 - Use `BACKLOG_D4U_MVP.md` as the implementation checklist and update it as slices are completed.
-- Use branch + PR flow from `GITHUB_WORKFLOW_D4U.md`; do not commit feature work directly to `main`.
+- Use the branch + PR flow from `GITHUB_WORKFLOW_D4U.md`; do not commit feature work directly to `main`.
 - Preserve the 34-entity MVP as the first database target.
-- Do not add post-MVP features such as AI recommendation, chat realtime, social login, dispute appeal, or reputation ledger.
+- Do not add post-MVP features such as AI recommendation, realtime chat, social login, dispute appeal, or reputation ledger.
 - Prefer thin controllers, application services, EF Core persistence configuration, and DTOs.
 - Validate with `dotnet build` and tests when possible.
 
@@ -34,4 +34,4 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 - Architect: read-only planning and boundary review.
 - Schema Worker: EF entities, enums, DbContext, mappings, migrations.
 - Feature Worker: one vertical feature at a time.
-- QA Reviewer: read-only bug/test/security review.
+- QA Reviewer: read-only bug, test, and security review.
