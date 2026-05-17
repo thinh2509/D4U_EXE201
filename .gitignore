@@ -1,0 +1,45 @@
+# Build output
+bin/
+obj/
+TestResults/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/*.user
+
+# ASP.NET Core local settings and secrets
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+
+# Rider / JetBrains
+.idea/
+
+# Visual Studio Code
+.history/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+packages/
+
+# Coverage
+coverage/
+*.coverage
+*.coveragexml
+
+# Environment files
+.env
+.env.*
+!.env.example

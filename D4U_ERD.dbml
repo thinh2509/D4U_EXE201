@@ -1,0 +1,768 @@
+// D4U (Design 4 You) - MVP-only DBML ERD for dbdiagram.io
+// Scope: Requirement.md section 11 - Tieu chi chap nhan MVP
+
+Project d4u_mvp {
+  database_type: "PostgreSQL"
+  Note: "MVP schema for D4U: account/profile, project marketplace, escrow payment, milestone submission, review/revision, dispute, wallet withdrawal, rating, notification, audit."
+}
+
+Enum user_role {
+  STUDENT
+  SME
+  ADMIN
+}
+
+Enum user_status {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DELETED
+}
+
+Enum project_type {
+  OPEN
+  PRIVATE
+}
+
+Enum project_status {
+  DRAFT
+  OPEN
+  PRIVATE_INVITED
+  OFFER_SELECTED
+  PAYMENT_SECURED
+  WAITING_FOR_ACCEPTANCE
+  IN_PROGRESS
+  SKETCH_SUBMITTED
+  SKETCH_IN_REVIEW
+  REVISION_REQUESTED
+  FINAL_SUBMITTED
+  FINAL_IN_REVIEW
+  COMPLETED
+  FUNDS_AVAILABLE
+  CANCELLED
+  DISPUTED
+}
+
+Enum offer_status {
+  PENDING_PAYMENT
+  WAITING_ACCEPTANCE
+  ACCEPTED
+  REJECTED
+  REVOKED
+  EXPIRED
+}
+
+Enum payment_status {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+Enum escrow_status {
+  PENDING_PAYMENT
+  FUNDED
+  RELEASE_PENDING
+  RELEASED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  DISPUTED
+  CANCELLED
+}
+
+Enum milestone_type {
+  SKETCH
+  FINAL
+}
+
+Enum milestone_status {
+  PENDING
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  REVISION_REQUESTED
+  AUTO_APPROVED
+  CANCELLED
+}
+
+Enum submission_type {
+  SKETCH
+  FINAL
+  REVISION
+}
+
+Enum submission_status {
+  SUBMITTED
+  VALID
+  INVALID_REPORTED
+  APPROVED
+  REVISION_REQUESTED
+  DISPUTED
+}
+
+Enum review_action_type {
+  APPROVE_SKETCH
+  APPROVE_FINAL
+  REQUEST_REVISION
+  REPORT_INVALID_FILE
+  OPEN_DISPUTE
+  AUTO_APPROVE
+}
+
+Enum invalid_file_reason {
+  EMPTY_FILE
+  CANNOT_OPEN
+  WRONG_FORMAT
+  UNRELATED
+  BROKEN_LINK
+  OTHER
+}
+
+Enum dispute_status {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+  CANCELLED
+}
+
+Enum wallet_status {
+  ACTIVE
+  LOCKED
+  CLOSED
+}
+
+Enum wallet_transaction_type {
+  DISBURSEMENT_CREDIT
+  WITHDRAWAL_DEBIT
+  WITHDRAWAL_FAILED_REVERSAL
+  ADMIN_ADJUSTMENT
+}
+
+Enum notification_status {
+  UNREAD
+  READ
+}
+
+Table users {
+  id uuid [pk]
+  email varchar(255) [not null, unique]
+  username varchar(100) [not null, unique]
+  password_hash varchar(255) [not null]
+  full_name varchar(255) [not null]
+  avatar_url text
+  role user_role [not null]
+  status user_status [not null, default: 'PENDING']
+  email_verified_at timestamp
+  last_login_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (role, status)
+  }
+
+  Note: "MVP uses email/password login. Social login can be added later."
+}
+
+Table user_sessions {
+  id uuid [pk]
+  user_id uuid [not null]
+  refresh_token_hash varchar(255) [not null]
+  device_info text
+  ip_address varchar(64)
+  expires_at timestamp [not null]
+  revoked_at timestamp
+  created_at timestamp [not null]
+}
+
+Table admin_profiles {
+  id uuid [pk]
+  user_id uuid [not null, unique]
+  permission_level varchar(50) [not null, note: "SUPPORT, FINANCE, SUPER_ADMIN"]
+  created_at timestamp [not null]
+}
+
+Table student_profiles {
+  id uuid [pk]
+  user_id uuid [not null, unique]
+  school varchar(255) [not null]
+  major varchar(255) [not null]
+  study_start_year int [not null]
+  bio text
+  onboarding_status varchar(50) [not null, default: 'INCOMPLETE']
+  verification_status varchar(50) [not null, default: 'NOT_SUBMITTED']
+  average_rating decimal(3,2) [not null, default: 0]
+  completed_projects_count int [not null, default: 0]
+  can_withdraw boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    verification_status
+    average_rating
+  }
+}
+
+Table student_verifications {
+  id uuid [pk]
+  student_profile_id uuid [not null]
+  document_file_id uuid [not null]
+  status varchar(50) [not null, default: 'PENDING']
+  reviewed_by_admin_id uuid
+  rejection_reason text
+  submitted_at timestamp [not null]
+  reviewed_at timestamp
+
+  indexes {
+    (student_profile_id, status)
+  }
+}
+
+Table sme_profiles {
+  id uuid [pk]
+  user_id uuid [not null, unique]
+  company_name varchar(255) [not null]
+  representative_name varchar(255) [not null]
+  phone_number varchar(50) [not null]
+  business_field varchar(255) [not null]
+  logo_file_id uuid
+  onboarding_status varchar(50) [not null, default: 'INCOMPLETE']
+  average_rating decimal(3,2) [not null, default: 0]
+  completed_projects_count int [not null, default: 0]
+  active_open_project_count int [not null, default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table subscription_plans {
+  id uuid [pk]
+  code varchar(50) [not null, unique, note: "BASIC, PRO, PREMIUM"]
+  name varchar(100) [not null]
+  monthly_price decimal(12,2) [not null]
+  platform_fee_rate decimal(5,2) [not null]
+  max_active_open_projects int
+  max_project_budget decimal(12,2)
+  is_active boolean [not null, default: true]
+}
+
+Table sme_subscriptions {
+  id uuid [pk]
+  sme_profile_id uuid [not null]
+  subscription_plan_id uuid [not null]
+  status varchar(50) [not null, default: 'ACTIVE']
+  started_at timestamp [not null]
+  current_period_end timestamp
+  cancelled_at timestamp
+  created_at timestamp [not null]
+
+  indexes {
+    (sme_profile_id, status)
+  }
+}
+
+Table design_categories {
+  id uuid [pk]
+  name varchar(100) [not null, unique]
+  description text
+  is_active boolean [not null, default: true]
+}
+
+Table projects {
+  id uuid [pk]
+  sme_profile_id uuid [not null]
+  selected_student_profile_id uuid
+  design_category_id uuid [not null]
+  title varchar(255) [not null]
+  brief text [not null]
+  usage_purpose text
+  project_type project_type [not null]
+  status project_status [not null, default: 'DRAFT']
+  budget_amount decimal(12,2) [not null]
+  currency char(3) [not null, default: 'VND']
+  total_deadline_at timestamp [not null]
+  sketch_deadline_at timestamp [not null]
+  final_deadline_at timestamp [not null]
+  max_revision_rounds int [not null, default: 2]
+  current_revision_round int [not null, default: 0]
+  is_confidential boolean [not null, default: false]
+  allow_student_portfolio boolean [not null, default: true]
+  rating_due_at timestamp
+  published_at timestamp
+  accepted_at timestamp
+  completed_at timestamp
+  cancelled_at timestamp
+  cancellation_reason text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (status, project_type)
+    (sme_profile_id, status)
+    (selected_student_profile_id, status)
+    (design_category_id, status)
+    published_at
+  }
+}
+
+Table project_attachments {
+  id uuid [pk]
+  project_id uuid [not null]
+  file_id uuid [not null]
+  attachment_type varchar(50) [not null, default: 'BRIEF']
+  created_at timestamp [not null]
+}
+
+Table project_applications {
+  id uuid [pk]
+  project_id uuid [not null]
+  student_profile_id uuid [not null]
+  proposed_price decimal(12,2) [not null]
+  cover_letter text [not null]
+  estimated_duration_days int
+  status varchar(50) [not null, default: 'SUBMITTED']
+  submitted_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (project_id, student_profile_id) [unique]
+    (project_id, status)
+    (student_profile_id, status)
+  }
+}
+
+Table project_offers {
+  id uuid [pk]
+  project_id uuid [not null]
+  student_profile_id uuid [not null]
+  application_id uuid
+  status offer_status [not null, default: 'PENDING_PAYMENT']
+  offered_amount decimal(12,2) [not null]
+  expires_at timestamp
+  accepted_at timestamp
+  rejected_at timestamp
+  revoked_at timestamp
+  created_at timestamp [not null]
+
+  indexes {
+    (project_id, status)
+    (student_profile_id, status)
+  }
+}
+
+Table project_status_histories {
+  id uuid [pk]
+  project_id uuid [not null]
+  from_status project_status
+  to_status project_status [not null]
+  changed_by_user_id uuid
+  change_reason text
+  metadata_json json
+  created_at timestamp [not null]
+}
+
+Table project_milestones {
+  id uuid [pk]
+  project_id uuid [not null]
+  milestone_type milestone_type [not null]
+  status milestone_status [not null, default: 'PENDING']
+  deadline_at timestamp [not null]
+  submitted_at timestamp
+  review_due_at timestamp
+  approved_at timestamp
+  auto_approved_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (project_id, milestone_type) [unique]
+    (status, deadline_at)
+    (status, review_due_at)
+  }
+}
+
+Table project_submissions {
+  id uuid [pk]
+  project_id uuid [not null]
+  milestone_id uuid [not null]
+  submitted_by_student_id uuid [not null]
+  submission_type submission_type [not null]
+  revision_round int [not null, default: 0]
+  description text
+  status submission_status [not null, default: 'SUBMITTED']
+  submitted_at timestamp [not null]
+
+  indexes {
+    (project_id, submission_type, revision_round)
+  }
+}
+
+Table submission_files {
+  id uuid [pk]
+  submission_id uuid [not null]
+  file_id uuid [not null]
+  watermarked_file_id uuid
+  is_original_downloadable boolean [not null, default: false]
+  created_at timestamp [not null]
+}
+
+Table review_actions {
+  id uuid [pk]
+  project_id uuid [not null]
+  submission_id uuid [not null]
+  reviewer_user_id uuid
+  action review_action_type [not null]
+  comment text
+  created_at timestamp [not null]
+}
+
+Table revision_requests {
+  id uuid [pk]
+  project_id uuid [not null]
+  submission_id uuid [not null]
+  requested_by_user_id uuid [not null]
+  revision_round int [not null]
+  requested_changes text [not null]
+  status varchar(50) [not null, default: 'OPEN']
+  due_at timestamp [not null]
+  resolved_at timestamp
+  created_at timestamp [not null]
+
+  indexes {
+    (project_id, status)
+    (project_id, revision_round, submission_id) [unique]
+  }
+}
+
+Table invalid_file_reports {
+  id uuid [pk]
+  project_id uuid [not null]
+  submission_id uuid [not null]
+  reported_by_user_id uuid [not null]
+  reason_code invalid_file_reason [not null]
+  description text
+  status varchar(50) [not null, default: 'OPEN']
+  reupload_due_at timestamp [not null]
+  resolved_at timestamp
+  created_at timestamp [not null]
+}
+
+Table files {
+  id uuid [pk]
+  owner_user_id uuid
+  storage_provider varchar(50) [not null]
+  bucket varchar(255)
+  storage_key text [not null]
+  original_filename varchar(255) [not null]
+  mime_type varchar(100) [not null]
+  file_extension varchar(20) [not null]
+  file_size_bytes bigint [not null]
+  checksum varchar(128)
+  visibility varchar(50) [not null, default: 'PRIVATE']
+  scan_status varchar(50)
+  created_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (owner_user_id, created_at)
+    (storage_provider, storage_key)
+  }
+
+  Note: "Allowed MVP extensions: jpg,jpeg,png,webp,pdf,zip,fig,ai,psd,svg. Max size enforced in service layer."
+}
+
+Table escrows {
+  id uuid [pk]
+  project_id uuid [not null, unique]
+  sme_profile_id uuid [not null]
+  student_profile_id uuid [not null]
+  amount decimal(12,2) [not null]
+  currency char(3) [not null, default: 'VND']
+  platform_fee_rate decimal(5,2) [not null]
+  platform_fee_amount decimal(12,2)
+  status escrow_status [not null, default: 'PENDING_PAYMENT']
+  funded_at timestamp
+  released_at timestamp
+  refunded_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    status
+    (sme_profile_id, status)
+    (student_profile_id, status)
+  }
+}
+
+Table payments {
+  id uuid [pk]
+  payer_user_id uuid [not null]
+  escrow_id uuid
+  amount decimal(12,2) [not null]
+  currency char(3) [not null, default: 'VND']
+  provider varchar(100) [not null, note: "Sandbox provider for MVP, e.g. PAYOS or VNPAY."]
+  provider_transaction_id varchar(255)
+  status payment_status [not null, default: 'PENDING']
+  paid_at timestamp
+  created_at timestamp [not null]
+
+  indexes {
+    (provider, provider_transaction_id) [unique]
+    (escrow_id, status)
+    (payer_user_id, created_at)
+  }
+}
+
+Table refunds {
+  id uuid [pk]
+  escrow_id uuid [not null]
+  payment_id uuid
+  amount decimal(12,2) [not null]
+  currency char(3) [not null, default: 'VND']
+  reason varchar(50) [not null]
+  status varchar(50) [not null, default: 'PENDING']
+  provider_refund_id varchar(255)
+  created_by_user_id uuid
+  created_at timestamp [not null]
+  completed_at timestamp
+}
+
+Table disbursements {
+  id uuid [pk]
+  escrow_id uuid [not null]
+  wallet_id uuid [not null]
+  gross_amount decimal(12,2) [not null]
+  platform_fee_amount decimal(12,2) [not null]
+  net_amount decimal(12,2) [not null]
+  status varchar(50) [not null, default: 'PENDING']
+  created_at timestamp [not null]
+  completed_at timestamp
+}
+
+Table wallets {
+  id uuid [pk]
+  owner_user_id uuid [not null, unique]
+  student_profile_id uuid [unique]
+  currency char(3) [not null, default: 'VND']
+  available_balance decimal(12,2) [not null, default: 0]
+  pending_balance decimal(12,2) [not null, default: 0]
+  locked_balance decimal(12,2) [not null, default: 0]
+  status wallet_status [not null, default: 'ACTIVE']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table wallet_transactions {
+  id uuid [pk]
+  wallet_id uuid [not null]
+  type wallet_transaction_type [not null]
+  amount decimal(12,2) [not null]
+  balance_after decimal(12,2) [not null]
+  reference_type varchar(50)
+  reference_id uuid
+  description text
+  created_at timestamp [not null]
+
+  indexes {
+    (wallet_id, created_at)
+    (reference_type, reference_id)
+  }
+}
+
+Table payment_methods {
+  id uuid [pk]
+  user_id uuid [not null]
+  method_type varchar(50) [not null, default: 'BANK_ACCOUNT']
+  account_holder_name varchar(255)
+  masked_account_number varchar(100)
+  provider_token varchar(255)
+  is_default boolean [not null, default: false]
+  status varchar(50) [not null, default: 'ACTIVE']
+  created_at timestamp [not null]
+}
+
+Table withdrawal_requests {
+  id uuid [pk]
+  wallet_id uuid [not null]
+  requested_by_user_id uuid [not null]
+  payment_method_id uuid [not null]
+  amount decimal(12,2) [not null]
+  fee_amount decimal(12,2) [not null, default: 5000]
+  net_amount decimal(12,2) [not null]
+  status varchar(50) [not null, default: 'PENDING']
+  failure_reason text
+  requested_at timestamp [not null]
+  processed_at timestamp
+
+  Note: "Minimum withdrawal in MVP: 50,000 VND."
+}
+
+Table disputes {
+  id uuid [pk]
+  project_id uuid [not null]
+  escrow_id uuid
+  opened_by_user_id uuid [not null]
+  against_user_id uuid
+  reason_code varchar(50) [not null]
+  description text [not null]
+  status dispute_status [not null, default: 'OPEN']
+  assigned_admin_id uuid
+  decision_type varchar(50)
+  sme_refund_amount decimal(12,2) [not null, default: 0]
+  student_payout_amount decimal(12,2) [not null, default: 0]
+  platform_fee_amount decimal(12,2) [not null, default: 0]
+  decision_rationale text
+  opened_at timestamp [not null]
+  resolved_at timestamp
+
+  indexes {
+    (project_id, status)
+    (assigned_admin_id, status)
+  }
+
+  Note: "MVP stores the admin decision directly on disputes. A separate decision/appeal model can be added later."
+}
+
+Table dispute_evidences {
+  id uuid [pk]
+  dispute_id uuid [not null]
+  submitted_by_user_id uuid [not null]
+  file_id uuid
+  comment text
+  created_at timestamp [not null]
+}
+
+Table ratings {
+  id uuid [pk]
+  project_id uuid [not null]
+  rater_user_id uuid [not null]
+  rated_user_id uuid [not null]
+  rating_value int [not null]
+  comment varchar(500)
+  is_public boolean [not null, default: false]
+  created_at timestamp [not null]
+
+  indexes {
+    (project_id, rater_user_id, rated_user_id) [unique]
+    (rated_user_id, created_at)
+  }
+
+  Note: "Rating value must be 1..5. Rating window is 7 days after project completed."
+}
+
+Table notifications {
+  id uuid [pk]
+  recipient_user_id uuid [not null]
+  actor_user_id uuid
+  type varchar(80) [not null]
+  title varchar(255) [not null]
+  body text
+  reference_type varchar(50)
+  reference_id uuid
+  status notification_status [not null, default: 'UNREAD']
+  read_at timestamp
+  created_at timestamp [not null]
+
+  indexes {
+    (recipient_user_id, status, created_at)
+  }
+
+  Note: "MVP keeps in-app notifications only."
+}
+
+Table audit_logs {
+  id uuid [pk]
+  actor_user_id uuid
+  action varchar(100) [not null]
+  entity_type varchar(100) [not null]
+  entity_id uuid
+  before_json json
+  after_json json
+  ip_address varchar(64)
+  user_agent text
+  created_at timestamp [not null]
+
+  indexes {
+    (actor_user_id, created_at)
+    (entity_type, entity_id)
+    (action, created_at)
+  }
+}
+
+Ref: user_sessions.user_id > users.id
+Ref: admin_profiles.user_id > users.id
+Ref: student_profiles.user_id > users.id
+Ref: student_verifications.student_profile_id > student_profiles.id
+Ref: student_verifications.document_file_id > files.id
+Ref: student_verifications.reviewed_by_admin_id > users.id
+Ref: sme_profiles.user_id > users.id
+Ref: sme_profiles.logo_file_id > files.id
+Ref: sme_subscriptions.sme_profile_id > sme_profiles.id
+Ref: sme_subscriptions.subscription_plan_id > subscription_plans.id
+
+Ref: projects.sme_profile_id > sme_profiles.id
+Ref: projects.selected_student_profile_id > student_profiles.id
+Ref: projects.design_category_id > design_categories.id
+Ref: project_attachments.project_id > projects.id
+Ref: project_attachments.file_id > files.id
+Ref: project_applications.project_id > projects.id
+Ref: project_applications.student_profile_id > student_profiles.id
+Ref: project_offers.project_id > projects.id
+Ref: project_offers.student_profile_id > student_profiles.id
+Ref: project_offers.application_id > project_applications.id
+Ref: project_status_histories.project_id > projects.id
+Ref: project_status_histories.changed_by_user_id > users.id
+
+Ref: project_milestones.project_id > projects.id
+Ref: project_submissions.project_id > projects.id
+Ref: project_submissions.milestone_id > project_milestones.id
+Ref: project_submissions.submitted_by_student_id > student_profiles.id
+Ref: submission_files.submission_id > project_submissions.id
+Ref: submission_files.file_id > files.id
+Ref: submission_files.watermarked_file_id > files.id
+Ref: review_actions.project_id > projects.id
+Ref: review_actions.submission_id > project_submissions.id
+Ref: review_actions.reviewer_user_id > users.id
+Ref: revision_requests.project_id > projects.id
+Ref: revision_requests.submission_id > project_submissions.id
+Ref: revision_requests.requested_by_user_id > users.id
+Ref: invalid_file_reports.project_id > projects.id
+Ref: invalid_file_reports.submission_id > project_submissions.id
+Ref: invalid_file_reports.reported_by_user_id > users.id
+Ref: files.owner_user_id > users.id
+
+Ref: escrows.project_id > projects.id
+Ref: escrows.sme_profile_id > sme_profiles.id
+Ref: escrows.student_profile_id > student_profiles.id
+Ref: payments.payer_user_id > users.id
+Ref: payments.escrow_id > escrows.id
+Ref: refunds.escrow_id > escrows.id
+Ref: refunds.payment_id > payments.id
+Ref: refunds.created_by_user_id > users.id
+Ref: disbursements.escrow_id > escrows.id
+Ref: disbursements.wallet_id > wallets.id
+Ref: wallets.owner_user_id > users.id
+Ref: wallets.student_profile_id > student_profiles.id
+Ref: wallet_transactions.wallet_id > wallets.id
+Ref: payment_methods.user_id > users.id
+Ref: withdrawal_requests.wallet_id > wallets.id
+Ref: withdrawal_requests.requested_by_user_id > users.id
+Ref: withdrawal_requests.payment_method_id > payment_methods.id
+
+Ref: disputes.project_id > projects.id
+Ref: disputes.escrow_id > escrows.id
+Ref: disputes.opened_by_user_id > users.id
+Ref: disputes.against_user_id > users.id
+Ref: disputes.assigned_admin_id > users.id
+Ref: dispute_evidences.dispute_id > disputes.id
+Ref: dispute_evidences.submitted_by_user_id > users.id
+Ref: dispute_evidences.file_id > files.id
+
+Ref: ratings.project_id > projects.id
+Ref: ratings.rater_user_id > users.id
+Ref: ratings.rated_user_id > users.id
+Ref: notifications.recipient_user_id > users.id
+Ref: notifications.actor_user_id > users.id
+Ref: audit_logs.actor_user_id > users.id

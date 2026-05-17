@@ -1,0 +1,6 @@
+@D4U.Api_HostAddress = http://localhost:5259
+
+GET {{D4U.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

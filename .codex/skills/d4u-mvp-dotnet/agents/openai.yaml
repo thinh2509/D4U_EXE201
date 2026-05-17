@@ -1,0 +1,4 @@
+interface:
+  display_name: "D4U MVP .NET"
+  short_description: "Build the D4U MVP with ASP.NET Core .NET 8 and PostgreSQL."
+  default_prompt: "Use this skill to implement D4U MVP features in ASP.NET Core .NET 8 with PostgreSQL, following the project MVP docs and ERD."
