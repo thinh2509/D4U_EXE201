@@ -36,6 +36,24 @@ Open Swagger at the URL printed by ASP.NET Core, usually:
 http://localhost:5000/swagger
 ```
 
+## Open in Visual Studio 2022
+
+Open `D4U.sln` directly in Visual Studio 2022.
+
+Requirements:
+
+- Visual Studio 2022 version 17.8 or newer.
+- ASP.NET and web development workload.
+- .NET 8 SDK installed.
+- PostgreSQL running if you want to execute database-backed endpoints.
+
+If Visual Studio shows restore errors, run:
+
+```powershell
+dotnet restore D4U.sln
+dotnet build D4U.sln
+```
+
 ## Vibe Coding Workflow
 
 Use the project skill for implementation:
