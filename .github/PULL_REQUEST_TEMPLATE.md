@@ -7,6 +7,11 @@
 - Related items in `BACKLOG_D4U_MVP.md`:
   - [ ] 
 
+## Target Branch
+
+- [ ] `develop` for feature work
+- [ ] `main` for release/hotfix
+
 ## Scope Check
 
 - [ ] This PR is MVP-only.

@@ -62,13 +62,13 @@ Scope:
 Schema worker:
 
 ```text
-Use the D4U MVP .NET skill. Implement EF Core entity classes and DbContext mappings for the MVP-only ERD. Own only Domain/Entities, Domain/Enums, and Infrastructure/Persistence. Do not edit controllers.
+Use the D4U MVP .NET skill. Create branch feature/schema-mvp-entities from develop. Implement EF Core entity classes and DbContext mappings for the MVP-only ERD. Own only Domain/Entities, Domain/Enums, and Infrastructure/Persistence. Do not edit controllers.
 ```
 
 Feature worker:
 
 ```text
-Use the D4U MVP .NET skill. Implement the Projects vertical slice: DTOs, service, controller endpoints, and validation for create/publish/list/detail. Own only Application/Features/Projects and Controllers/ProjectsController.cs.
+Use the D4U MVP .NET skill. Create a feature/* branch from develop. Implement the Projects vertical slice: DTOs, service, controller endpoints, and validation for create/publish/list/detail. Own only Application/Features/Projects and Controllers/ProjectsController.cs.
 ```
 
 QA reviewer:
