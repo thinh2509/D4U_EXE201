@@ -95,6 +95,47 @@ PowerShell example:
 $env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password"
 ```
 
+### Run With Docker Desktop
+
+Docker setup is maintained on the `feature/docker-setup` branch until it is merged.
+
+Switch to the Docker branch:
+
+```powershell
+git fetch origin
+git switch feature/docker-setup
+```
+
+Create a local `.env` file:
+
+```powershell
+copy .env.example .env
+```
+
+Start PostgreSQL and the API:
+
+```powershell
+docker compose up -d --build
+```
+
+Open Swagger:
+
+```text
+http://localhost:8080/swagger
+```
+
+View API logs:
+
+```powershell
+docker compose logs -f api
+```
+
+Stop containers:
+
+```powershell
+docker compose down
+```
+
 ### Restore and Build
 
 ```powershell
