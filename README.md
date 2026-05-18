@@ -64,7 +64,7 @@ Use the D4U MVP .NET skill to implement the Projects vertical slice.
 
 For multi-agent work, split by ownership:
 
-- Schema Worker: entities, enums, DbContext, migrations.
+- Schema Worker: EF Code First entities, enums, Fluent API configurations, DbContext, migrations.
 - Feature Worker: one vertical slice such as Projects, Offers, Submissions, Wallets.
 - QA Reviewer: read-only review against the MVP checklist.
 

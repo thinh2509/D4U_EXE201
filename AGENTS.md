@@ -32,6 +32,6 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 ## Agent Roles
 
 - Architect: read-only planning and boundary review.
-- Schema Worker: EF entities, enums, DbContext, mappings, migrations.
+- Schema Worker: EF Code First entities, enums, Fluent API configurations, DbContext, and migrations.
 - Feature Worker: one vertical feature at a time.
 - QA Reviewer: read-only bug, test, and security review.

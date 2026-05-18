@@ -25,6 +25,11 @@
 
 ## EF Core Modeling
 
+- Use EF Core Code First as the database implementation strategy.
+- Treat `D4U_ERD.dbml` and `Entity_Dictionary_D4U.md` as design references.
+- Make schema changes through entity/configuration changes and EF Core migrations.
+- Use Fluent API for all meaningful database mappings.
+- Prefer `IEntityTypeConfiguration<T>` classes in `Infrastructure/Persistence/Configurations`.
 - Map enum properties as strings for readability unless performance dictates otherwise.
 - Configure unique indexes from `D4U_ERD.dbml`.
 - Configure decimal precision for money fields.

@@ -29,6 +29,7 @@ Related source of truth:
 ### 2.2. Database
 
 - Database: PostgreSQL
+- Database approach: EF Core Code First
 - Migrations: EF Core Migrations
 - ID strategy: UUID/GUID
 - Money fields: `decimal(12,2)`
@@ -507,6 +508,18 @@ Users with `SUSPENDED`, `BANNED`, or `DELETED` status must not perform protected
 
 ## 8. EF Core Conventions
 
+### 8.0. Code First Strategy
+
+D4U MVP uses EF Core Code First.
+
+Rules:
+
+- Entity classes are the implementation source for database schema.
+- `D4U_ERD.dbml` and `Entity_Dictionary_D4U.md` are design references, not generated database artifacts.
+- Database schema changes must be made through EF Core entity/configuration changes and migrations.
+- Do not hand-edit production database tables to bypass migrations.
+- Every schema-changing PR should include a migration unless it is an early draft explicitly marked otherwise.
+
 ### 8.1. Entity Mapping
 
 - Map tables and columns explicitly to snake_case.
@@ -514,6 +527,47 @@ Users with `SUSPENDED`, `BANNED`, or `DELETED` status must not perform protected
 - Configure decimal precision for money fields.
 - Configure max lengths from the ERD.
 - Configure relationships explicitly.
+- Use Fluent API for all table, column, relationship, index, precision, default value, and enum conversion mappings.
+- Avoid relying on EF Core conventions for important database behavior.
+
+Recommended mapping structure:
+
+```text
+D4U.Api/
+  Infrastructure/
+    Persistence/
+      D4UDbContext.cs
+      Configurations/
+        UserConfiguration.cs
+        ProjectConfiguration.cs
+        EscrowConfiguration.cs
+```
+
+Use `IEntityTypeConfiguration<T>`:
+
+```csharp
+public sealed class UserConfiguration : IEntityTypeConfiguration<User>
+{
+    public void Configure(EntityTypeBuilder<User> builder)
+    {
+        builder.ToTable("users");
+        builder.HasKey(user => user.Id);
+        builder.Property(user => user.Email)
+            .HasColumnName("email")
+            .HasMaxLength(255)
+            .IsRequired();
+    }
+}
+```
+
+Register configurations in `D4UDbContext`:
+
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(D4UDbContext).Assembly);
+}
+```
 
 ### 8.2. Enums
 
