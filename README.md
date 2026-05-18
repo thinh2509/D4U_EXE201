@@ -72,6 +72,7 @@ The project can later be split into separate `D4U.Api`, `D4U.Application`, `D4U.
 - ASP.NET and web development workload
 - .NET 8 SDK
 - PostgreSQL
+- Docker Desktop, if running with Docker
 
 ### Clone
 
@@ -82,20 +83,58 @@ cd D4U_EXE201
 
 ### Configure Database
 
-Update `D4U.Api/appsettings.json` or use user secrets:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=postgres"
-  }
-}
-```
-
-Recommended local secret setup:
+The project uses .NET User Secrets for local development. Do not put database passwords in `appsettings.json`.
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
+```
+
+For deployed environments, configure `D4U_DATABASE_CONNECTION` as an environment variable.
+
+### Run With Docker Desktop
+
+Create a local `.env` file from `.env.example`, then change `POSTGRES_PASSWORD`:
+
+```powershell
+copy .env.example .env
+```
+
+Start PostgreSQL and the API:
+
+```powershell
+docker compose up -d --build
+```
+
+The Docker API is bound to localhost only:
+
+```text
+http://localhost:8080
+```
+
+Swagger is available at:
+
+```text
+http://localhost:8080/swagger
+```
+
+The API container applies EF Core migrations automatically when `D4U_APPLY_MIGRATIONS=true`.
+
+View logs:
+
+```powershell
+docker compose logs -f api
+```
+
+Stop containers:
+
+```powershell
+docker compose down
+```
+
+Reset the local Docker database volume:
+
+```powershell
+docker compose down -v
 ```
 
 ### Restore and Build
