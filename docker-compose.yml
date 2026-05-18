@@ -1,3 +1,4 @@
+name: d4u-mvp
 services:
   postgres:
     image: postgres:16-alpine
