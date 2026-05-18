@@ -119,6 +119,8 @@ http://localhost:8080/swagger
 
 The API container automatically applies EF Core migrations when `D4U_APPLY_MIGRATIONS=true` in `docker-compose.yml`.
 
+For a full Docker Desktop workflow, see [DOCKER_DESKTOP_GUIDE.md](DOCKER_DESKTOP_GUIDE.md).
+
 To let a frontend from another machine call the API, use the LAN IP of the machine running Docker:
 
 ```text
