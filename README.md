@@ -2,7 +2,7 @@
 
 ## Description
 
-D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SMEs that need design work. The MVP focuses on a complete project workflow: SME posts a project, Student applies or receives an offer, SME funds escrow, Student submits Sketch and Final deliverables, SME reviews the work, funds are released to the Student wallet, and both parties can rate each other.
+D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SMEs that need design work. The MVP focuses on the core project lifecycle: an SME posts a design project, students apply or receive offers, the SME funds escrow, the selected student submits sketch and final deliverables, the SME reviews the work, funds are released, and both sides can rate each other.
 
 ## Tech Stack
 
@@ -11,34 +11,33 @@ D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SM
 - Database: PostgreSQL
 - ORM: Entity Framework Core 8 with Npgsql
 - Database strategy: EF Core Code First
-- Mapping strategy: Fluent API with `IEntityTypeConfiguration<T>`
+- Mapping strategy: Fluent API
 - API documentation: Swagger/OpenAPI
-- Authentication direction: JWT access token + refresh sessions
-- Validation direction: FluentValidation
-- Error handling direction: ProblemDetails
+- IDE: Visual Studio 2022
+- Source control: GitHub
 
 ## Features
 
-- Email/password registration and login
+- Email/password authentication direction
 - Role-based users: Student, SME, Admin
 - Student and SME profile management
 - Student verification reviewed by Admin
-- Subscription plans for SME project limits and platform fee rates
+- SME subscription plans
 - Open/private project creation and publishing
 - Student applications and SME offers
-- Escrow payment flow
-- Sketch and Final milestones
+- Escrow payment workflow
+- Sketch and final milestones
 - Submission upload and review actions
 - Revision requests and invalid file reports
 - Dispute opening, evidence, and Admin resolution
-- Wallet balance, disbursement, payment methods, and withdrawal requests
+- Wallet balance, disbursement, payment method, and withdrawal workflow
 - Ratings after project completion
-- In-app notifications
+- In-app notification records
 - Audit logs for important actions
 
 ## Architecture
 
-The MVP uses a layered architecture inside one ASP.NET Core project for speed and clarity.
+The MVP uses a layered architecture inside one ASP.NET Core project for fast delivery while keeping responsibilities clear.
 
 ```text
 D4U.Api/
@@ -52,17 +51,16 @@ D4U.Api/
   Infrastructure/
     Persistence/
       Configurations/
+      Migrations/
   Program.cs
 ```
 
 Layer responsibilities:
 
-- API Layer: controllers, routing, authentication/authorization, DTO binding, HTTP responses.
-- Application Layer: use cases, business rules, validation, ownership checks, transaction orchestration.
-- Domain Layer: entities, enums, state transition helpers, domain constants.
-- Infrastructure Layer: EF Core DbContext, Fluent API configurations, migrations, external integrations.
-
-The project can later be split into separate `D4U.Api`, `D4U.Application`, `D4U.Domain`, `D4U.Infrastructure`, and test projects after the MVP is validated.
+- API Layer: controllers, routing, request/response DTOs, authentication and authorization.
+- Application Layer: use cases, business rules, validation, ownership checks, and transaction orchestration.
+- Domain Layer: entities, enums, domain constants, and state rules.
+- Infrastructure Layer: EF Core DbContext, Fluent API mappings, migrations, and external integrations.
 
 ## Backend Install Guide
 
@@ -72,6 +70,7 @@ The project can later be split into separate `D4U.Api`, `D4U.Application`, `D4U.
 - ASP.NET and web development workload
 - .NET 8 SDK
 - PostgreSQL
+- Git
 
 ### Clone
 
@@ -82,20 +81,18 @@ cd D4U_EXE201
 
 ### Configure Database
 
-Update `D4U.Api/appsettings.json` or use user secrets:
+Create a PostgreSQL database for local development:
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=postgres"
-  }
-}
+```sql
+CREATE DATABASE d4u_mvp;
 ```
 
-Recommended local secret setup:
+Configure the connection string locally. Do not commit real database credentials.
+
+PowerShell example:
 
 ```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
+$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password"
 ```
 
 ### Restore and Build
@@ -105,13 +102,19 @@ dotnet restore D4U.sln
 dotnet build D4U.sln
 ```
 
+### Apply Database Migrations
+
+```powershell
+dotnet ef database update --project D4U.Api --startup-project D4U.Api
+```
+
 ### Run API
 
 ```powershell
 dotnet run --project D4U.Api/D4U.Api.csproj
 ```
 
-Swagger is available at:
+Swagger:
 
 ```text
 http://localhost:5000/swagger
@@ -125,4 +128,4 @@ http://localhost:5000/health
 
 ### Open in Visual Studio 2022
 
-Open `D4U.sln` directly in Visual Studio 2022, set `D4U.Api` as the startup project, then run with `Ctrl + F5` or the Start button.
+Open `D4U.sln`, set `D4U.Api` as the startup project, then run with `Ctrl + F5` or the Start button.
