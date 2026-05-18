@@ -9,6 +9,18 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<D4UDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionString = builder.Configuration["D4U_DATABASE_CONNECTION"];
+    }
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "Database connection string is not configured. Set ConnectionStrings:DefaultConnection or D4U_DATABASE_CONNECTION.");
+    }
+
     options.UseNpgsql(connectionString);
 });
 
