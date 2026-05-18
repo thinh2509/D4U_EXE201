@@ -787,44 +787,13 @@ Write audit logs for:
 
 ### 14.2. Connection String
 
-Set in `D4U.Api/appsettings.json` or user secrets:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=postgres"
-  }
-}
-```
-
-Prefer user secrets for real credentials:
+Use .NET User Secrets for local credentials. Do not store database passwords in `appsettings.json`.
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
 ```
 
-### 14.3. Docker Compose for PostgreSQL
-
-Recommended local database:
-
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: d4u_mvp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - d4u_postgres_data:/var/lib/postgresql/data
-
-volumes:
-  d4u_postgres_data:
-```
-
-### 14.4. Run
+### 14.3. Run
 
 ```powershell
 dotnet restore D4U.Api/D4U.Api.csproj

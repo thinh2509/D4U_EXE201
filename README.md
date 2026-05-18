@@ -82,21 +82,13 @@ cd D4U_EXE201
 
 ### Configure Database
 
-Update `D4U.Api/appsettings.json` or use user secrets:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=postgres"
-  }
-}
-```
-
-Recommended local secret setup:
+The project uses .NET User Secrets for local development. Do not put database passwords in `appsettings.json`.
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
 ```
+
+For deployed environments, configure `D4U_DATABASE_CONNECTION` as an environment variable.
 
 ### Restore and Build
 
