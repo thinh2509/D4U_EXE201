@@ -30,13 +30,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Configuration.GetValue<bool>("D4U_APPLY_MIGRATIONS"))
-{
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
-    dbContext.Database.Migrate();
-}
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
