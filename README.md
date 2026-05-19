@@ -70,6 +70,7 @@ Layer responsibilities:
 - ASP.NET and web development workload
 - .NET 8 SDK
 - PostgreSQL
+- Docker Desktop, if running the API with Docker
 - Git
 
 ### Clone
@@ -95,15 +96,22 @@ PowerShell example:
 $env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password"
 ```
 
-### Run With Docker Desktop
+### Frontend Setup With Docker API
 
-Docker setup is maintained on the `feature/docker-setup` branch until it is merged.
+Frontend developers can run the backend API locally with Docker, then point the frontend API base URL to the Docker API endpoint.
 
-Switch to the Docker branch:
+Clone the backend repository:
 
 ```powershell
-git fetch origin
-git switch feature/docker-setup
+git clone https://github.com/thinh2509/D4U_EXE201.git
+cd D4U_EXE201
+```
+
+Use the `develop` branch because it contains the current Docker setup:
+
+```powershell
+git switch develop
+git pull origin develop
 ```
 
 Create a local `.env` file:
@@ -118,10 +126,28 @@ Start PostgreSQL and the API:
 docker compose up -d --build
 ```
 
-Open Swagger:
+The API runs locally at:
+
+```text
+http://localhost:8080
+```
+
+Use this as the frontend API base URL:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Swagger:
 
 ```text
 http://localhost:8080/swagger
+```
+
+Health check:
+
+```text
+http://localhost:8080/health
 ```
 
 View API logs:
@@ -134,6 +160,13 @@ Stop containers:
 
 ```powershell
 docker compose down
+```
+
+Reset the Docker database:
+
+```powershell
+docker compose down -v
+docker compose up -d --build
 ```
 
 ### Restore and Build
