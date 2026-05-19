@@ -25,7 +25,7 @@ Use `references/agent-workflow.md` when planning or delegating work across agent
 Use `references/backend-guidelines.md` when implementing .NET code.
 Use `references/mvp-boundaries.md` when deciding whether a feature belongs in MVP.
 
-When the user asks to use GitHub commands, follow `GITHUB_WORKFLOW_D4U.md`: branch from `main`, implement one slice, build/test, commit with conventional commit, push branch, and create a PR. Do not merge to `main` unless the user explicitly asks.
+When the user asks to use GitHub commands, follow `GITHUB_WORKFLOW_D4U.md`: branch from `develop` using `feature/*`, implement one slice, build/test, commit with conventional commit, push branch, and open a PR into `develop` if possible. Use `release/*` for stabilization and `hotfix/*` for urgent production fixes. Do not merge unless the user explicitly asks.
 
 ## MVP Boundary
 
