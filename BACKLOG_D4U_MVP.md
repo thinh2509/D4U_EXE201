@@ -6,14 +6,14 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Auth and Account
 
-- [ ] Register with email, username, password, full name, and role.
-- [ ] Login with email/password.
-- [ ] Hash passwords before persistence.
-- [ ] Create refresh sessions on login.
-- [ ] Logout by revoking refresh sessions.
-- [ ] Return current user from `/auth/me`.
-- [ ] Enforce account statuses: `PENDING`, `ACTIVE`, `SUSPENDED`, `BANNED`, `DELETED`.
-- [ ] Block suspended, banned, and deleted users from business actions.
+- [x] Register with email, username, password, full name, and role.
+- [x] Login with email/password.
+- [x] Hash passwords before persistence.
+- [x] Create refresh sessions on login.
+- [x] Logout by revoking refresh sessions.
+- [x] Return current user from `/auth/me`.
+- [x] Enforce account statuses: `PENDING`, `ACTIVE`, `SUSPENDED`, `BANNED`, `DELETED`.
+- [x] Block suspended, banned, and deleted users from business actions.
 
 ### Profiles and Verification
 
