@@ -11,8 +11,9 @@ D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SM
 - Database: PostgreSQL
 - ORM: Entity Framework Core 8 with Npgsql
 - Database strategy: EF Core Code First
-- Mapping strategy: Fluent API
+- Mapping strategy: Fluent API with `IEntityTypeConfiguration<T>`
 - API documentation: Swagger/OpenAPI
+- Local container runtime: Docker Desktop with Docker Compose
 - IDE: Visual Studio 2022
 - Source control: GitHub
 
@@ -70,6 +71,7 @@ Layer responsibilities:
 - ASP.NET and web development workload
 - .NET 8 SDK
 - PostgreSQL
+- Docker Desktop, if running with Docker
 - Git
 
 ### Clone
@@ -79,34 +81,19 @@ git clone https://github.com/thinh2509/D4U_EXE201.git
 cd D4U_EXE201
 ```
 
-### Configure Database
+### Configure Database Without Docker
 
-Create a PostgreSQL database for local development:
-
-```sql
-CREATE DATABASE d4u_mvp;
-```
-
-Configure the connection string locally. Do not commit real database credentials.
-
-PowerShell example:
+The project uses .NET User Secrets for local development. Do not put database passwords in `appsettings.json`.
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
 ```
+
+For deployed environments, configure `D4U_DATABASE_CONNECTION` as an environment variable.
 
 ### Run With Docker Desktop
 
-Docker setup is maintained on the `feature/docker-setup` branch until it is merged.
-
-Switch to the Docker branch:
-
-```powershell
-git fetch origin
-git switch feature/docker-setup
-```
-
-Create a local `.env` file:
+Create a local `.env` file from `.env.example`, then change `POSTGRES_PASSWORD`:
 
 ```powershell
 copy .env.example .env
@@ -118,11 +105,25 @@ Start PostgreSQL and the API:
 docker compose up -d --build
 ```
 
-Open Swagger:
+The Docker Compose project name is `d4u-mvp`. The API is bound to localhost only:
+
+```text
+http://localhost:8080
+```
+
+Swagger:
 
 ```text
 http://localhost:8080/swagger
 ```
+
+Health check:
+
+```text
+http://localhost:8080/health
+```
+
+The API container applies EF Core migrations automatically when `D4U_APPLY_MIGRATIONS=true`.
 
 View API logs:
 
@@ -134,6 +135,12 @@ Stop containers:
 
 ```powershell
 docker compose down
+```
+
+Reset the local Docker database volume:
+
+```powershell
+docker compose down -v
 ```
 
 ### Restore and Build
@@ -149,7 +156,7 @@ dotnet build D4U.sln
 dotnet ef database update --project D4U.Api --startup-project D4U.Api
 ```
 
-### Run API
+### Run API Without Docker
 
 ```powershell
 dotnet run --project D4U.Api/D4U.Api.csproj
