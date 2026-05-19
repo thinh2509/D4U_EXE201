@@ -2,12 +2,17 @@ using D4U.Api.Infrastructure;
 using D4U.Api.Infrastructure.Http;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.AddD4ULogging();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddD4UInfrastructure(builder.Configuration);
 builder.Services.AddD4USwagger();
 
