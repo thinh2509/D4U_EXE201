@@ -10,8 +10,13 @@ D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SM
 - Runtime: .NET 8
 - Database: PostgreSQL
 - ORM: Entity Framework Core 8 with Npgsql
+- Read-query helper: Dapper for targeted read-only SQL queries
 - Database strategy: EF Core Code First
 - Mapping strategy: Fluent API with `IEntityTypeConfiguration<T>`
+- Persistence patterns: Generic Repository and Unit of Work
+- Cache: Redis via `IDistributedCache`, with local memory fallback
+- Logging: Serilog structured logging
+- Authentication: JWT Bearer, with optional OAuth2 external provider registration
 - API documentation: Swagger/OpenAPI
 - Local container runtime: Docker Desktop with Docker Compose
 - IDE: Visual Studio 2022
@@ -64,6 +69,8 @@ Layer responsibilities:
 - Infrastructure Layer: EF Core DbContext, Fluent API mappings, migrations, and external integrations.
 
 ## Backend Install Guide
+
+Backend foundation details are documented in [BACKEND_FOUNDATION_D4U.md](BACKEND_FOUNDATION_D4U.md).
 
 ### Prerequisites
 
