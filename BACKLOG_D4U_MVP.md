@@ -31,10 +31,10 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### File Metadata and Seeds
 
-- [ ] Store upload metadata for files with provider, bucket, storage key, filename, MIME type, extension, size, visibility, and scan status.
-- [ ] Enforce MVP allowed file extensions in service layer: jpg, jpeg, png, webp, pdf, zip, fig, ai, psd, svg.
-- [ ] Seed Basic, Pro, and Premium subscription plans.
-- [ ] Seed initial active design categories.
+- [x] Store upload metadata for files with provider, bucket, storage key, filename, MIME type, extension, size, visibility, and scan status.
+- [x] Enforce MVP allowed file extensions in service layer: jpg, png, pdf.
+- [x] Seed Basic, Pro, and Premium subscription plans.
+- [x] Seed initial active design categories.
 
 ## Phase 2 - Marketplace
 

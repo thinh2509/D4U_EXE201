@@ -2,6 +2,7 @@ namespace D4U.Api.Application.Features.Profiles;
 
 using Dapper;
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Common.Files;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 
@@ -97,6 +98,13 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
             throw new InvalidOperationException("A pending student verification already exists.");
         }
 
+        var normalizedExtension = FileMetadataRules.NormalizeExtension(request.FileExtension);
+
+        if (!FileMetadataRules.IsAllowedExtension(normalizedExtension))
+        {
+            throw new InvalidOperationException("Verification document extension must be jpg, png, or pdf.");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var file = new FileAsset
         {
@@ -107,7 +115,7 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
             StorageKey = request.StorageKey.Trim(),
             OriginalFilename = request.OriginalFilename.Trim(),
             MimeType = request.MimeType.Trim(),
-            FileExtension = request.FileExtension.TrimStart('.').ToLowerInvariant(),
+            FileExtension = normalizedExtension,
             FileSizeBytes = request.FileSizeBytes,
             Checksum = string.IsNullOrWhiteSpace(request.Checksum) ? null : request.Checksum.Trim(),
             Visibility = "PRIVATE",

@@ -1,5 +1,6 @@
 namespace D4U.Api.Application.Features.Profiles;
 
+using D4U.Api.Application.Common.Files;
 using FluentValidation;
 
 public sealed class UpsertStudentProfileRequestValidator : AbstractValidator<UpsertStudentProfileRequest>
@@ -48,16 +49,6 @@ public sealed class UpsertSmeProfileRequestValidator : AbstractValidator<UpsertS
 
 public sealed class SubmitStudentVerificationRequestValidator : AbstractValidator<SubmitStudentVerificationRequest>
 {
-    private static readonly string[] AllowedExtensions =
-    [
-        "jpg",
-        "jpeg",
-        "png",
-        "webp",
-        "pdf",
-        "zip"
-    ];
-
     public SubmitStudentVerificationRequestValidator()
     {
         RuleFor(request => request.StorageProvider)
@@ -81,8 +72,8 @@ public sealed class SubmitStudentVerificationRequestValidator : AbstractValidato
         RuleFor(request => request.FileExtension)
             .NotEmpty()
             .MaximumLength(20)
-            .Must(extension => AllowedExtensions.Contains(extension.TrimStart('.').ToLowerInvariant()))
-            .WithMessage("Verification document extension is not allowed.");
+            .Must(FileMetadataRules.IsAllowedExtension)
+            .WithMessage("Verification document extension must be jpg, png, or pdf.");
 
         RuleFor(request => request.FileSizeBytes)
             .InclusiveBetween(1, 20 * 1024 * 1024);
