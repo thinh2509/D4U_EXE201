@@ -1,4 +1,5 @@
 using D4U.Api.Infrastructure;
+using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Http;
 using D4U.Api.Infrastructure.Persistence;
 using FluentValidation;
@@ -28,6 +29,8 @@ if (app.Configuration.GetValue<bool>("D4U_APPLY_MIGRATIONS"))
     var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
     dbContext.Database.Migrate();
 }
+
+await app.Services.SeedD4UAdminAsync();
 
 // Configure the HTTP request pipeline.
 app.UseMiddleware<ExceptionHandlingMiddleware>();

@@ -24,6 +24,10 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] Admin can approve student verification.
 - [x] Admin can reject student verification with rejection reason.
 - [x] Student profile verification status updates after admin decision.
+- [x] Bootstrap an initial Admin account for MVP operations.
+- [x] Admin can log in with email/password through the shared auth endpoint.
+- [x] Admin can list student verification requests.
+- [x] Admin can view student verification request details before deciding.
 
 ### File Metadata and Seeds
 

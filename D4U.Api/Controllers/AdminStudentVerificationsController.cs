@@ -11,6 +11,24 @@ using Microsoft.AspNetCore.Mvc;
 [Authorize(Roles = nameof(UserRole.ADMIN))]
 public sealed class AdminStudentVerificationsController(IProfileService profileService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<AdminStudentVerificationListItemResponse>>> List(
+        [FromQuery] string? status,
+        CancellationToken cancellationToken)
+    {
+        var response = await profileService.ListStudentVerificationsAsync(status, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("{verificationId:guid}")]
+    public async Task<ActionResult<AdminStudentVerificationDetailResponse>> GetDetail(
+        Guid verificationId,
+        CancellationToken cancellationToken)
+    {
+        var response = await profileService.GetStudentVerificationDetailAsync(verificationId, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("{verificationId:guid}/approve")]
     public async Task<ActionResult<StudentVerificationResponse>> Approve(
         Guid verificationId,

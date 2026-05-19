@@ -25,6 +25,14 @@ public interface IProfileService
         UpsertSmeProfileRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<AdminStudentVerificationListItemResponse>> ListStudentVerificationsAsync(
+        string? status,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminStudentVerificationDetailResponse> GetStudentVerificationDetailAsync(
+        Guid verificationId,
+        CancellationToken cancellationToken = default);
+
     Task<StudentVerificationResponse> ApproveStudentVerificationAsync(
         Guid verificationId,
         Guid adminUserId,

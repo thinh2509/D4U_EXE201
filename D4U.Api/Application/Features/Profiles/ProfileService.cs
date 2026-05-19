@@ -1,10 +1,11 @@
 namespace D4U.Api.Application.Features.Profiles;
 
+using Dapper;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 
-public sealed class ProfileService(IUnitOfWork unitOfWork) : IProfileService
+public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFactory connectionFactory) : IProfileService
 {
     public async Task<StudentProfileResponse?> GetStudentProfileAsync(
         Guid userId,
@@ -187,6 +188,87 @@ public sealed class ProfileService(IUnitOfWork unitOfWork) : IProfileService
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToSmeProfileResponse(profile);
+    }
+
+    public async Task<IReadOnlyList<AdminStudentVerificationListItemResponse>> ListStudentVerificationsAsync(
+        string? status,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedStatus = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
+        const string sql = """
+            select
+                sv.id as Id,
+                sv.status as Status,
+                sv.submitted_at as SubmittedAt,
+                sv.reviewed_at as ReviewedAt,
+                sp.id as StudentProfileId,
+                u.id as StudentUserId,
+                u.email as StudentEmail,
+                u.full_name as StudentFullName,
+                sp.school as School,
+                sp.major as Major,
+                f.original_filename as OriginalFilename,
+                f.mime_type as MimeType,
+                f.file_size_bytes as FileSizeBytes
+            from public.student_verifications sv
+            join public.student_profiles sp on sp.id = sv.student_profile_id
+            join public.users u on u.id = sp.user_id
+            join public.files f on f.id = sv.document_file_id
+            where (@Status is null or sv.status = @Status)
+            order by sv.submitted_at desc
+            """;
+
+        await using var connection = connectionFactory.CreateConnection();
+        var rows = await connection.QueryAsync<AdminStudentVerificationListItemResponse>(
+            new CommandDefinition(sql, new { Status = normalizedStatus }, cancellationToken: cancellationToken));
+
+        return rows.AsList();
+    }
+
+    public async Task<AdminStudentVerificationDetailResponse> GetStudentVerificationDetailAsync(
+        Guid verificationId,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            select
+                sv.id as Id,
+                sv.status as Status,
+                sv.rejection_reason as RejectionReason,
+                sv.submitted_at as SubmittedAt,
+                sv.reviewed_at as ReviewedAt,
+                sv.reviewed_by_admin_id as ReviewedByAdminId,
+                sp.id as StudentProfileId,
+                u.id as StudentUserId,
+                u.email as StudentEmail,
+                u.username as StudentUsername,
+                u.full_name as StudentFullName,
+                sp.school as School,
+                sp.major as Major,
+                sp.study_start_year as StudyStartYear,
+                sp.bio as Bio,
+                sp.verification_status as VerificationStatus,
+                sp.can_withdraw as CanWithdraw,
+                f.id as DocumentFileId,
+                f.storage_provider as StorageProvider,
+                f.bucket as Bucket,
+                f.storage_key as StorageKey,
+                f.original_filename as OriginalFilename,
+                f.mime_type as MimeType,
+                f.file_extension as FileExtension,
+                f.file_size_bytes as FileSizeBytes,
+                f.checksum as Checksum
+            from public.student_verifications sv
+            join public.student_profiles sp on sp.id = sv.student_profile_id
+            join public.users u on u.id = sp.user_id
+            join public.files f on f.id = sv.document_file_id
+            where sv.id = @VerificationId
+            """;
+
+        await using var connection = connectionFactory.CreateConnection();
+        var detail = await connection.QuerySingleOrDefaultAsync<AdminStudentVerificationDetailResponse>(
+            new CommandDefinition(sql, new { VerificationId = verificationId }, cancellationToken: cancellationToken));
+
+        return detail ?? throw new InvalidOperationException("Student verification was not found.");
     }
 
     public async Task<StudentVerificationResponse> ApproveStudentVerificationAsync(
