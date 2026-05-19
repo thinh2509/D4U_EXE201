@@ -1,6 +1,8 @@
 using D4U.Api.Infrastructure;
 using D4U.Api.Infrastructure.Http;
 using D4U.Api.Infrastructure.Persistence;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -13,6 +15,8 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddD4UInfrastructure(builder.Configuration);
 builder.Services.AddD4USwagger();
 
