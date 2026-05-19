@@ -17,13 +17,13 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Profiles and Verification
 
-- [ ] Student can create and update profile with school, major, study start year, and bio.
-- [ ] SME can create and update profile with company name, representative, phone, business field, and optional logo.
-- [ ] Student can upload verification document metadata.
-- [ ] System creates student verification request.
-- [ ] Admin can approve student verification.
-- [ ] Admin can reject student verification with rejection reason.
-- [ ] Student profile verification status updates after admin decision.
+- [x] Student can create and update profile with school, major, study start year, and bio.
+- [x] SME can create and update profile with company name, representative, phone, business field, and optional logo.
+- [x] Student can upload verification document metadata.
+- [x] System creates student verification request.
+- [x] Admin can approve student verification.
+- [x] Admin can reject student verification with rejection reason.
+- [x] Student profile verification status updates after admin decision.
 
 ### File Metadata and Seeds
 

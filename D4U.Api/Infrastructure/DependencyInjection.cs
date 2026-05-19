@@ -4,6 +4,7 @@ using System.Text;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Security;
 using D4U.Api.Application.Features.Auth;
+using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Caching;
 using D4U.Api.Infrastructure.Persistence;
@@ -48,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IDapperConnectionFactory, NpgsqlDapperConnectionFactory>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
