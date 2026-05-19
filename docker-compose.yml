@@ -32,6 +32,10 @@ services:
       Jwt__Issuer: "${JWT_ISSUER:?Set JWT_ISSUER in .env}"
       Jwt__Audience: "${JWT_AUDIENCE:?Set JWT_AUDIENCE in .env}"
       Jwt__SigningKey: "${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}"
+      Admin__Email: "${ADMIN_EMAIL:-}"
+      Admin__Username: "${ADMIN_USERNAME:-admin}"
+      Admin__Password: "${ADMIN_PASSWORD:-}"
+      Admin__FullName: "${ADMIN_FULL_NAME:-D4U Admin}"
     ports:
       - "127.0.0.1:${D4U_API_PORT:-8080}:8080"
     depends_on:

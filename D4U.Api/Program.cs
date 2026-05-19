@@ -1,4 +1,5 @@
 using D4U.Api.Infrastructure;
+using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Http;
 using D4U.Api.Infrastructure.Persistence;
 using FluentValidation;
@@ -29,6 +30,8 @@ if (app.Configuration.GetValue<bool>("D4U_APPLY_MIGRATIONS"))
     dbContext.Database.Migrate();
 }
 
+await app.Services.SeedD4UAdminAsync();
+
 // Configure the HTTP request pipeline.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -43,7 +46,5 @@ app.UseMiddleware<AccountStatusMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "D4U.Api" }))
-    .WithName("HealthCheck");
 
 app.Run();

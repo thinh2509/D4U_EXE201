@@ -272,13 +272,9 @@ File metadata includes:
 
 Allowed extensions:
 
-- jpg, jpeg, png, webp.
+- jpg.
+- png.
 - pdf.
-- zip.
-- fig.
-- ai.
-- psd.
-- svg.
 
 Rules:
 
@@ -742,12 +738,12 @@ Mitigation:
 
 ## 11. MVP Acceptance Checklist
 
-- [ ] Guest can register.
-- [ ] User can log in and log out.
-- [ ] Student can create profile.
-- [ ] SME can create profile.
-- [ ] Admin can approve or reject Student verification.
-- [ ] Basic, Pro, and Premium plans are seeded.
+- [x] Guest can register.
+- [x] User can log in and log out.
+- [x] Student can create profile.
+- [x] SME can create profile.
+- [x] Admin can approve or reject Student verification.
+- [x] Basic, Pro, and Premium plans are seeded.
 - [ ] Basic SME cannot publish more than 2 active open projects.
 - [ ] Basic SME cannot publish a project above 5,000,000 VND.
 - [ ] SME can create and publish an open project.

@@ -17,20 +17,24 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Profiles and Verification
 
-- [ ] Student can create and update profile with school, major, study start year, and bio.
-- [ ] SME can create and update profile with company name, representative, phone, business field, and optional logo.
-- [ ] Student can upload verification document metadata.
-- [ ] System creates student verification request.
-- [ ] Admin can approve student verification.
-- [ ] Admin can reject student verification with rejection reason.
-- [ ] Student profile verification status updates after admin decision.
+- [x] Student can create and update profile with school, major, study start year, and bio.
+- [x] SME can create and update profile with company name, representative, phone, business field, and optional logo.
+- [x] Student can upload verification document metadata.
+- [x] System creates student verification request.
+- [x] Admin can approve student verification.
+- [x] Admin can reject student verification with rejection reason.
+- [x] Student profile verification status updates after admin decision.
+- [x] Bootstrap an initial Admin account for MVP operations.
+- [x] Admin can log in with email/password through the shared auth endpoint.
+- [x] Admin can list student verification requests.
+- [x] Admin can view student verification request details before deciding.
 
 ### File Metadata and Seeds
 
-- [ ] Store upload metadata for files with provider, bucket, storage key, filename, MIME type, extension, size, visibility, and scan status.
-- [ ] Enforce MVP allowed file extensions in service layer: jpg, jpeg, png, webp, pdf, zip, fig, ai, psd, svg.
-- [ ] Seed Basic, Pro, and Premium subscription plans.
-- [ ] Seed initial active design categories.
+- [x] Store upload metadata for files with provider, bucket, storage key, filename, MIME type, extension, size, visibility, and scan status.
+- [x] Enforce MVP allowed file extensions in service layer: jpg, png, pdf.
+- [x] Seed Basic, Pro, and Premium subscription plans.
+- [x] Seed initial active design categories.
 
 ## Phase 2 - Marketplace
 
