@@ -2,10 +2,14 @@ namespace D4U.Api.Infrastructure;
 
 using System.Text;
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Common.Security;
+using D4U.Api.Application.Features.Auth;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Caching;
 using D4U.Api.Infrastructure.Persistence;
+using D4U.Api.Domain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -31,6 +35,7 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddSingleton<IConnectionStringProvider, ConnectionStringProvider>();
+        services.AddHttpContextAccessor();
 
         services.AddDbContext<D4UDbContext>((serviceProvider, options) =>
         {
@@ -41,6 +46,11 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IDapperConnectionFactory, NpgsqlDapperConnectionFactory>();
+        services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
         services.AddD4URedisCache(configuration);
         services.AddD4UAuthentication(configuration);

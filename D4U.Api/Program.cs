@@ -1,4 +1,5 @@
 using D4U.Api.Infrastructure;
+using D4U.Api.Infrastructure.Http;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,8 @@ if (app.Configuration.GetValue<bool>("D4U_APPLY_MIGRATIONS"))
 }
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -27,6 +30,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+app.UseMiddleware<AccountStatusMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
