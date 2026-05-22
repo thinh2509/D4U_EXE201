@@ -48,18 +48,18 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Project Creation and Publishing
 
-- [ ] SME can create draft project.
-- [ ] Project captures title, brief, usage purpose, design category, type, budget, deadlines, revision limit, confidentiality, and portfolio permission.
-- [ ] Validate budget is greater than zero.
-- [ ] Validate sketch deadline is before or equal to final deadline.
-- [ ] Validate final deadline is before or equal to total deadline.
-- [ ] SME can publish open project.
-- [ ] Enforce subscription active open project limit on publish.
-- [ ] Enforce subscription max budget on publish.
-- [ ] Basic plan cannot publish more than 2 active open projects.
-- [ ] Basic plan cannot publish project over 5,000,000 VND.
-- [ ] Create project status history for important transitions.
-- [ ] Student can list and view open projects.
+- [x] SME can create draft project.
+- [x] Project captures title, brief, usage purpose, design category, type, budget, deadlines, revision limit, confidentiality, and portfolio permission.
+- [x] Validate budget is greater than zero.
+- [x] Validate sketch deadline is before or equal to final deadline.
+- [x] Validate final deadline is before or equal to total deadline.
+- [x] SME can publish open project.
+- [x] Enforce subscription active open project limit on publish.
+- [x] Enforce subscription max budget on publish.
+- [x] Basic plan cannot publish more than 2 active open projects.
+- [x] Basic plan cannot publish project over 5,000,000 VND.
+- [x] Create project status history for important transitions.
+- [x] Student can list and view open projects.
 
 ### Applications and Offers
 
