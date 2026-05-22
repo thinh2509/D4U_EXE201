@@ -40,11 +40,11 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### AI Project Brief Assistant
 
-- [ ] SME can request AI assistance from raw project idea before or during draft project creation.
-- [ ] AI assistant returns suggested title, brief, usage purpose, deliverables, design category hint, and deadline notes.
-- [ ] SME must review and edit AI suggestions before saving or publishing a project.
-- [ ] AI assistant must not publish projects, select students, set final pricing automatically, or bypass subscription limits.
-- [ ] Store no AI conversation history in MVP; use the response only to prefill the project form.
+- [x] SME can request AI assistance from raw project idea before or during draft project creation.
+- [x] AI assistant returns suggested title, brief, usage purpose, deliverables, design category hint, and deadline notes.
+- [x] SME must review and edit AI suggestions before saving or publishing a project.
+- [x] AI assistant must not publish projects, select students, set final pricing automatically, or bypass subscription limits.
+- [x] Store no AI conversation history in MVP; use the response only to prefill the project form.
 
 ### Project Creation and Publishing
 

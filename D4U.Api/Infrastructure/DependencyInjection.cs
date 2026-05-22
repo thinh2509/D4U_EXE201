@@ -3,8 +3,10 @@ namespace D4U.Api.Infrastructure;
 using System.Text;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Security;
+using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
 using D4U.Api.Application.Features.Profiles;
+using D4U.Api.Infrastructure.Ai;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Caching;
 using D4U.Api.Infrastructure.Persistence;
@@ -48,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IDapperConnectionFactory, NpgsqlDapperConnectionFactory>();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<IAiProjectBriefAssistant, MockAiProjectBriefAssistant>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<ITokenService, JwtTokenService>();
@@ -120,6 +123,7 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<AiOptions>(configuration.GetSection(AiOptions.SectionName));
         services.Configure<OAuth2Options>(configuration.GetSection(OAuth2Options.SectionName));
         services.Configure<AdminBootstrapOptions>(configuration.GetSection(AdminBootstrapOptions.SectionName));
 
