@@ -36,6 +36,10 @@ services:
       Admin__Username: "${ADMIN_USERNAME:-admin}"
       Admin__Password: "${ADMIN_PASSWORD:-}"
       Admin__FullName: "${ADMIN_FULL_NAME:-D4U Admin}"
+      Ai__Provider: "${AI_PROVIDER:-Mock}"
+      Ai__ApiKey: "${AI_API_KEY:-}"
+      Ai__Model: "${AI_MODEL:-mock-project-brief-v1}"
+      Ai__TimeoutSeconds: "${AI_TIMEOUT_SECONDS:-30}"
     ports:
       - "127.0.0.1:${D4U_API_PORT:-8080}:8080"
     depends_on:
