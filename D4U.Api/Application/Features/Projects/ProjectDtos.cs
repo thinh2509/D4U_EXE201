@@ -40,6 +40,9 @@ public sealed record ProjectResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record CancelProjectRequest(
+    string? CancellationReason);
+
 public sealed record SubmitProjectApplicationRequest(
     decimal ProposedPrice,
     string CoverLetter,

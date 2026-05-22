@@ -59,6 +59,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] Basic plan cannot publish more than 2 active open projects.
 - [x] Basic plan cannot publish project over 5,000,000 VND.
 - [x] Create project status history for important transitions.
+- [x] SME can cancel own draft/open/private-invited project.
 - [x] Student can list and view open projects.
 
 ### Applications and Offers

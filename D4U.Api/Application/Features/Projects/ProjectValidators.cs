@@ -63,6 +63,15 @@ public sealed class SubmitProjectApplicationRequestValidator : AbstractValidator
     }
 }
 
+public sealed class CancelProjectRequestValidator : AbstractValidator<CancelProjectRequest>
+{
+    public CancelProjectRequestValidator()
+    {
+        RuleFor(request => request.CancellationReason)
+            .MaximumLength(1000);
+    }
+}
+
 public sealed class CreateProjectOfferRequestValidator : AbstractValidator<CreateProjectOfferRequest>
 {
     public CreateProjectOfferRequestValidator()
