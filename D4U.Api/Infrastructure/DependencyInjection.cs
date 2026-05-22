@@ -6,6 +6,7 @@ using D4U.Api.Application.Common.Security;
 using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
 using D4U.Api.Application.Features.Profiles;
+using D4U.Api.Application.Features.Projects;
 using D4U.Api.Infrastructure.Ai;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Caching;
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IAiProjectBriefAssistant, MockAiProjectBriefAssistant>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();

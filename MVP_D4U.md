@@ -755,16 +755,16 @@ Mitigation:
 - [x] SME can create profile.
 - [x] Admin can approve or reject Student verification.
 - [x] Basic, Pro, and Premium plans are seeded.
-- [ ] Basic SME cannot publish more than 2 active open projects.
-- [ ] Basic SME cannot publish a project above 5,000,000 VND.
+- [x] Basic SME cannot publish more than 2 active open projects.
+- [x] Basic SME cannot publish a project above 5,000,000 VND.
 - [x] SME can use AI Project Brief Assistant to prefill project draft content.
-- [ ] SME can create and publish an open project.
-- [ ] Student can view open projects.
-- [ ] Student can submit application.
-- [ ] SME can view applications.
-- [ ] SME can create offer.
+- [x] SME can create and publish an open project.
+- [x] Student can view open projects.
+- [x] Student can submit application.
+- [x] SME can view applications.
+- [x] SME can create offer.
 - [ ] SME can fund escrow through sandbox payment.
-- [ ] Student can accept offer.
+- [x] Student can accept offer.
 - [ ] Project becomes `IN_PROGRESS`.
 - [ ] System creates Sketch and Final milestones.
 - [ ] Student can submit Sketch with valid files.

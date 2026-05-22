@@ -48,30 +48,30 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Project Creation and Publishing
 
-- [ ] SME can create draft project.
-- [ ] Project captures title, brief, usage purpose, design category, type, budget, deadlines, revision limit, confidentiality, and portfolio permission.
-- [ ] Validate budget is greater than zero.
-- [ ] Validate sketch deadline is before or equal to final deadline.
-- [ ] Validate final deadline is before or equal to total deadline.
-- [ ] SME can publish open project.
-- [ ] Enforce subscription active open project limit on publish.
-- [ ] Enforce subscription max budget on publish.
-- [ ] Basic plan cannot publish more than 2 active open projects.
-- [ ] Basic plan cannot publish project over 5,000,000 VND.
-- [ ] Create project status history for important transitions.
-- [ ] Student can list and view open projects.
+- [x] SME can create draft project.
+- [x] Project captures title, brief, usage purpose, design category, type, budget, deadlines, revision limit, confidentiality, and portfolio permission.
+- [x] Validate budget is greater than zero.
+- [x] Validate sketch deadline is before or equal to final deadline.
+- [x] Validate final deadline is before or equal to total deadline.
+- [x] SME can publish open project.
+- [x] Enforce subscription active open project limit on publish.
+- [x] Enforce subscription max budget on publish.
+- [x] Basic plan cannot publish more than 2 active open projects.
+- [x] Basic plan cannot publish project over 5,000,000 VND.
+- [x] Create project status history for important transitions.
+- [x] Student can list and view open projects.
 
 ### Applications and Offers
 
-- [ ] Student can submit one application per open project.
-- [ ] Application captures proposed price, cover letter, and estimated duration.
-- [ ] SME can view applications for own project.
-- [ ] SME can select an application and create offer.
-- [ ] SME can create private project offer without an application.
-- [ ] Offer starts as `PENDING_PAYMENT`.
-- [ ] Student can accept funded offer.
-- [ ] Student can reject offer.
-- [ ] Accepted offer selects student and moves project into execution flow.
+- [x] Student can submit one application per open project.
+- [x] Application captures proposed price, cover letter, and estimated duration.
+- [x] SME can view applications for own project.
+- [x] SME can select an application and create offer.
+- [x] SME can create private project offer without an application.
+- [x] Offer starts as `PENDING_PAYMENT`.
+- [x] Student can accept funded offer.
+- [x] Student can reject offer.
+- [x] Accepted offer selects student and moves project into execution flow.
 
 ## Phase 3 - Payment and Execution
 
