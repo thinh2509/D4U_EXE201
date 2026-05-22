@@ -103,7 +103,49 @@ Payment abstraction:
 - Add PayOS/VNPAY adapters later behind the same interface.
 - Store provider transaction id and enforce uniqueness per provider.
 
-### 2.6. Validation
+### 2.6. AI Assistance
+
+MVP direction:
+
+- Include one bounded AI feature: Project Brief Assistant for SME project drafting.
+- Keep AI behind an application abstraction so the provider can change without rewriting controllers.
+- Use AI output only as draft assistance; SME must review and submit final project data.
+- Do not use AI for student recommendation, automated matching, verification approval, pricing decisions, or publishing.
+- Do not store AI conversation history in MVP.
+
+Recommended abstraction:
+
+- Define `IAiProjectBriefAssistant`.
+- Implement a local/mock provider first for deterministic development.
+- Add a real LLM provider adapter later behind the same interface.
+
+Suggested request fields:
+
+- Raw project idea.
+- Business field.
+- Target audience.
+- Preferred style.
+- Budget amount.
+- Total deadline.
+
+Suggested response fields:
+
+- Suggested title.
+- Suggested brief.
+- Suggested usage purpose.
+- Suggested deliverables.
+- Suggested category name or category id hint.
+- Suggested sketch/final deadline notes.
+- Warnings or missing information for SME review.
+
+Configuration keys:
+
+- `Ai__Provider`
+- `Ai__ApiKey`
+- `Ai__Model`
+- `Ai__TimeoutSeconds`
+
+### 2.7. Validation
 
 Recommended MVP approach:
 
@@ -115,7 +157,7 @@ Recommended package:
 
 - `FluentValidation.AspNetCore`
 
-### 2.7. Error Handling
+### 2.8. Error Handling
 
 Use centralized exception handling.
 
@@ -138,7 +180,7 @@ Error response shape:
 }
 ```
 
-### 2.8. CORS
+### 2.9. CORS
 
 MVP API should define an explicit CORS policy.
 
@@ -160,7 +202,7 @@ Example config:
 }
 ```
 
-### 2.9. Rate Limiting
+### 2.10. Rate Limiting
 
 Use ASP.NET Core rate limiting for sensitive endpoints.
 
@@ -175,7 +217,7 @@ Recommended package:
 
 - Built-in `Microsoft.AspNetCore.RateLimiting`
 
-### 2.10. Background Jobs
+### 2.11. Background Jobs
 
 MVP can start with hosted services. Upgrade to a durable job runner later if needed.
 
@@ -195,7 +237,7 @@ Recommended post-MVP option:
 
 - Hangfire with PostgreSQL storage.
 
-### 2.11. Observability
+### 2.12. Observability
 
 Use structured logs and request correlation.
 
@@ -285,7 +327,7 @@ Responsibilities:
 - EF Core DbContext.
 - Entity configuration.
 - Database migrations.
-- External integrations: payment provider, file storage, email later.
+- External integrations: payment provider, file storage, AI provider, email later.
 - System clock abstraction if needed.
 
 ## 5. MVP Module Boundaries
@@ -331,7 +373,15 @@ Tables:
 - `project_status_histories`
 - `design_categories`
 
-### 5.5. Applications and Offers
+### 5.5. AI Assistance
+
+Owns Project Brief Assistant request handling and AI provider abstraction.
+
+Tables:
+
+- No dedicated MVP table. The response is used to prefill the project form.
+
+### 5.6. Applications and Offers
 
 Owns Student applications, SME offers, and Student accept/reject.
 
@@ -340,7 +390,7 @@ Tables:
 - `project_applications`
 - `project_offers`
 
-### 5.6. Payments and Escrow
+### 5.7. Payments and Escrow
 
 Owns escrow creation, payment creation, payment webhook, escrow status, refund, and disbursement.
 
@@ -351,7 +401,7 @@ Tables:
 - `refunds`
 - `disbursements`
 
-### 5.7. Project Execution
+### 5.8. Project Execution
 
 Owns milestone creation, Sketch submission, Final submission, review action, revision request, and invalid file report.
 
@@ -364,7 +414,7 @@ Tables:
 - `revision_requests`
 - `invalid_file_reports`
 
-### 5.8. Wallets
+### 5.9. Wallets
 
 Owns wallet balance, wallet ledger, payment methods, and withdrawal requests.
 
@@ -375,7 +425,7 @@ Tables:
 - `payment_methods`
 - `withdrawal_requests`
 
-### 5.9. Disputes
+### 5.10. Disputes
 
 Owns open dispute, evidence, Admin resolution, and refund/disbursement decision execution.
 
@@ -384,7 +434,7 @@ Tables:
 - `disputes`
 - `dispute_evidences`
 
-### 5.10. Trust and Operations
+### 5.11. Trust and Operations
 
 Owns ratings, in-app notifications, and audit logs.
 
@@ -807,12 +857,6 @@ Swagger:
 http://localhost:5000/swagger
 ```
 
-Health check:
-
-```text
-http://localhost:5000/health
-```
-
 ## 15. CI/CD
 
 Current CI:
@@ -850,6 +894,10 @@ Required environment variables:
 - `Payment__WebhookSecret`
 - `Storage__Provider`
 - `Storage__Bucket`
+- `Ai__Provider`
+- `Ai__ApiKey`
+- `Ai__Model`
+- `Ai__TimeoutSeconds`
 
 ## 17. Recommended NuGet Packages
 
@@ -897,15 +945,19 @@ Good task shape:
 Use the D4U MVP .NET skill. Implement MVP slice: Projects.
 
 Scope:
+- AI Project Brief Assistant for draft prefill
 - project create/publish/list/detail
 - subscription limit validation
 - project status history
 
 Own files:
+- Application/Features/Ai
 - Application/Features/Projects
+- Controllers/AiController.cs
 - Controllers/ProjectsController.cs
 
 Do not implement:
+- AI recommendation/matching
 - payment
 - submission
 - dispute
@@ -922,6 +974,9 @@ Use the D4U MVP .NET skill. Review the Projects slice against MVP_D4U.md, D4U_ER
 Do not implement unless explicitly requested:
 
 - AI recommendation.
+- AI matching.
+- AI verification approval.
+- AI auto-publishing or pricing decisions.
 - Realtime chat.
 - Social login.
 - Portfolio builder.

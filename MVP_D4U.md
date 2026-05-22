@@ -169,6 +169,14 @@ SME creates a project with:
 - Student portfolio permission flag.
 - Attachments.
 
+AI Project Brief Assistant:
+
+- SME can enter a raw project idea and ask AI to draft project content.
+- AI can suggest title, brief, usage purpose, deliverables, design category hint, and deadline notes.
+- SME must review and edit AI output before saving a draft or publishing.
+- AI does not publish projects, select students, decide final price, or bypass subscription rules.
+- MVP does not store AI conversation history; AI output is treated as a temporary form helper.
+
 Rules:
 
 - Budget must be greater than zero.
@@ -591,6 +599,7 @@ Detailed attributes and relationships are in `Entity_Dictionary_D4U.md`. DBML fo
 
 ### 7.3. Projects
 
+- `POST /ai/project-brief-assistant`
 - `POST /projects`
 - `GET /projects`
 - `GET /projects/{id}`
@@ -653,6 +662,7 @@ Detailed attributes and relationships are in `Entity_Dictionary_D4U.md`. DBML fo
 
 ### Phase 2: Marketplace
 
+- AI Project Brief Assistant for SME project drafting.
 - Project create/publish/list/detail.
 - Application flow.
 - Offer flow.
@@ -691,7 +701,8 @@ Detailed attributes and relationships are in `Entity_Dictionary_D4U.md`. DBML fo
 - Social login.
 - Detailed portfolio builder.
 - Skill/software matching.
-- AI recommendation.
+- AI recommendation and automated matching.
+- AI auto-approval, AI project publishing, and AI pricing decisions.
 - Automated subscription billing.
 - Dispute appeal.
 - Reputation ledger.
@@ -726,7 +737,7 @@ Mitigation:
 - Store original files in object storage.
 - Store metadata in PostgreSQL.
 - Apply watermark only to previewable formats.
-- Use permission rules for Figma/AI/PSD/ZIP files.
+- Move complex source formats such as Figma, Adobe Illustrator, PSD, and ZIP to a later file-handling scope.
 
 ### 10.4. Scope creep
 
@@ -746,6 +757,7 @@ Mitigation:
 - [x] Basic, Pro, and Premium plans are seeded.
 - [ ] Basic SME cannot publish more than 2 active open projects.
 - [ ] Basic SME cannot publish a project above 5,000,000 VND.
+- [ ] SME can use AI Project Brief Assistant to prefill project draft content.
 - [ ] SME can create and publish an open project.
 - [ ] Student can view open projects.
 - [ ] Student can submit application.

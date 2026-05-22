@@ -38,6 +38,14 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ## Phase 2 - Marketplace
 
+### AI Project Brief Assistant
+
+- [ ] SME can request AI assistance from raw project idea before or during draft project creation.
+- [ ] AI assistant returns suggested title, brief, usage purpose, deliverables, design category hint, and deadline notes.
+- [ ] SME must review and edit AI suggestions before saving or publishing a project.
+- [ ] AI assistant must not publish projects, select students, set final pricing automatically, or bypass subscription limits.
+- [ ] Store no AI conversation history in MVP; use the response only to prefill the project form.
+
 ### Project Creation and Publishing
 
 - [ ] SME can create draft project.
@@ -185,7 +193,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 - [ ] Do not implement social login.
 - [ ] Do not implement realtime chat.
-- [ ] Do not implement AI recommendation.
+- [ ] Do not implement AI recommendation, AI matching, AI verification approval, or AI auto-publishing.
 - [ ] Do not implement detailed portfolio builder.
 - [ ] Do not implement dispute appeal.
 - [ ] Do not implement reputation ledger.
