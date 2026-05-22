@@ -63,15 +63,15 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Applications and Offers
 
-- [ ] Student can submit one application per open project.
-- [ ] Application captures proposed price, cover letter, and estimated duration.
-- [ ] SME can view applications for own project.
-- [ ] SME can select an application and create offer.
-- [ ] SME can create private project offer without an application.
-- [ ] Offer starts as `PENDING_PAYMENT`.
-- [ ] Student can accept funded offer.
-- [ ] Student can reject offer.
-- [ ] Accepted offer selects student and moves project into execution flow.
+- [x] Student can submit one application per open project.
+- [x] Application captures proposed price, cover letter, and estimated duration.
+- [x] SME can view applications for own project.
+- [x] SME can select an application and create offer.
+- [x] SME can create private project offer without an application.
+- [x] Offer starts as `PENDING_PAYMENT`.
+- [x] Student can accept funded offer.
+- [x] Student can reject offer.
+- [x] Accepted offer selects student and moves project into execution flow.
 
 ## Phase 3 - Payment and Execution
 

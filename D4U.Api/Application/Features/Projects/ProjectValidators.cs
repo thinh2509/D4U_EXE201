@@ -45,3 +45,36 @@ public sealed class UpsertProjectDraftRequestValidator : AbstractValidator<Upser
     }
 }
 
+public sealed class SubmitProjectApplicationRequestValidator : AbstractValidator<SubmitProjectApplicationRequest>
+{
+    public SubmitProjectApplicationRequestValidator()
+    {
+        RuleFor(request => request.ProposedPrice)
+            .GreaterThan(0);
+
+        RuleFor(request => request.CoverLetter)
+            .NotEmpty()
+            .MinimumLength(20)
+            .MaximumLength(3000);
+
+        RuleFor(request => request.EstimatedDurationDays)
+            .InclusiveBetween(1, 365)
+            .When(request => request.EstimatedDurationDays.HasValue);
+    }
+}
+
+public sealed class CreateProjectOfferRequestValidator : AbstractValidator<CreateProjectOfferRequest>
+{
+    public CreateProjectOfferRequestValidator()
+    {
+        RuleFor(request => request.StudentProfileId)
+            .NotEmpty();
+
+        RuleFor(request => request.OfferedAmount)
+            .GreaterThan(0);
+
+        RuleFor(request => request.ExpiresAt)
+            .Must(expiresAt => !expiresAt.HasValue || expiresAt.Value > DateTimeOffset.UtcNow)
+            .WithMessage("Offer expiration must be in the future.");
+    }
+}

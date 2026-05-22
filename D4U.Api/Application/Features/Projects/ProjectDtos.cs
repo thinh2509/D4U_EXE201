@@ -40,3 +40,38 @@ public sealed record ProjectResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record SubmitProjectApplicationRequest(
+    decimal ProposedPrice,
+    string CoverLetter,
+    int? EstimatedDurationDays);
+
+public sealed record ProjectApplicationResponse(
+    Guid Id,
+    Guid ProjectId,
+    Guid StudentProfileId,
+    string StudentFullName,
+    decimal ProposedPrice,
+    string CoverLetter,
+    int? EstimatedDurationDays,
+    string Status,
+    DateTimeOffset SubmittedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record CreateProjectOfferRequest(
+    Guid StudentProfileId,
+    Guid? ApplicationId,
+    decimal OfferedAmount,
+    DateTimeOffset? ExpiresAt);
+
+public sealed record ProjectOfferResponse(
+    Guid Id,
+    Guid ProjectId,
+    Guid StudentProfileId,
+    Guid? ApplicationId,
+    OfferStatus Status,
+    decimal OfferedAmount,
+    DateTimeOffset? ExpiresAt,
+    DateTimeOffset? AcceptedAt,
+    DateTimeOffset? RejectedAt,
+    DateTimeOffset? RevokedAt,
+    DateTimeOffset CreatedAt);

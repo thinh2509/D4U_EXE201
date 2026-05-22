@@ -760,11 +760,11 @@ Mitigation:
 - [ ] SME can use AI Project Brief Assistant to prefill project draft content.
 - [x] SME can create and publish an open project.
 - [x] Student can view open projects.
-- [ ] Student can submit application.
-- [ ] SME can view applications.
-- [ ] SME can create offer.
+- [x] Student can submit application.
+- [x] SME can view applications.
+- [x] SME can create offer.
 - [ ] SME can fund escrow through sandbox payment.
-- [ ] Student can accept offer.
+- [x] Student can accept offer.
 - [ ] Project becomes `IN_PROGRESS`.
 - [ ] System creates Sketch and Final milestones.
 - [ ] Student can submit Sketch with valid files.

@@ -58,6 +58,52 @@ public sealed class ProjectsController(IProjectService projectService) : Control
         return Ok(response);
     }
 
+    [HttpPost("{projectId:guid}/applications")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<ProjectApplicationResponse>> SubmitApplication(
+        Guid projectId,
+        SubmitProjectApplicationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.SubmitApplicationAsync(
+            GetRequiredUserId(),
+            projectId,
+            request,
+            cancellationToken);
+
+        return Created(string.Empty, response);
+    }
+
+    [HttpGet("{projectId:guid}/applications")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<IReadOnlyList<ProjectApplicationResponse>>> ListApplications(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.ListApplicationsAsync(
+            GetRequiredUserId(),
+            projectId,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPost("{projectId:guid}/offers")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectOfferResponse>> CreateOffer(
+        Guid projectId,
+        CreateProjectOfferRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.CreateOfferAsync(
+            GetRequiredUserId(),
+            projectId,
+            request,
+            cancellationToken);
+
+        return Created(string.Empty, response);
+    }
+
     private Guid GetRequiredUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -70,4 +116,3 @@ public sealed class ProjectsController(IProjectService projectService) : Control
         return userId;
     }
 }
-
