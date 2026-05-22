@@ -18,6 +18,12 @@ public interface IProjectService
         Guid projectId,
         CancellationToken cancellationToken = default);
 
+    Task<ProjectResponse> CancelAsync(
+        Guid userId,
+        Guid projectId,
+        CancelProjectRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ProjectResponse>> ListOpenProjectsAsync(
         CancellationToken cancellationToken = default);
 

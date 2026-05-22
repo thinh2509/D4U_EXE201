@@ -58,6 +58,32 @@ public sealed class ProjectsController(IProjectService projectService) : Control
         return Ok(response);
     }
 
+    [HttpPost("{projectId:guid}/cancel")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectResponse>> Cancel(
+        Guid projectId,
+        CancelProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.CancelAsync(GetRequiredUserId(), projectId, request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpDelete("{projectId:guid}")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectResponse>> Delete(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.CancelAsync(
+            GetRequiredUserId(),
+            projectId,
+            new CancelProjectRequest("Deleted by SME."),
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPost("{projectId:guid}/applications")]
     [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<ProjectApplicationResponse>> SubmitApplication(

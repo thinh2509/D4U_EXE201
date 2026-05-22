@@ -112,6 +112,55 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         return ToProjectResponse(project, category);
     }
 
+    public async Task<ProjectResponse> CancelAsync(
+        Guid userId,
+        Guid projectId,
+        CancelProjectRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.SmeProfileId != smeProfile.Id)
+        {
+            throw new UnauthorizedAccessException("Only the owner SME can cancel this project.");
+        }
+
+        if (project.Status is not (ProjectStatus.DRAFT or ProjectStatus.OPEN or ProjectStatus.PRIVATE_INVITED))
+        {
+            throw new InvalidOperationException("Only draft, open, or private invited projects can be cancelled by SME.");
+        }
+
+        var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
+        var previousStatus = project.Status;
+        var now = DateTimeOffset.UtcNow;
+
+        project.Status = ProjectStatus.CANCELLED;
+        project.CancelledAt = now;
+        project.CancellationReason = string.IsNullOrWhiteSpace(request.CancellationReason)
+            ? "Cancelled by SME."
+            : request.CancellationReason.Trim();
+        project.UpdatedAt = now;
+
+        if (previousStatus == ProjectStatus.OPEN)
+        {
+            smeProfile.ActiveOpenProjectCount = await CountOpenProjectsAsync(smeProfile.Id, cancellationToken) - 1;
+
+            if (smeProfile.ActiveOpenProjectCount < 0)
+            {
+                smeProfile.ActiveOpenProjectCount = 0;
+            }
+
+            smeProfile.UpdatedAt = now;
+        }
+
+        await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.CANCELLED, userId, project.CancellationReason, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToProjectResponse(project, category);
+    }
+
     public async Task<IReadOnlyList<ProjectResponse>> ListOpenProjectsAsync(
         CancellationToken cancellationToken = default)
     {

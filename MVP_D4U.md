@@ -759,6 +759,7 @@ Mitigation:
 - [x] Basic SME cannot publish a project above 5,000,000 VND.
 - [x] SME can use AI Project Brief Assistant to prefill project draft content.
 - [x] SME can create and publish an open project.
+- [x] SME can cancel own draft/open/private-invited project.
 - [x] Student can view open projects.
 - [x] Student can submit application.
 - [x] SME can view applications.
