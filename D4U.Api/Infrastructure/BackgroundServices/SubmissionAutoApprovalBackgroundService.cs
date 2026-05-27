@@ -68,7 +68,21 @@ public sealed class SubmissionAutoApprovalBackgroundService(
                 ? ProjectStatus.IN_PROGRESS
                 : ProjectStatus.COMPLETED;
             project.CompletedAt = submission.MilestoneType == SubmissionStage.FINAL ? now : project.CompletedAt;
+            project.RatingDueAt = submission.MilestoneType == SubmissionStage.FINAL ? now.AddDays(7) : project.RatingDueAt;
             project.UpdatedAt = now;
+
+            if (submission.MilestoneType == SubmissionStage.FINAL)
+            {
+                var escrow = await dbContext.Escrows.FirstOrDefaultAsync(
+                    value => value.ProjectId == project.Id && value.Status == EscrowStatus.FUNDED,
+                    cancellationToken);
+
+                if (escrow is not null)
+                {
+                    escrow.Status = EscrowStatus.RELEASE_PENDING;
+                    escrow.UpdatedAt = now;
+                }
+            }
 
             await dbContext.ReviewActions.AddAsync(
                 new ReviewAction

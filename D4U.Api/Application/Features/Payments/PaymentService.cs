@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
+using D4U.Api.Application.Features.Projects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +29,7 @@ public sealed class PaymentService(
             throw new InvalidOperationException("Only SME users can create escrow payments.");
         }
 
-        EnsurePayOsProviderSelected();
+        EnsureConfiguredProviderSelected();
 
         var smeProfile = await RequireSmeProfileAsync(userId, cancellationToken);
         var offer = await RequireOfferAsync(offerId, cancellationToken);
@@ -39,16 +40,16 @@ public sealed class PaymentService(
             throw new UnauthorizedAccessException("Only the owner SME can create payment for this offer.");
         }
 
-        if (offer.Status != OfferStatus.ACCEPTED)
+        if (offer.Status is not OfferStatus.ACCEPTED and not OfferStatus.PAYMENT_FAILED)
         {
-            throw new InvalidOperationException("Only offers accepted by the student can be paid.");
+            throw new InvalidOperationException("Only accepted offers within the payment window can be paid.");
         }
 
         var now = DateTimeOffset.UtcNow;
         if (offer.PaymentDueAt.HasValue && offer.PaymentDueAt.Value <= now)
         {
-            offer.Status = OfferStatus.EXPIRED;
-            offer.ExpiredAt = now;
+            OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
+            await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, "Offer payment window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Offer payment window has expired.");
         }
@@ -62,7 +63,7 @@ public sealed class PaymentService(
             .OrderByDescending(payment => payment.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
-        offer.Status = OfferStatus.PENDING_PAYMENT;
+        OfferStateMachine.TransitionTo(offer, OfferStatus.PENDING_PAYMENT, now);
 
         if (reusablePayment is not null)
         {
@@ -176,6 +177,11 @@ public sealed class PaymentService(
             return;
         }
 
+        if (payment.Status is PaymentStatus.FAILED or PaymentStatus.CANCELLED or PaymentStatus.EXPIRED)
+        {
+            return;
+        }
+
         if (!request.Success ||
             !string.Equals(request.Code, "00", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(request.Data.Code, "00", StringComparison.OrdinalIgnoreCase))
@@ -193,12 +199,12 @@ public sealed class PaymentService(
                     var failedOffer = await unitOfWork.Repository<ProjectOffer>().FirstOrDefaultAsync(
                         value => value.ProjectId == failedEscrow.ProjectId &&
                             value.StudentProfileId == failedEscrow.StudentProfileId &&
-                            (value.Status == OfferStatus.PENDING_PAYMENT || value.Status == OfferStatus.ACCEPTED),
+                            value.Status == OfferStatus.PENDING_PAYMENT,
                         cancellationToken);
 
                     if (failedOffer is not null)
                     {
-                        failedOffer.Status = OfferStatus.PAYMENT_FAILED;
+                        OfferStateMachine.TransitionTo(failedOffer, OfferStatus.PAYMENT_FAILED, failedAt);
                     }
                 }
             }
@@ -222,7 +228,7 @@ public sealed class PaymentService(
         var offer = await unitOfWork.Repository<ProjectOffer>().FirstOrDefaultAsync(
             value => value.ProjectId == escrow.ProjectId &&
                 value.StudentProfileId == escrow.StudentProfileId &&
-                (value.Status == OfferStatus.PENDING_PAYMENT || value.Status == OfferStatus.ACCEPTED),
+                value.Status == OfferStatus.PENDING_PAYMENT,
             cancellationToken) ?? throw new InvalidOperationException("Accepted offer was not found for this payment.");
         var project = await RequireProjectAsync(escrow.ProjectId, cancellationToken);
 
@@ -238,7 +244,7 @@ public sealed class PaymentService(
         escrow.FundedAt = now;
         escrow.UpdatedAt = now;
 
-        offer.Status = OfferStatus.ACTIVE;
+        OfferStateMachine.TransitionTo(offer, OfferStatus.ACTIVE, now);
 
         var previousStatus = project.Status;
         project.Status = ProjectStatus.IN_PROGRESS;
@@ -252,7 +258,7 @@ public sealed class PaymentService(
                 EntityType = nameof(Project),
                 EntityId = project.Id,
                 BeforeJson = $$"""{"status":"{{previousStatus}}"}""",
-                AfterJson = $$"""{"status":"{{ProjectStatus.IN_PROGRESS}}","reason":"PayOS escrow payment succeeded and project started."}""",
+                AfterJson = $$"""{"status":"{{ProjectStatus.IN_PROGRESS}}","reason":"Escrow payment succeeded and project started."}""",
                 CreatedAt = now
             },
             cancellationToken);
@@ -268,16 +274,11 @@ public sealed class PaymentService(
         CancellationToken cancellationToken)
     {
         var existingEscrow = await unitOfWork.Repository<Escrow>().FirstOrDefaultAsync(
-            value => value.ProjectId == project.Id,
+            value => value.ProjectId == project.Id && value.Status == EscrowStatus.PENDING_PAYMENT,
             cancellationToken);
 
         if (existingEscrow is not null)
         {
-            if (existingEscrow.Status != EscrowStatus.PENDING_PAYMENT)
-            {
-                throw new InvalidOperationException("Escrow for this project is not pending payment.");
-            }
-
             if (existingEscrow.StudentProfileId != offer.StudentProfileId)
             {
                 throw new InvalidOperationException("Escrow belongs to another selected student.");
@@ -341,6 +342,57 @@ public sealed class PaymentService(
         throw new UnauthorizedAccessException("User cannot view this escrow.");
     }
 
+    private async Task ReleaseProjectIfNoActiveOfferAsync(
+        Project project,
+        Guid ignoredOfferId,
+        string reason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (project.Status != ProjectStatus.OFFER_SELECTED)
+        {
+            project.UpdatedAt = now;
+            return;
+        }
+
+        var hasOtherActiveOffer = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+            value => value.ProjectId == project.Id &&
+                value.Id != ignoredOfferId &&
+                (value.Status == OfferStatus.WAITING_ACCEPTANCE ||
+                    value.Status == OfferStatus.ACCEPTED ||
+                    value.Status == OfferStatus.PENDING_PAYMENT ||
+                    value.Status == OfferStatus.PAYMENT_FAILED ||
+                    value.Status == OfferStatus.ACTIVE),
+            cancellationToken);
+
+        if (hasOtherActiveOffer)
+        {
+            project.UpdatedAt = now;
+            return;
+        }
+
+        var previousStatus = project.Status;
+        project.SelectedStudentProfileId = null;
+        project.AcceptedAt = null;
+        project.Status = project.ProjectType == ProjectType.OPEN
+            ? ProjectStatus.OPEN
+            : ProjectStatus.PRIVATE_INVITED;
+        project.UpdatedAt = now;
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "PROJECT_STATUS_CHANGED",
+                EntityType = nameof(Project),
+                EntityId = project.Id,
+                BeforeJson = $$"""{"status":"{{previousStatus}}"}""",
+                AfterJson = $$"""{"status":"{{project.Status}}","reason":"{{reason}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+    }
+
     private async Task<SubscriptionPlan> EnsureActiveSubscriptionPlanAsync(
         Guid smeProfileId,
         CancellationToken cancellationToken)
@@ -401,11 +453,11 @@ public sealed class PaymentService(
         return offer?.Id;
     }
 
-    private void EnsurePayOsProviderSelected()
+    private void EnsureConfiguredProviderSelected()
     {
         if (!string.Equals(paymentOptions.Value.Provider, paymentProvider.Name, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("PayOS payment provider is not configured as the active provider.");
+            throw new InvalidOperationException("Payment provider is not configured as the active provider.");
         }
     }
 

@@ -69,13 +69,24 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
-        services.AddHttpClient<IPaymentProvider, PayOsPaymentProvider>((serviceProvider, client) =>
+        services.AddScoped<MockPaymentProvider>();
+        services.AddHttpClient<PayOsPaymentProvider>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IConfiguration>()
                 .GetSection(PaymentOptions.SectionName)
                 .Get<PaymentOptions>() ?? new PaymentOptions();
 
             client.BaseAddress = new Uri(options.PayOS.BaseUrl.TrimEnd('/'));
+        });
+        services.AddScoped<IPaymentProvider>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>()
+                .GetSection(PaymentOptions.SectionName)
+                .Get<PaymentOptions>() ?? new PaymentOptions();
+
+            return string.Equals(options.Provider, "Mock", StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<MockPaymentProvider>()
+                : serviceProvider.GetRequiredService<PayOsPaymentProvider>();
         });
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IConfigurationManager<OpenIdConnectConfiguration>>(serviceProvider =>

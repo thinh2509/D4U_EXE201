@@ -600,9 +600,10 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         var hasPendingOffer = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
             offer => offer.ProjectId == projectId &&
                 offer.StudentProfileId == studentProfile.Id &&
-                (offer.Status == OfferStatus.PENDING_PAYMENT ||
-                    offer.Status == OfferStatus.WAITING_ACCEPTANCE ||
+                (offer.Status == OfferStatus.WAITING_ACCEPTANCE ||
                     offer.Status == OfferStatus.ACCEPTED ||
+                    offer.Status == OfferStatus.PENDING_PAYMENT ||
+                    offer.Status == OfferStatus.PAYMENT_FAILED ||
                     offer.Status == OfferStatus.ACTIVE),
             cancellationToken);
 
@@ -666,15 +667,13 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         if (offer.ExpiresAt.HasValue && offer.ExpiresAt.Value <= now)
         {
-            offer.Status = OfferStatus.EXPIRED;
-            offer.ExpiredAt = now;
+            OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
+            await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, userId, "Offer acceptance window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Offer acceptance window has expired.");
         }
 
-        offer.Status = OfferStatus.ACCEPTED;
-        offer.AcceptedAt = now;
-        offer.PaymentDueAt = now.AddHours(72);
+        OfferStateMachine.TransitionTo(offer, OfferStatus.ACCEPTED, now);
         project.SelectedStudentProfileId = studentProfile.Id;
         project.AcceptedAt = now;
         project.UpdatedAt = now;
@@ -703,8 +702,8 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             throw new InvalidOperationException("Only offers waiting for student decision can be rejected.");
         }
 
-        offer.Status = OfferStatus.REJECTED;
-        offer.RejectedAt = DateTimeOffset.UtcNow;
+        var now = DateTimeOffset.UtcNow;
+        OfferStateMachine.TransitionTo(offer, OfferStatus.REJECTED, now);
 
         if (offer.ApplicationId.HasValue)
         {
@@ -715,7 +714,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             if (application is not null && application.Status == "SELECTED")
             {
                 application.Status = "SUBMITTED";
-                application.UpdatedAt = offer.RejectedAt.Value;
+                application.UpdatedAt = now;
             }
         }
 
@@ -727,16 +726,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             project.AcceptedAt = null;
         }
 
-        if (project.Status == ProjectStatus.OFFER_SELECTED)
-        {
-            var previousStatus = project.Status;
-            project.Status = project.ProjectType == ProjectType.OPEN
-                ? ProjectStatus.OPEN
-                : ProjectStatus.PRIVATE_INVITED;
-            project.UpdatedAt = offer.RejectedAt.Value;
-
-            await AddStatusHistoryAsync(project.Id, previousStatus, project.Status, userId, "Student rejected offer.", cancellationToken);
-        }
+        await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, userId, "Student rejected offer.", now, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -862,11 +852,15 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         submission.Status = SubmissionStatus.APPROVED;
         submission.ApprovedAt = now;
 
-        project.Status = submission.MilestoneType == SubmissionStage.SKETCH
-            ? ProjectStatus.IN_PROGRESS
-            : ProjectStatus.COMPLETED;
-        project.CompletedAt = submission.MilestoneType == SubmissionStage.FINAL ? now : project.CompletedAt;
-        project.UpdatedAt = now;
+        if (submission.MilestoneType == SubmissionStage.SKETCH)
+        {
+            project.Status = ProjectStatus.IN_PROGRESS;
+            project.UpdatedAt = now;
+        }
+        else
+        {
+            await CompleteProjectExecutionAsync(project, now, cancellationToken);
+        }
 
         await unitOfWork.Repository<ReviewAction>().AddAsync(
             new ReviewAction
@@ -1153,6 +1147,45 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             .ToDictionary(value => value.Key, value => value.First());
     }
 
+    private async Task ReleaseProjectIfNoActiveOfferAsync(
+        Project project,
+        Guid ignoredOfferId,
+        Guid actorUserId,
+        string reason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (project.Status != ProjectStatus.OFFER_SELECTED)
+        {
+            project.UpdatedAt = now;
+            return;
+        }
+
+        var hasOtherActiveOffer = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+            value => value.ProjectId == project.Id &&
+                value.Id != ignoredOfferId &&
+                (value.Status == OfferStatus.WAITING_ACCEPTANCE ||
+                    value.Status == OfferStatus.ACCEPTED ||
+                    value.Status == OfferStatus.PENDING_PAYMENT ||
+                    value.Status == OfferStatus.PAYMENT_FAILED ||
+                    value.Status == OfferStatus.ACTIVE),
+            cancellationToken);
+
+        if (hasOtherActiveOffer)
+        {
+            project.UpdatedAt = now;
+            return;
+        }
+
+        var previousStatus = project.Status;
+        project.Status = project.ProjectType == ProjectType.OPEN
+            ? ProjectStatus.OPEN
+            : ProjectStatus.PRIVATE_INVITED;
+        project.UpdatedAt = now;
+
+        await AddStatusHistoryAsync(project.Id, previousStatus, project.Status, actorUserId, reason, cancellationToken);
+    }
+
     private async Task EnsureFundedEscrowAsync(
         Guid projectId,
         Guid studentProfileId,
@@ -1167,6 +1200,27 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         if (escrow is null)
         {
             throw new InvalidOperationException("Project cannot receive submissions until escrow is funded.");
+        }
+    }
+
+    private async Task CompleteProjectExecutionAsync(
+        Project project,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        project.Status = ProjectStatus.COMPLETED;
+        project.CompletedAt ??= now;
+        project.RatingDueAt ??= now.AddDays(7);
+        project.UpdatedAt = now;
+
+        var escrow = await unitOfWork.Repository<Escrow>().FirstOrDefaultAsync(
+            value => value.ProjectId == project.Id && value.Status == EscrowStatus.FUNDED,
+            cancellationToken);
+
+        if (escrow is not null)
+        {
+            escrow.Status = EscrowStatus.RELEASE_PENDING;
+            escrow.UpdatedAt = now;
         }
     }
 

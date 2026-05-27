@@ -91,7 +91,7 @@ EMAIL_USE_SSL=true
 
 GOOGLE_AUTH_CLIENT_ID=
 
-PAYMENT_PROVIDER=PayOS
+PAYMENT_PROVIDER=Mock
 PAYMENT_RETURN_URL=http://localhost:3000/payment/success
 PAYMENT_CANCEL_URL=http://localhost:3000/payment/cancel
 PAYMENT_PAYOS_CLIENT_ID=
@@ -109,6 +109,7 @@ Ghi chú:
 - SMTP thật cần Gmail App Password hoặc provider SMTP hợp lệ.
 - Google login chỉ test được nếu `GOOGLE_AUTH_CLIENT_ID` hợp lệ và frontend đã rebuild.
 - PayOS thật cần credentials và webhook public callback hoặc công cụ tunnel.
+- Local/test có thể dùng `PAYMENT_PROVIDER=Mock`; mock provider không gọi PayOS thật, trả checkout URL/QR giả và chấp nhận webhook có `signature = ""` hoặc `"mock"`.
 - EDU verification local có thể dùng `STUDENT_EMAIL_INCLUDE_CODE_IN_RESPONSE=true` để lấy code trong response.
 
 ### 1.5. PostgreSQL Check
@@ -682,7 +683,49 @@ Expected reject:
 - Offer chuyển `REJECTED`.
 - Nếu không còn active offer, project được release lại theo rule backend.
 
+### 5.8. Offer Expiry 48 Giờ
+
+Background service:
+
+- `OfferPaymentExpiryBackgroundService`
+
+Điều kiện:
+
+- Offer đang `WAITING_ACCEPTANCE`.
+- `expires_at <= now()`.
+
+Manual DB setup để test nhanh:
+
+```sql
+update project_offers
+set expires_at = now() - interval '1 minute'
+where id = '<offer-id>' and status = 'WAITING_ACCEPTANCE';
+```
+
+Expected:
+
+- Offer chuyển `EXPIRED`.
+- `expired_at` được set.
+- Nếu không còn offer active khác, project quay về `OPEN` hoặc `PRIVATE_INVITED`.
+- Có audit log `OFFER_EXPIRED`.
+
+SQL check:
+
+```sql
+select po.status, po.expires_at, po.expired_at, p.status as project_status
+from project_offers po
+join projects p on p.id = po.project_id
+where po.id = '<offer-id>';
+
+select action, entity_type, entity_id, before_json, after_json, created_at
+from audit_logs
+where entity_id = '<offer-id>'
+order by created_at desc;
+```
+
 ## 6. PayOS Escrow Payment
+
+Nếu test local không có PayOS thật, đặt `PAYMENT_PROVIDER=Mock` trong `.env`, chạy lại `docker compose up -d --build`, rồi dùng cùng endpoint payment/webhook bên dưới. Mock provider trả checkout URL/QR giả, không gọi PayOS.
 
 ### 6.1. SME Create Offer Payment
 
@@ -701,6 +744,7 @@ Expected:
 - Tạo hoặc reuse escrow status `PENDING_PAYMENT`.
 - Trả `checkoutUrl` hoặc `qrCode`.
 - Offer chuyển `PENDING_PAYMENT`.
+- Nếu payment webhook fail trước khi hết 72 giờ, offer chuyển `PAYMENT_FAILED` và SME có thể tạo lại payment.
 
 SQL:
 
@@ -713,7 +757,74 @@ left join payments p on p.escrow_id = e.id
 order by po.created_at desc;
 ```
 
-### 6.2. PayOS Webhook Success
+### 6.2. Mock Webhook Success/Failure
+
+API:
+
+- `POST /api/v1/payments/payos/webhook`
+
+Mock success request:
+
+```json
+{
+  "code": "00",
+  "desc": "success",
+  "success": true,
+  "signature": "mock",
+  "data": {
+    "orderCode": 1234567890,
+    "amount": 2800000,
+    "description": "D4U escrow",
+    "accountNumber": "000000",
+    "reference": "MOCK-SUCCESS-001",
+    "transactionDateTime": "2026-05-27T10:00:00Z",
+    "currency": "VND",
+    "paymentLinkId": "mock-link-001",
+    "code": "00",
+    "desc": "success"
+  }
+}
+```
+
+Mock failure request:
+
+```json
+{
+  "code": "99",
+  "desc": "failed",
+  "success": false,
+  "signature": "mock",
+  "data": {
+    "orderCode": 1234567890,
+    "amount": 2800000,
+    "description": "D4U escrow",
+    "accountNumber": "000000",
+    "reference": "MOCK-FAILED-001",
+    "transactionDateTime": "2026-05-27T10:00:00Z",
+    "currency": "VND",
+    "paymentLinkId": "mock-link-001",
+    "code": "99",
+    "desc": "failed"
+  }
+}
+```
+
+Expected success:
+
+- Chỉ xử lý payment đang `PENDING`.
+- Payment chuyển `SUCCESS`.
+- Escrow chuyển `FUNDED`.
+- Offer chuyển `ACTIVE`.
+- Project chuyển `IN_PROGRESS`.
+
+Expected failure:
+
+- Payment chuyển `FAILED`.
+- Offer chuyển `PAYMENT_FAILED`.
+- Project không chuyển `IN_PROGRESS`.
+- SME có thể tạo payment mới nếu `payment_due_at` vẫn còn hạn.
+
+### 6.3. PayOS Webhook Success
 
 API:
 
@@ -730,7 +841,52 @@ Expected:
 
 Skip nếu chưa có PayOS credentials hoặc public callback URL.
 
-### 6.3. View Payment/Escrow
+### 6.4. Payment Window Expiry 72 Giờ
+
+Background service:
+
+- `OfferPaymentExpiryBackgroundService`
+
+Manual DB setup để test nhanh:
+
+```sql
+update project_offers
+set payment_due_at = now() - interval '1 minute'
+where id = '<offer-id>' and status in ('ACCEPTED', 'PENDING_PAYMENT', 'PAYMENT_FAILED');
+
+update payments
+set expires_at = now() - interval '1 minute'
+where escrow_id = '<escrow-id>' and status = 'PENDING';
+```
+
+Expected:
+
+- Offer chuyển `EXPIRED`.
+- Pending payment chuyển `EXPIRED`.
+- Escrow `PENDING_PAYMENT` chuyển `CANCELLED`.
+- Nếu không còn offer active khác, project quay về `OPEN` hoặc `PRIVATE_INVITED`.
+- Webhook success đến muộn cho payment `FAILED`, `CANCELLED`, hoặc `EXPIRED` không được start project.
+
+SQL check:
+
+```sql
+select po.status as offer_status, po.payment_due_at, po.expired_at,
+       e.status as escrow_status, p.status as payment_status,
+       pr.status as project_status
+from project_offers po
+left join escrows e on e.project_id = po.project_id and e.student_profile_id = po.student_profile_id
+left join payments p on p.escrow_id = e.id
+join projects pr on pr.id = po.project_id
+where po.id = '<offer-id>'
+order by p.created_at desc;
+
+select action, entity_type, entity_id, before_json, after_json, created_at
+from audit_logs
+where action in ('OFFER_EXPIRED', 'PAYMENT_EXPIRED', 'PROJECT_STATUS_CHANGED')
+order by created_at desc;
+```
+
+### 6.5. View Payment/Escrow
 
 API:
 
@@ -852,7 +1008,19 @@ Expected:
 - Submission chuyển `APPROVED`.
 - Review action `APPROVE_FINAL`.
 - Project chuyển `COMPLETED`.
-- Phase 4 disbursement/wallet chưa được kỳ vọng ở bước này.
+- `projects.completed_at` được set.
+- `projects.rating_due_at = completed_at + 7 ngày`.
+- Escrow `FUNDED` chuyển `RELEASE_PENDING`.
+- Không credit wallet, không tạo withdrawal, không tự payout ngân hàng trong MVP hiện tại.
+
+SQL check:
+
+```sql
+select p.status, p.completed_at, p.rating_due_at, e.status as escrow_status
+from projects p
+left join escrows e on e.project_id = p.id
+where p.id = '<project-id>';
+```
 
 ### 7.5. SME Request Revision
 
@@ -974,6 +1142,7 @@ Expected:
 - Submission `SUBMITTED` có `review_due_at <= now` sẽ auto-approve nếu project đang `SKETCH_REVIEW` hoặc `FINAL_REVIEW`.
 - Sketch auto-approve chuyển project về `IN_PROGRESS`.
 - Final auto-approve chuyển project `COMPLETED`.
+- Final auto-approve dùng cùng completion handoff: set `completed_at`, `rating_due_at`, escrow `RELEASE_PENDING`.
 - Tạo review action `AUTO_APPROVE`.
 - Tạo audit log `PROJECT_STATUS_CHANGED`.
 
@@ -996,9 +1165,11 @@ SQL check:
 
 ```sql
 select ps.id, ps.milestone_type, ps.status, ps.review_due_at, ps.auto_approved_at,
-       p.status as project_status
+       p.status as project_status, p.completed_at, p.rating_due_at,
+       e.status as escrow_status
 from project_submissions ps
 join projects p on p.id = ps.project_id
+left join escrows e on e.project_id = p.id
 order by ps.submitted_at desc;
 
 select action, entity_type, entity_id, before_json, after_json, created_at
@@ -1022,7 +1193,10 @@ order by created_at desc;
 | Basic plan publish project thứ 3 đang `OPEN` | Bị chặn |
 | Basic plan budget trên `5,000,000 VND` | Bị chặn |
 | Student apply trùng project | Bị chặn |
+| Offer `WAITING_ACCEPTANCE` quá 48 giờ | Chuyển `EXPIRED`, project release nếu không còn active offer |
 | SME tạo payment khi offer chưa accepted | Bị chặn |
+| Offer accepted quá 72 giờ chưa paid | Offer `EXPIRED`, pending payment `EXPIRED`, escrow `CANCELLED` |
+| Webhook success đến sau payment `FAILED`/`CANCELLED`/`EXPIRED` | Không start project |
 | Client tự gọi success page payment | Không đổi payment/escrow/project nếu không có webhook |
 | Student submit Sketch khi escrow chưa `FUNDED` | Bị chặn |
 | Student submit Final trước Sketch approved | Bị chặn |
@@ -1040,7 +1214,7 @@ select sp.id, u.email, sp.verification_status, sp.can_withdraw
 from student_profiles sp
 join users u on u.id = sp.user_id;
 
-select title, status, selected_student_profile_id, current_revision_round, completed_at, cancelled_at
+select title, status, selected_student_profile_id, current_revision_round, completed_at, rating_due_at, cancelled_at
 from projects
 order by created_at desc;
 
@@ -1067,9 +1241,9 @@ order by created_at desc;
 
 ## 10. Known Gaps Và Skip Notes
 
-- PayOS payment success cần credentials thật và webhook callback hợp lệ; nếu không có, chỉ test được tới bước tạo checkout link hoặc kiểm tra validation.
+- PayOS payment success thật cần credentials thật và webhook callback hợp lệ; nếu không có, dùng `PAYMENT_PROVIDER=Mock` để smoke success/failure webhook local.
 - SMTP thật cần provider hợp lệ; nếu không có, account email OTP không nhận được trong inbox.
 - Google login cần Google OAuth client ID và frontend rebuild.
 - Frontend Phase 3B execution hiện chủ yếu là shell route; test submission/review/admin execution qua Swagger/API.
-- Phase 4 money movement chưa hoàn thành: không kỳ vọng wallet credit, disbursement, withdrawal sau Final approval.
+- Phase 4 money movement chưa hoàn thành: chỉ test completion handoff tới `COMPLETED`, `RELEASE_PENDING`, `rating_due_at`; không kỳ vọng wallet credit, disbursement, withdrawal sau Final approval.
 - Portfolio, Ratings, Paid Packages, AI Matching, notification đầy đủ chưa thuộc completed feature set trong guide này.

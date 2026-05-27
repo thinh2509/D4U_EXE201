@@ -89,9 +89,9 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] Student can accept offer before SME funds escrow.
 - [x] Student can reject offer.
 - [x] Accepted offer selects student and waits for SME escrow payment.
-- [ ] Offer expires if Student does not accept or reject within 48 hours.
-- [ ] Expired/rejected offers release the project back to `OPEN` or `PRIVATE_INVITED` when no other active offer blocks it.
-- [ ] Offer state transitions are validated by a single service/state machine helper.
+- [x] Offer expires if Student does not accept or reject within 48 hours.
+- [x] Expired/rejected offers release the project back to `OPEN` or `PRIVATE_INVITED` when no other active offer blocks it.
+- [x] Offer state transitions are validated by a single service/state machine helper.
 
 ## Phase 3A - PayOS Escrow Payment
 
@@ -109,11 +109,11 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] SME can start escrow payment only after Student accepts offer.
 - [x] Funded escrow moves project to `IN_PROGRESS`.
 - [x] Project cannot start unless escrow is funded.
-- [ ] SME payment window expires after 72 hours from Student acceptance.
-- [ ] Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
-- [ ] Pending payment expiry marks stale payment records safely and releases the accepted offer when appropriate.
-- [ ] Background job or hosted service handles offer/payment expiry idempotently.
-- [ ] Keep a mock/sandbox payment provider only for local development and automated tests.
+- [x] SME payment window expires after 72 hours from Student acceptance.
+- [x] Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
+- [x] Pending payment expiry marks stale payment records safely and releases the accepted offer when appropriate.
+- [x] Background job or hosted service handles offer/payment expiry idempotently.
+- [x] Keep a mock/sandbox payment provider only for local development and automated tests.
 - [x] Frontend SME offer/application screen shows `Thanh toán escrow`.
 - [x] Frontend displays PayOS checkout link or QR payment information.
 - [x] Frontend payment success/cancel pages guide the user back to the project flow.
@@ -131,7 +131,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] Student can submit Final only after Sketch approved or auto-approved.
 - [x] Student can submit Final files.
 - [x] Project moves to Final submitted or in review status.
-- [ ] System auto-approves Final after 5 business days without SME review and triggers completion/disbursement flow.
+- [x] System auto-approves Final after 5 business days without SME review and triggers completion/disbursement flow.
 - [x] Store submission type, revision round, description, status, and submitted timestamp.
 - [x] Store submission files with optional watermarked file and original-download permission.
 
@@ -153,14 +153,14 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Completion and Disbursement
 
-- [ ] Final approval moves project to `COMPLETED`.
-- [ ] Escrow moves to `RELEASE_PENDING`.
+- [x] Final approval moves project to `COMPLETED`.
+- [x] Escrow moves to `RELEASE_PENDING`.
 - [ ] Calculate platform fee from escrow amount and stored fee rate.
 - [ ] Create disbursement with gross amount, fee, and net amount.
 - [ ] Credit Student wallet available balance with net amount.
 - [ ] Create wallet transaction `DISBURSEMENT_CREDIT`.
 - [ ] Escrow moves to `RELEASED`.
-- [ ] Project rating due date is set to 7 days after completion.
+- [x] Project rating due date is set to 7 days after completion.
 - [ ] Mid-project cancellation before Sketch refunds 100% to SME and 0% to Student.
 - [ ] Mid-project cancellation after Sketch approved refunds 60% to SME and pays 40% to Student.
 - [ ] Mid-project cancellation after Final submitted refunds 20% to SME and pays 80% to Student.

@@ -2,6 +2,7 @@ namespace D4U.Api.Infrastructure.BackgroundServices;
 
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
+using D4U.Api.Application.Features.Projects;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,7 +46,9 @@ public sealed class OfferPaymentExpiryBackgroundService(
                 (offer.Status == OfferStatus.WAITING_ACCEPTANCE &&
                     offer.ExpiresAt.HasValue &&
                     offer.ExpiresAt <= now) ||
-                ((offer.Status == OfferStatus.ACCEPTED || offer.Status == OfferStatus.PENDING_PAYMENT) &&
+                ((offer.Status == OfferStatus.ACCEPTED ||
+                        offer.Status == OfferStatus.PENDING_PAYMENT ||
+                        offer.Status == OfferStatus.PAYMENT_FAILED) &&
                     offer.PaymentDueAt.HasValue &&
                     offer.PaymentDueAt <= now))
             .ToListAsync(cancellationToken);
@@ -58,8 +61,7 @@ public sealed class OfferPaymentExpiryBackgroundService(
         foreach (var offer in staleOffers)
         {
             var previousStatus = offer.Status;
-            offer.Status = OfferStatus.EXPIRED;
-            offer.ExpiredAt ??= now;
+            OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
 
             await ExpirePendingPaymentsAsync(dbContext, offer, now, cancellationToken);
             await ReleaseProjectIfBlockedAsync(dbContext, offer, now, cancellationToken);
@@ -92,6 +94,19 @@ public sealed class OfferPaymentExpiryBackgroundService(
         {
             payment.Status = PaymentStatus.EXPIRED;
             payment.UpdatedAt = now;
+
+            await dbContext.AuditLogs.AddAsync(
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    Action = "PAYMENT_EXPIRED",
+                    EntityType = nameof(Payment),
+                    EntityId = payment.Id,
+                    BeforeJson = $$"""{"status":"{{PaymentStatus.PENDING}}"}""",
+                    AfterJson = $$"""{"status":"{{PaymentStatus.EXPIRED}}","reason":"TIMEOUT"}""",
+                    CreatedAt = now
+                },
+                cancellationToken);
         }
 
         if (escrow.Status == EscrowStatus.PENDING_PAYMENT)
@@ -130,6 +145,7 @@ public sealed class OfferPaymentExpiryBackgroundService(
                     (value.Status == OfferStatus.WAITING_ACCEPTANCE ||
                         value.Status == OfferStatus.ACCEPTED ||
                         value.Status == OfferStatus.PENDING_PAYMENT ||
+                        value.Status == OfferStatus.PAYMENT_FAILED ||
                         value.Status == OfferStatus.ACTIVE),
                 cancellationToken);
 
