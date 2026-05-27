@@ -1,6 +1,7 @@
 namespace D4U.Api.Application.Features.Projects;
 
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Common.Files;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 {
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
+    private const int ReviewBusinessDays = 5;
 
     public async Task<ProjectResponse> CreateDraftAsync(
         Guid userId,
@@ -741,6 +743,311 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         return ToOfferResponse(offer);
     }
 
+    public async Task<ProjectSubmissionResponse> SubmitProjectSubmissionAsync(
+        Guid userId,
+        Guid projectId,
+        SubmitProjectSubmissionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var studentProfile = await RequireVerifiedStudentProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.SelectedStudentProfileId != studentProfile.Id)
+        {
+            throw new UnauthorizedAccessException("Only the selected student can submit files for this project.");
+        }
+
+        await EnsureFundedEscrowAsync(project.Id, studentProfile.Id, cancellationToken);
+        EnsureSubmissionFilesProvided(request);
+
+        var now = DateTimeOffset.UtcNow;
+        var milestoneType = request.MilestoneType;
+        var submissionType = milestoneType == SubmissionStage.SKETCH ? SubmissionType.SKETCH : SubmissionType.FINAL;
+        var revisionRound = project.CurrentRevisionRound;
+
+        if (project.Status == ProjectStatus.REVISION_REQUESTED)
+        {
+            var previousSubmission = await GetLatestRevisionRequestedSubmissionAsync(project.Id, cancellationToken)
+                ?? throw new InvalidOperationException("Revision request was not found for this project.");
+
+            if (previousSubmission.MilestoneType != milestoneType)
+            {
+                throw new InvalidOperationException("Revision must be submitted for the same milestone that SME requested.");
+            }
+
+            submissionType = SubmissionType.REVISION;
+            revisionRound = project.CurrentRevisionRound;
+        }
+        else if (milestoneType == SubmissionStage.SKETCH)
+        {
+            if (project.Status != ProjectStatus.IN_PROGRESS)
+            {
+                throw new InvalidOperationException("Sketch can be submitted only after escrow is funded and project is in progress.");
+            }
+
+            if (await HasActiveSubmissionAsync(project.Id, SubmissionStage.SKETCH, cancellationToken))
+            {
+                throw new InvalidOperationException("Sketch submission is already waiting for review.");
+            }
+        }
+        else
+        {
+            if (project.Status != ProjectStatus.IN_PROGRESS)
+            {
+                throw new InvalidOperationException("Final can be submitted only when project is in progress.");
+            }
+
+            if (!await HasApprovedSubmissionAsync(project.Id, SubmissionStage.SKETCH, cancellationToken))
+            {
+                throw new InvalidOperationException("Final can be submitted only after Sketch is approved.");
+            }
+
+            if (await HasActiveSubmissionAsync(project.Id, SubmissionStage.FINAL, cancellationToken))
+            {
+                throw new InvalidOperationException("Final submission is already waiting for review.");
+            }
+        }
+
+        var submission = new ProjectSubmission
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            SubmittedByStudentId = studentProfile.Id,
+            SubmissionType = submissionType,
+            MilestoneType = milestoneType,
+            RevisionRound = revisionRound,
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Status = SubmissionStatus.SUBMITTED,
+            SubmittedAt = now,
+            ReviewDueAt = AddBusinessDays(now, ReviewBusinessDays)
+        };
+
+        var files = await BuildSubmissionFilesAsync(submission.Id, userId, request.Files, now, cancellationToken);
+        var previousStatus = project.Status;
+        project.Status = milestoneType == SubmissionStage.SKETCH
+            ? ProjectStatus.SKETCH_REVIEW
+            : ProjectStatus.FINAL_REVIEW;
+        project.UpdatedAt = now;
+
+        await unitOfWork.Repository<ProjectSubmission>().AddAsync(submission, cancellationToken);
+
+        foreach (var file in files)
+        {
+            await unitOfWork.Repository<SubmissionFile>().AddAsync(file, cancellationToken);
+        }
+
+        await AddStatusHistoryAsync(project.Id, previousStatus, project.Status, userId, $"{milestoneType} submitted for SME review.", cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToSubmissionResponse(submission, files);
+    }
+
+    public async Task<ProjectSubmissionResponse> ApproveSubmissionAsync(
+        Guid userId,
+        Guid projectId,
+        Guid submissionId,
+        ApproveSubmissionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+        EnsureSmeOwnsProject(project, smeProfile);
+        var submission = await RequireSubmissionAsync(projectId, submissionId, cancellationToken);
+        EnsureSubmissionCanBeReviewed(project, submission);
+
+        var now = DateTimeOffset.UtcNow;
+        var previousProjectStatus = project.Status;
+        submission.Status = SubmissionStatus.APPROVED;
+        submission.ApprovedAt = now;
+
+        project.Status = submission.MilestoneType == SubmissionStage.SKETCH
+            ? ProjectStatus.IN_PROGRESS
+            : ProjectStatus.COMPLETED;
+        project.CompletedAt = submission.MilestoneType == SubmissionStage.FINAL ? now : project.CompletedAt;
+        project.UpdatedAt = now;
+
+        await unitOfWork.Repository<ReviewAction>().AddAsync(
+            new ReviewAction
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                SubmissionId = submission.Id,
+                ReviewerUserId = userId,
+                Action = submission.MilestoneType == SubmissionStage.SKETCH
+                    ? ReviewActionType.APPROVE_SKETCH
+                    : ReviewActionType.APPROVE_FINAL,
+                Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim(),
+                RevisionRound = submission.RevisionRound,
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await AddStatusHistoryAsync(project.Id, previousProjectStatus, project.Status, userId, $"{submission.MilestoneType} approved by SME.", cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await ToSubmissionResponseAsync(submission, cancellationToken);
+    }
+
+    public async Task<ProjectSubmissionResponse> RequestRevisionAsync(
+        Guid userId,
+        Guid projectId,
+        Guid submissionId,
+        RequestRevisionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+        EnsureSmeOwnsProject(project, smeProfile);
+        var submission = await RequireSubmissionAsync(projectId, submissionId, cancellationToken);
+        EnsureSubmissionCanBeReviewed(project, submission);
+
+        if (string.IsNullOrWhiteSpace(request.RequestedChanges))
+        {
+            throw new InvalidOperationException("Requested changes are required.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var previousProjectStatus = project.Status;
+
+        if (project.CurrentRevisionRound >= project.MaxRevisionRounds)
+        {
+            project.Status = ProjectStatus.ADMIN_REVIEW;
+            project.UpdatedAt = now;
+            await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.ADMIN_REVIEW, userId, "Revision limit reached.", cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return await ToSubmissionResponseAsync(submission, cancellationToken);
+        }
+
+        project.CurrentRevisionRound += 1;
+        project.Status = ProjectStatus.REVISION_REQUESTED;
+        project.UpdatedAt = now;
+        submission.Status = SubmissionStatus.REVISION_REQUESTED;
+
+        await unitOfWork.Repository<ReviewAction>().AddAsync(
+            new ReviewAction
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                SubmissionId = submission.Id,
+                ReviewerUserId = userId,
+                Action = ReviewActionType.REQUEST_REVISION,
+                RequestedChanges = request.RequestedChanges.Trim(),
+                RevisionRound = project.CurrentRevisionRound,
+                DueAt = request.DueAt,
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME requested revision.", cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await ToSubmissionResponseAsync(submission, cancellationToken);
+    }
+
+    public async Task<ProjectSubmissionResponse> ReportInvalidFileAsync(
+        Guid userId,
+        Guid projectId,
+        Guid submissionId,
+        ReportInvalidFileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+        EnsureSmeOwnsProject(project, smeProfile);
+        var submission = await RequireSubmissionAsync(projectId, submissionId, cancellationToken);
+        EnsureSubmissionCanBeReviewed(project, submission);
+
+        var now = DateTimeOffset.UtcNow;
+        submission.Status = SubmissionStatus.INVALID_REPORTED;
+
+        await unitOfWork.Repository<ReviewAction>().AddAsync(
+            new ReviewAction
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                SubmissionId = submission.Id,
+                ReviewerUserId = userId,
+                Action = ReviewActionType.REPORT_INVALID_FILE,
+                Comment = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+                RevisionRound = submission.RevisionRound,
+                InvalidFileReason = request.Reason,
+                ReuploadDueAt = request.ReuploadDueAt,
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await ToSubmissionResponseAsync(submission, cancellationToken);
+    }
+
+    public async Task<ProjectResponse> AdminForceCompleteAsync(
+        Guid userId,
+        Guid projectId,
+        AdminProjectDecisionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        EnsureAdmin(user);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.Status != ProjectStatus.ADMIN_REVIEW)
+        {
+            throw new InvalidOperationException("Admin can force complete only projects in admin review.");
+        }
+
+        var latestSubmission = await RequireLatestSubmissionAsync(project.Id, cancellationToken);
+        var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
+        var previousStatus = project.Status;
+        var now = DateTimeOffset.UtcNow;
+        project.Status = ProjectStatus.COMPLETED;
+        project.CompletedAt = now;
+        project.UpdatedAt = now;
+
+        await AddAdminReviewActionAsync(project, latestSubmission, userId, ReviewActionType.ADMIN_FORCE_COMPLETE, request.Reason, now, cancellationToken);
+        await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.COMPLETED, userId, request.Reason ?? "Admin force completed project.", cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToProjectResponse(project, category);
+    }
+
+    public async Task<ProjectResponse> AdminCancelInReviewAsync(
+        Guid userId,
+        Guid projectId,
+        AdminProjectDecisionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        EnsureAdmin(user);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.Status != ProjectStatus.ADMIN_REVIEW)
+        {
+            throw new InvalidOperationException("Admin can cancel only projects in admin review.");
+        }
+
+        var latestSubmission = await RequireLatestSubmissionAsync(project.Id, cancellationToken);
+        var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
+        var previousStatus = project.Status;
+        var now = DateTimeOffset.UtcNow;
+        project.Status = ProjectStatus.CANCELLED;
+        project.CancelledAt = now;
+        project.CancellationReason = string.IsNullOrWhiteSpace(request.Reason)
+            ? "Cancelled by Admin review."
+            : request.Reason.Trim();
+        project.UpdatedAt = now;
+
+        await AddAdminReviewActionAsync(project, latestSubmission, userId, ReviewActionType.ADMIN_CANCEL, project.CancellationReason, now, cancellationToken);
+        await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.CANCELLED, userId, project.CancellationReason, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToProjectResponse(project, category);
+    }
+
     private async Task<IReadOnlyList<ProjectOfferFlowResponse>> ToOfferFlowResponsesAsync(
         IReadOnlyList<ProjectOffer> offers,
         CancellationToken cancellationToken)
@@ -844,6 +1151,218 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         return payments
             .GroupBy(value => value.EscrowId!.Value)
             .ToDictionary(value => value.Key, value => value.First());
+    }
+
+    private async Task EnsureFundedEscrowAsync(
+        Guid projectId,
+        Guid studentProfileId,
+        CancellationToken cancellationToken)
+    {
+        var escrow = await unitOfWork.Repository<Escrow>().FirstOrDefaultAsync(
+            value => value.ProjectId == projectId &&
+                value.StudentProfileId == studentProfileId &&
+                value.Status == EscrowStatus.FUNDED,
+            cancellationToken);
+
+        if (escrow is null)
+        {
+            throw new InvalidOperationException("Project cannot receive submissions until escrow is funded.");
+        }
+    }
+
+    private async Task<IReadOnlyList<SubmissionFile>> BuildSubmissionFilesAsync(
+        Guid submissionId,
+        Guid userId,
+        IReadOnlyList<SubmissionFileRequest> requests,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<SubmissionFile>(requests.Count);
+        var seenFileIds = new HashSet<Guid>();
+
+        foreach (var request in requests)
+        {
+            if (!seenFileIds.Add(request.FileId))
+            {
+                throw new InvalidOperationException("Submission contains duplicate files.");
+            }
+
+            await EnsureAllowedSubmissionFileAsync(request.FileId, userId, cancellationToken);
+
+            if (request.WatermarkedFileId.HasValue)
+            {
+                await EnsureAllowedSubmissionFileAsync(request.WatermarkedFileId.Value, userId, cancellationToken);
+            }
+
+            result.Add(new SubmissionFile
+            {
+                Id = Guid.NewGuid(),
+                SubmissionId = submissionId,
+                FileId = request.FileId,
+                WatermarkedFileId = request.WatermarkedFileId,
+                IsOriginalDownloadable = request.IsOriginalDownloadable,
+                CreatedAt = now
+            });
+        }
+
+        return result;
+    }
+
+    private async Task EnsureAllowedSubmissionFileAsync(
+        Guid fileId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var file = await unitOfWork.Repository<FileAsset>().GetByIdAsync(fileId, cancellationToken)
+            ?? throw new InvalidOperationException("Submission file was not found.");
+
+        if (file.DeletedAt is not null)
+        {
+            throw new InvalidOperationException("Deleted files cannot be submitted.");
+        }
+
+        if (file.OwnerUserId.HasValue && file.OwnerUserId.Value != userId)
+        {
+            throw new UnauthorizedAccessException("Submission file belongs to another user.");
+        }
+
+        if (!FileMetadataRules.IsAllowedExtension(file.FileExtension))
+        {
+            throw new InvalidOperationException("Submission files must be jpg, png, or pdf.");
+        }
+    }
+
+    private async Task<bool> HasActiveSubmissionAsync(
+        Guid projectId,
+        SubmissionStage milestoneType,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<ProjectSubmission>().AnyAsync(
+            value => value.ProjectId == projectId &&
+                value.MilestoneType == milestoneType &&
+                value.Status == SubmissionStatus.SUBMITTED,
+            cancellationToken);
+    }
+
+    private async Task<bool> HasApprovedSubmissionAsync(
+        Guid projectId,
+        SubmissionStage milestoneType,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<ProjectSubmission>().AnyAsync(
+            value => value.ProjectId == projectId &&
+                value.MilestoneType == milestoneType &&
+                value.Status == SubmissionStatus.APPROVED,
+            cancellationToken);
+    }
+
+    private async Task<ProjectSubmission?> GetLatestRevisionRequestedSubmissionAsync(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<ProjectSubmission>().Query()
+            .Where(value => value.ProjectId == projectId && value.Status == SubmissionStatus.REVISION_REQUESTED)
+            .OrderByDescending(value => value.SubmittedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<ProjectSubmission> RequireSubmissionAsync(
+        Guid projectId,
+        Guid submissionId,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<ProjectSubmission>().FirstOrDefaultAsync(
+            value => value.Id == submissionId && value.ProjectId == projectId,
+            cancellationToken) ?? throw new InvalidOperationException("Project submission was not found.");
+    }
+
+    private async Task<ProjectSubmission> RequireLatestSubmissionAsync(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<ProjectSubmission>().Query()
+            .Where(value => value.ProjectId == projectId)
+            .OrderByDescending(value => value.SubmittedAt)
+            .FirstOrDefaultAsync(cancellationToken) ?? throw new InvalidOperationException("Project has no submission to review.");
+    }
+
+    private async Task<ProjectSubmissionResponse> ToSubmissionResponseAsync(
+        ProjectSubmission submission,
+        CancellationToken cancellationToken)
+    {
+        var files = await unitOfWork.Repository<SubmissionFile>().Query()
+            .Where(value => value.SubmissionId == submission.Id)
+            .OrderBy(value => value.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return ToSubmissionResponse(submission, files);
+    }
+
+    private static void EnsureSubmissionFilesProvided(SubmitProjectSubmissionRequest request)
+    {
+        if (request.Files is null || request.Files.Count == 0)
+        {
+            throw new InvalidOperationException("At least one submission file is required.");
+        }
+    }
+
+    private static void EnsureSmeOwnsProject(Project project, SmeProfile smeProfile)
+    {
+        if (project.SmeProfileId != smeProfile.Id)
+        {
+            throw new UnauthorizedAccessException("Only the owner SME can review this project.");
+        }
+    }
+
+    private static void EnsureSubmissionCanBeReviewed(Project project, ProjectSubmission submission)
+    {
+        if (submission.Status is not SubmissionStatus.SUBMITTED and not SubmissionStatus.VALID)
+        {
+            throw new InvalidOperationException("Only submitted files waiting for review can be reviewed.");
+        }
+
+        if (submission.MilestoneType == SubmissionStage.SKETCH && project.Status != ProjectStatus.SKETCH_REVIEW)
+        {
+            throw new InvalidOperationException("Sketch can be reviewed only while project is in sketch review.");
+        }
+
+        if (submission.MilestoneType == SubmissionStage.FINAL && project.Status != ProjectStatus.FINAL_REVIEW)
+        {
+            throw new InvalidOperationException("Final can be reviewed only while project is in final review.");
+        }
+    }
+
+    private static void EnsureAdmin(User user)
+    {
+        if (user.Role != UserRole.ADMIN)
+        {
+            throw new UnauthorizedAccessException("Only Admin users can perform this action.");
+        }
+    }
+
+    private async Task AddAdminReviewActionAsync(
+        Project project,
+        ProjectSubmission submission,
+        Guid adminUserId,
+        ReviewActionType actionType,
+        string? reason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await unitOfWork.Repository<ReviewAction>().AddAsync(
+            new ReviewAction
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                SubmissionId = submission.Id,
+                ReviewerUserId = adminUserId,
+                Action = actionType,
+                Comment = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+                RevisionRound = submission.RevisionRound,
+                MetadataJson = $$"""{"reason":"ADMIN_REVIEW"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
     }
 
     private async Task<User> RequireUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -1095,6 +1614,52 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             project.UpdatedAt,
             hasApplied,
             myApplicationId);
+    }
+
+    private static DateTimeOffset AddBusinessDays(DateTimeOffset start, int businessDays)
+    {
+        var result = start;
+        var remaining = businessDays;
+
+        while (remaining > 0)
+        {
+            result = result.AddDays(1);
+
+            if (result.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            {
+                continue;
+            }
+
+            remaining--;
+        }
+
+        return result;
+    }
+
+    private static ProjectSubmissionResponse ToSubmissionResponse(
+        ProjectSubmission submission,
+        IReadOnlyList<SubmissionFile> files)
+    {
+        return new ProjectSubmissionResponse(
+            submission.Id,
+            submission.ProjectId,
+            submission.SubmittedByStudentId,
+            submission.SubmissionType,
+            submission.MilestoneType,
+            submission.RevisionRound,
+            submission.Description,
+            submission.Status,
+            submission.SubmittedAt,
+            submission.ReviewDueAt,
+            submission.ApprovedAt,
+            submission.AutoApprovedAt,
+            files
+                .Select(file => new SubmissionFileResponse(
+                    file.Id,
+                    file.FileId,
+                    file.WatermarkedFileId,
+                    file.IsOriginalDownloadable))
+                .ToList());
     }
 
     private async Task<ProjectApplicationResponse> ToApplicationResponseAsync(

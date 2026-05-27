@@ -138,6 +138,108 @@ public sealed class ProjectsController(IProjectService projectService) : Control
         return Created(string.Empty, response);
     }
 
+    [HttpPost("{projectId:guid}/submissions")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<ProjectSubmissionResponse>> SubmitProjectSubmission(
+        Guid projectId,
+        SubmitProjectSubmissionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.SubmitProjectSubmissionAsync(
+            GetRequiredUserId(),
+            projectId,
+            request,
+            cancellationToken);
+
+        return Created(string.Empty, response);
+    }
+
+    [HttpPost("{projectId:guid}/submissions/{submissionId:guid}/approve")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectSubmissionResponse>> ApproveSubmission(
+        Guid projectId,
+        Guid submissionId,
+        ApproveSubmissionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.ApproveSubmissionAsync(
+            GetRequiredUserId(),
+            projectId,
+            submissionId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPost("{projectId:guid}/submissions/{submissionId:guid}/revision-requests")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectSubmissionResponse>> RequestRevision(
+        Guid projectId,
+        Guid submissionId,
+        RequestRevisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.RequestRevisionAsync(
+            GetRequiredUserId(),
+            projectId,
+            submissionId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPost("{projectId:guid}/submissions/{submissionId:guid}/invalid-file-reports")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectSubmissionResponse>> ReportInvalidFile(
+        Guid projectId,
+        Guid submissionId,
+        ReportInvalidFileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.ReportInvalidFileAsync(
+            GetRequiredUserId(),
+            projectId,
+            submissionId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPost("{projectId:guid}/admin/force-complete")]
+    [Authorize(Roles = nameof(UserRole.ADMIN))]
+    public async Task<ActionResult<ProjectResponse>> AdminForceComplete(
+        Guid projectId,
+        AdminProjectDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.AdminForceCompleteAsync(
+            GetRequiredUserId(),
+            projectId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPost("{projectId:guid}/admin/cancel")]
+    [Authorize(Roles = nameof(UserRole.ADMIN))]
+    public async Task<ActionResult<ProjectResponse>> AdminCancelInReview(
+        Guid projectId,
+        AdminProjectDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.AdminCancelInReviewAsync(
+            GetRequiredUserId(),
+            projectId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     private Guid GetRequiredUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);

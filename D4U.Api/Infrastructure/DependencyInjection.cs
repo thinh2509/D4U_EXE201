@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
+        services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
         services.AddHttpClient<IPaymentProvider, PayOsPaymentProvider>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IConfiguration>()

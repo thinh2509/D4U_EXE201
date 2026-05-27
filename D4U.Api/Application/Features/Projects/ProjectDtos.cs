@@ -143,3 +143,49 @@ public sealed record ProjectOfferResponse(
     DateTimeOffset? RejectedAt,
     DateTimeOffset? ExpiredAt,
     DateTimeOffset CreatedAt);
+
+public sealed record SubmitProjectSubmissionRequest(
+    SubmissionStage MilestoneType,
+    string? Description,
+    IReadOnlyList<SubmissionFileRequest> Files);
+
+public sealed record SubmissionFileRequest(
+    Guid FileId,
+    Guid? WatermarkedFileId,
+    bool IsOriginalDownloadable);
+
+public sealed record ProjectSubmissionResponse(
+    Guid Id,
+    Guid ProjectId,
+    Guid SubmittedByStudentId,
+    SubmissionType SubmissionType,
+    SubmissionStage MilestoneType,
+    int RevisionRound,
+    string? Description,
+    SubmissionStatus Status,
+    DateTimeOffset SubmittedAt,
+    DateTimeOffset? ReviewDueAt,
+    DateTimeOffset? ApprovedAt,
+    DateTimeOffset? AutoApprovedAt,
+    IReadOnlyList<SubmissionFileResponse> Files);
+
+public sealed record SubmissionFileResponse(
+    Guid Id,
+    Guid FileId,
+    Guid? WatermarkedFileId,
+    bool IsOriginalDownloadable);
+
+public sealed record ApproveSubmissionRequest(
+    string? Comment);
+
+public sealed record RequestRevisionRequest(
+    string RequestedChanges,
+    DateTimeOffset DueAt);
+
+public sealed record ReportInvalidFileRequest(
+    InvalidFileReason Reason,
+    string? Description,
+    DateTimeOffset ReuploadDueAt);
+
+public sealed record AdminProjectDecisionRequest(
+    string? Reason);

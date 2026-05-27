@@ -87,3 +87,78 @@ public sealed class CreateProjectOfferRequestValidator : AbstractValidator<Creat
             .WithMessage("Offer expiration must be in the future.");
     }
 }
+
+public sealed class SubmitProjectSubmissionRequestValidator : AbstractValidator<SubmitProjectSubmissionRequest>
+{
+    public SubmitProjectSubmissionRequestValidator()
+    {
+        RuleFor(request => request.MilestoneType)
+            .IsInEnum();
+
+        RuleFor(request => request.Description)
+            .MaximumLength(3000);
+
+        RuleFor(request => request.Files)
+            .NotEmpty();
+
+        RuleForEach(request => request.Files)
+            .SetValidator(new SubmissionFileRequestValidator());
+    }
+}
+
+public sealed class SubmissionFileRequestValidator : AbstractValidator<SubmissionFileRequest>
+{
+    public SubmissionFileRequestValidator()
+    {
+        RuleFor(request => request.FileId)
+            .NotEmpty();
+    }
+}
+
+public sealed class ApproveSubmissionRequestValidator : AbstractValidator<ApproveSubmissionRequest>
+{
+    public ApproveSubmissionRequestValidator()
+    {
+        RuleFor(request => request.Comment)
+            .MaximumLength(2000);
+    }
+}
+
+public sealed class RequestRevisionRequestValidator : AbstractValidator<RequestRevisionRequest>
+{
+    public RequestRevisionRequestValidator()
+    {
+        RuleFor(request => request.RequestedChanges)
+            .NotEmpty()
+            .MaximumLength(3000);
+
+        RuleFor(request => request.DueAt)
+            .Must(dueAt => dueAt > DateTimeOffset.UtcNow)
+            .WithMessage("Revision due date must be in the future.");
+    }
+}
+
+public sealed class ReportInvalidFileRequestValidator : AbstractValidator<ReportInvalidFileRequest>
+{
+    public ReportInvalidFileRequestValidator()
+    {
+        RuleFor(request => request.Reason)
+            .IsInEnum();
+
+        RuleFor(request => request.Description)
+            .MaximumLength(2000);
+
+        RuleFor(request => request.ReuploadDueAt)
+            .Must(dueAt => dueAt > DateTimeOffset.UtcNow)
+            .WithMessage("Reupload due date must be in the future.");
+    }
+}
+
+public sealed class AdminProjectDecisionRequestValidator : AbstractValidator<AdminProjectDecisionRequest>
+{
+    public AdminProjectDecisionRequestValidator()
+    {
+        RuleFor(request => request.Reason)
+            .MaximumLength(2000);
+    }
+}

@@ -122,32 +122,32 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Milestones and Submissions
 
-- [ ] PayOS-funded accepted offer starts project as `IN_PROGRESS`.
-- [ ] Submission model uses fixed milestone type `SKETCH` or `FINAL` without requiring a separate milestone table.
-- [ ] Student can submit Sketch with valid file metadata.
-- [ ] Project moves to Sketch submitted or in review status.
-- [ ] SME can approve Sketch.
-- [ ] System auto-approves Sketch after 5 business days without SME review.
-- [ ] Student can submit Final only after Sketch approved or auto-approved.
-- [ ] Student can submit Final files.
-- [ ] Project moves to Final submitted or in review status.
+- [x] PayOS-funded accepted offer starts project as `IN_PROGRESS`.
+- [x] Submission model uses fixed milestone type `SKETCH` or `FINAL` without requiring a separate milestone table.
+- [x] Student can submit Sketch with valid file metadata.
+- [x] Project moves to Sketch submitted or in review status.
+- [x] SME can approve Sketch.
+- [x] System auto-approves Sketch after 5 business days without SME review.
+- [x] Student can submit Final only after Sketch approved or auto-approved.
+- [x] Student can submit Final files.
+- [x] Project moves to Final submitted or in review status.
 - [ ] System auto-approves Final after 5 business days without SME review and triggers completion/disbursement flow.
-- [ ] Store submission type, revision round, description, status, and submitted timestamp.
-- [ ] Store submission files with optional watermarked file and original-download permission.
+- [x] Store submission type, revision round, description, status, and submitted timestamp.
+- [x] Store submission files with optional watermarked file and original-download permission.
 
 ### Review, Revision, and Invalid Files
 
-- [ ] SME can approve final submission.
-- [ ] SME can request revision through `review_actions` with requested changes and due date.
-- [ ] Project moves to `REVISION_REQUESTED`.
-- [ ] Student can submit revision.
-- [ ] Revision round cannot exceed project max revision rounds.
-- [ ] When revision limit is reached, SME cannot request another revision.
-- [ ] Project can move to `ADMIN_REVIEW` when revision limit blocks normal resolution.
-- [ ] Admin can force complete or cancel a project in `ADMIN_REVIEW`.
-- [ ] SME can report invalid file through `review_actions`.
-- [ ] Invalid file review action captures reason, description, status, and reupload due date.
-- [ ] Auto-approve and Admin review decisions create audit logs with machine-readable reasons.
+- [x] SME can approve final submission.
+- [x] SME can request revision through `review_actions` with requested changes and due date.
+- [x] Project moves to `REVISION_REQUESTED`.
+- [x] Student can submit revision.
+- [x] Revision round cannot exceed project max revision rounds.
+- [x] When revision limit is reached, SME cannot request another revision.
+- [x] Project can move to `ADMIN_REVIEW` when revision limit blocks normal resolution.
+- [x] Admin can force complete or cancel a project in `ADMIN_REVIEW`.
+- [x] SME can report invalid file through `review_actions`.
+- [x] Invalid file review action captures reason, description, status, and reupload due date.
+- [x] Auto-approve and Admin review decisions create audit logs with machine-readable reasons.
 
 ## Phase 4 - Completion and Money Movement
 
