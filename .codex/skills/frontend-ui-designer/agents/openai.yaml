@@ -1,0 +1,4 @@
+interface:
+  display_name: "D4U Frontend UI Designer"
+  short_description: "Design polished D4U React/Vite UX/UI with logo colors and MVP-safe workflows."
+  default_prompt: "Use this skill to design or implement a D4U frontend screen or flow with cyan/teal logo branding, role-based UX, API-connected states, responsive layout, and MVP boundary checks."
