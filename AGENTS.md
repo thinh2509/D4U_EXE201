@@ -27,8 +27,8 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 - Create MVP work from `develop` using `feature/*` branches.
 - Use `release/*` for release stabilization and `hotfix/*` for urgent production fixes.
 - Do not commit feature work directly to `main` or `develop`.
-- Preserve the 34-entity MVP as the first database target.
-- Do not add post-MVP features such as AI recommendation, realtime chat, social login, dispute appeal, or reputation ledger.
+- Preserve the approved MVP entity scope as the first database target.
+- Do not add post-MVP features such as realtime chat, non-Google social login, dispute workflow, dispute appeal, reputation ledger, standalone AI recommendation outside paid AI Matching, or automatic bank payout.
 - Prefer thin controllers, application services, EF Core persistence configuration, and DTOs.
 - Validate with `dotnet build` and tests when possible.
 

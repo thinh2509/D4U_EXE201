@@ -16,7 +16,7 @@ D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SM
 - Persistence patterns: Generic Repository and Unit of Work
 - Cache: Redis via `IDistributedCache`, with local memory fallback
 - Logging: Serilog structured logging
-- Authentication: JWT Bearer, with optional OAuth2 external provider registration
+- Authentication: JWT Bearer, account email verification by SMTP, Google login, and optional OAuth2 external provider registration
 - API documentation: Swagger/OpenAPI
 - Local container runtime: Docker Desktop with Docker Compose
 - IDE: Visual Studio 2022
@@ -24,19 +24,20 @@ D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SM
 
 ## Features
 
-- Email/password authentication direction
+- Email/password registration with SMTP email verification before login
 - Role-based users: Student, SME, Admin
 - Student and SME profile management
 - Student verification reviewed by Admin
 - SME subscription plans
 - Open/private project creation and publishing
 - Student applications and SME offers
-- Escrow payment workflow
+- Escrow payment workflow through one selected real payment provider
+- Paid feature package purchase flow for AI Matching entitlements
 - Sketch and final milestones
 - Submission upload and review actions
 - Revision requests and invalid file reports
-- Dispute opening, evidence, and Admin resolution
-- Wallet balance, disbursement, payment method, and withdrawal workflow
+- Basic Student Portfolio Builder with project confidentiality checks
+- Internal wallet ledger, disbursement, payment method, and manual withdrawal workflow
 - Ratings after project completion
 - In-app notification records
 - Audit logs for important actions
@@ -100,19 +101,70 @@ For deployed environments, configure `D4U_DATABASE_CONNECTION` as an environment
 
 ### Run With Docker Desktop
 
-Create a local `.env` file from `.env.example`, then change `POSTGRES_PASSWORD`:
+Create a local `.env` file from `.env.example`, then change `POSTGRES_PASSWORD` and any local ports if needed:
 
 ```powershell
 copy .env.example .env
 ```
 
-Start PostgreSQL and the API:
+If Google login is enabled, set the same Google OAuth client ID for backend validation and frontend build-time configuration:
+
+```env
+GOOGLE_AUTH_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+For email/password registration, configure SMTP so D4U can send account verification codes:
+
+```env
+EMAIL_SMTP_HOST=smtp.example.com
+EMAIL_SMTP_PORT=587
+EMAIL_USERNAME=your-smtp-username
+EMAIL_PASSWORD=your-smtp-password
+EMAIL_FROM_EMAIL=no-reply@example.com
+EMAIL_FROM_NAME=D4U
+EMAIL_USE_SSL=true
+USER_EMAIL_CODE_EXPIRES_MINUTES=15
+USER_EMAIL_CODE_LENGTH=6
+```
+
+For MVP payment-in, choose one real provider for production use. Keep `Mock` only for local development/tests:
+
+```env
+PAYMENT_PROVIDER=PayOS
+PAYMENT_WEBHOOK_SECRET=your-provider-webhook-secret
+PAYMENT_RETURN_URL=http://localhost:3000/payment/success
+PAYMENT_CANCEL_URL=http://localhost:3000/payment/cancel
+PAYMENT_PAYOS_CLIENT_ID=your-payos-client-id
+PAYMENT_PAYOS_API_KEY=your-payos-api-key
+PAYMENT_PAYOS_CHECKSUM_KEY=your-payos-checksum-key
+```
+
+Paid feature package purchases and escrow funding both use this payment-in provider. Student withdrawals remain manual in MVP: Admin/Finance transfers money externally, then updates the withdrawal status in D4U.
+
+For Google OAuth, add these local frontend origins in Google Cloud Console:
+
+```text
+http://localhost:3000
+http://127.0.0.1:3000
+```
+
+Start PostgreSQL, the API, and the frontend:
 
 ```powershell
 docker compose up -d --build
 ```
 
-The Docker Compose project name is `d4u-mvp`. The API is bound to localhost only:
+The Docker Compose project name is `d4u-mvp`.
+
+Frontend:
+
+```text
+http://localhost:3000
+```
+
+The frontend container serves the React app with Nginx and proxies `/api/*` to the API container. Frontend users should call the app URL above; API calls use the same browser origin.
+
+API:
 
 ```text
 http://localhost:8080
@@ -136,6 +188,19 @@ View API logs:
 
 ```powershell
 docker compose logs -f api
+```
+
+View frontend logs:
+
+```powershell
+docker compose logs -f frontend
+```
+
+If `GOOGLE_AUTH_CLIENT_ID` changes, rebuild the frontend because Vite embeds `VITE_*` variables into the static bundle:
+
+```powershell
+docker compose build frontend
+docker compose up -d frontend
 ```
 
 Stop containers:

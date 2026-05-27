@@ -29,7 +29,7 @@ When the user asks to use GitHub commands, follow `GITHUB_WORKFLOW_D4U.md`: bran
 
 ## MVP Boundary
 
-Build only the 34-entity MVP unless the user explicitly asks for post-MVP work. Do not add AI recommendation, chat realtime, portfolio builder, social login, dispute appeal, reputation ledger, email/push delivery, advanced KYC, or mobile-native concerns to the first implementation.
+Build only the approved MVP scope unless the user explicitly asks for post-MVP work. Google authentication, EDU email verification, real payment-in through one selected provider, paid AI Matching, and basic Portfolio Builder are now MVP scope. Do not add chat realtime, non-Google social login, dispute workflow, dispute appeal, reputation ledger, standalone AI recommendation outside paid AI Matching, automatic bank payout, broad email/push delivery, advanced KYC, or mobile-native concerns to the first implementation.
 
 ## Backend Architecture
 
@@ -54,9 +54,9 @@ Keep controllers thin. Put business rules in application services. Put EF Core c
 
 1. Foundation: auth, users, profiles, file metadata, seed categories/plans.
 2. Marketplace: projects, applications, offers, status history.
-3. Execution: escrow payment, milestones, submissions, review, revision, invalid file.
-4. Money movement: completion, disbursement, wallet, withdrawal.
-5. Operations: verification admin, dispute, rating, notification, audit.
+3. Execution: PayOS-funded escrow, fixed Sketch/Final submissions, unified review actions, revision/invalid file handling, auto-approve timeout, and Admin review resolution.
+4. Money movement: completion, disbursement, internal wallet ledger, manual withdrawal processing.
+5. Operations: verification admin, portfolio builder, rating, notification, audit.
 
 ## Agent Workflow
 

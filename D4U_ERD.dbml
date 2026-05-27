@@ -3,7 +3,7 @@
 
 Project d4u_mvp {
   database_type: "PostgreSQL"
-  Note: "MVP schema for D4U: account/profile, project marketplace, escrow payment, milestone submission, review/revision, dispute, wallet withdrawal, rating, notification, audit."
+  Note: "Optimized MVP schema for D4U: account/profile, project marketplace, escrow payment, fixed Sketch/Final submissions, unified review actions, portfolio builder, wallet withdrawal, rating, notification, audit."
 }
 
 Enum user_role {
@@ -30,27 +30,23 @@ Enum project_status {
   OPEN
   PRIVATE_INVITED
   OFFER_SELECTED
-  PAYMENT_SECURED
-  WAITING_FOR_ACCEPTANCE
   IN_PROGRESS
-  SKETCH_SUBMITTED
-  SKETCH_IN_REVIEW
+  SKETCH_REVIEW
   REVISION_REQUESTED
-  FINAL_SUBMITTED
-  FINAL_IN_REVIEW
+  FINAL_REVIEW
+  ADMIN_REVIEW
   COMPLETED
-  FUNDS_AVAILABLE
   CANCELLED
-  DISPUTED
 }
 
 Enum offer_status {
-  PENDING_PAYMENT
   WAITING_ACCEPTANCE
   ACCEPTED
   REJECTED
-  REVOKED
   EXPIRED
+  PENDING_PAYMENT
+  PAYMENT_FAILED
+  ACTIVE
 }
 
 Enum payment_status {
@@ -68,22 +64,6 @@ Enum escrow_status {
   RELEASED
   REFUNDED
   PARTIALLY_REFUNDED
-  DISPUTED
-  CANCELLED
-}
-
-Enum milestone_type {
-  SKETCH
-  FINAL
-}
-
-Enum milestone_status {
-  PENDING
-  SUBMITTED
-  IN_REVIEW
-  APPROVED
-  REVISION_REQUESTED
-  AUTO_APPROVED
   CANCELLED
 }
 
@@ -93,13 +73,17 @@ Enum submission_type {
   REVISION
 }
 
+Enum submission_stage {
+  SKETCH
+  FINAL
+}
+
 Enum submission_status {
   SUBMITTED
   VALID
   INVALID_REPORTED
   APPROVED
   REVISION_REQUESTED
-  DISPUTED
 }
 
 Enum review_action_type {
@@ -107,8 +91,9 @@ Enum review_action_type {
   APPROVE_FINAL
   REQUEST_REVISION
   REPORT_INVALID_FILE
-  OPEN_DISPUTE
   AUTO_APPROVE
+  ADMIN_FORCE_COMPLETE
+  ADMIN_CANCEL
 }
 
 Enum invalid_file_reason {
@@ -120,12 +105,11 @@ Enum invalid_file_reason {
   OTHER
 }
 
-Enum dispute_status {
-  OPEN
-  UNDER_REVIEW
-  RESOLVED
-  REJECTED
-  CANCELLED
+Enum portfolio_item_status {
+  DRAFT
+  PUBLIC
+  PRIVATE
+  HIDDEN
 }
 
 Enum wallet_status {
@@ -164,7 +148,7 @@ Table users {
     (role, status)
   }
 
-  Note: "MVP uses email/password login. Social login can be added later."
+  Note: "MVP uses email/password login plus Google login through external login metadata."
 }
 
 Table user_sessions {
@@ -233,6 +217,9 @@ Table sme_profiles {
   average_rating decimal(3,2) [not null, default: 0]
   completed_projects_count int [not null, default: 0]
   active_open_project_count int [not null, default: 0]
+  subscription_plan_id uuid [not null]
+  subscription_started_at timestamp [not null]
+  subscription_current_period_end timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
 }
@@ -246,21 +233,6 @@ Table subscription_plans {
   max_active_open_projects int
   max_project_budget decimal(12,2)
   is_active boolean [not null, default: true]
-}
-
-Table sme_subscriptions {
-  id uuid [pk]
-  sme_profile_id uuid [not null]
-  subscription_plan_id uuid [not null]
-  status varchar(50) [not null, default: 'ACTIVE']
-  started_at timestamp [not null]
-  current_period_end timestamp
-  cancelled_at timestamp
-  created_at timestamp [not null]
-
-  indexes {
-    (sme_profile_id, status)
-  }
 }
 
 Table design_categories {
@@ -338,12 +310,13 @@ Table project_offers {
   project_id uuid [not null]
   student_profile_id uuid [not null]
   application_id uuid
-  status offer_status [not null, default: 'PENDING_PAYMENT']
+  status offer_status [not null, default: 'WAITING_ACCEPTANCE']
   offered_amount decimal(12,2) [not null]
   expires_at timestamp
+  payment_due_at timestamp
   accepted_at timestamp
   rejected_at timestamp
-  revoked_at timestamp
+  expired_at timestamp
   created_at timestamp [not null]
 
   indexes {
@@ -352,50 +325,24 @@ Table project_offers {
   }
 }
 
-Table project_status_histories {
-  id uuid [pk]
-  project_id uuid [not null]
-  from_status project_status
-  to_status project_status [not null]
-  changed_by_user_id uuid
-  change_reason text
-  metadata_json json
-  created_at timestamp [not null]
-}
-
-Table project_milestones {
-  id uuid [pk]
-  project_id uuid [not null]
-  milestone_type milestone_type [not null]
-  status milestone_status [not null, default: 'PENDING']
-  deadline_at timestamp [not null]
-  submitted_at timestamp
-  review_due_at timestamp
-  approved_at timestamp
-  auto_approved_at timestamp
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
-
-  indexes {
-    (project_id, milestone_type) [unique]
-    (status, deadline_at)
-    (status, review_due_at)
-  }
-}
-
 Table project_submissions {
   id uuid [pk]
   project_id uuid [not null]
-  milestone_id uuid [not null]
   submitted_by_student_id uuid [not null]
   submission_type submission_type [not null]
+  milestone_type submission_stage [not null]
   revision_round int [not null, default: 0]
   description text
   status submission_status [not null, default: 'SUBMITTED']
   submitted_at timestamp [not null]
+  review_due_at timestamp
+  approved_at timestamp
+  auto_approved_at timestamp
 
   indexes {
     (project_id, submission_type, revision_round)
+    (project_id, milestone_type, status)
+    (status, review_due_at)
   }
 }
 
@@ -415,38 +362,20 @@ Table review_actions {
   reviewer_user_id uuid
   action review_action_type [not null]
   comment text
-  created_at timestamp [not null]
-}
-
-Table revision_requests {
-  id uuid [pk]
-  project_id uuid [not null]
-  submission_id uuid [not null]
-  requested_by_user_id uuid [not null]
-  revision_round int [not null]
-  requested_changes text [not null]
-  status varchar(50) [not null, default: 'OPEN']
-  due_at timestamp [not null]
+  requested_changes text
+  revision_round int
+  due_at timestamp
+  invalid_file_reason invalid_file_reason
+  reupload_due_at timestamp
   resolved_at timestamp
+  metadata_json json
   created_at timestamp [not null]
 
   indexes {
-    (project_id, status)
-    (project_id, revision_round, submission_id) [unique]
+    (project_id, action)
+    (submission_id, action)
+    (project_id, revision_round)
   }
-}
-
-Table invalid_file_reports {
-  id uuid [pk]
-  project_id uuid [not null]
-  submission_id uuid [not null]
-  reported_by_user_id uuid [not null]
-  reason_code invalid_file_reason [not null]
-  description text
-  status varchar(50) [not null, default: 'OPEN']
-  reupload_due_at timestamp [not null]
-  resolved_at timestamp
-  created_at timestamp [not null]
 }
 
 Table files {
@@ -470,7 +399,7 @@ Table files {
     (storage_provider, storage_key)
   }
 
-  Note: "Allowed MVP extensions: jpg,jpeg,png,webp,pdf,zip,fig,ai,psd,svg. Max size enforced in service layer."
+  Note: "Allowed MVP extensions: jpg,png,pdf. Max size enforced in service layer and gateway/proxy."
 }
 
 Table escrows {
@@ -504,12 +433,19 @@ Table payments {
   currency char(3) [not null, default: 'VND']
   provider varchar(100) [not null, note: "Sandbox provider for MVP, e.g. PAYOS or VNPAY."]
   provider_transaction_id varchar(255)
+  provider_order_code varchar(100)
+  checkout_url text
+  qr_code text
+  expires_at timestamp
   status payment_status [not null, default: 'PENDING']
   paid_at timestamp
+  updated_at timestamp [not null]
+  raw_provider_response_json json
   created_at timestamp [not null]
 
   indexes {
     (provider, provider_transaction_id) [unique]
+    (provider, provider_order_code) [unique]
     (escrow_id, status)
     (payer_user_id, created_at)
   }
@@ -552,6 +488,8 @@ Table wallets {
   status wallet_status [not null, default: 'ACTIVE']
   created_at timestamp [not null]
   updated_at timestamp [not null]
+
+  Note: "Database constraint required: available_balance >= 0, pending_balance >= 0, locked_balance >= 0."
 }
 
 Table wallet_transactions {
@@ -599,39 +537,45 @@ Table withdrawal_requests {
   Note: "Minimum withdrawal in MVP: 50,000 VND."
 }
 
-Table disputes {
+Table student_portfolio_items {
   id uuid [pk]
-  project_id uuid [not null]
-  escrow_id uuid
-  opened_by_user_id uuid [not null]
-  against_user_id uuid
-  reason_code varchar(50) [not null]
+  student_profile_id uuid [not null]
+  source_project_id uuid
+  design_category_id uuid
+  title varchar(255) [not null]
   description text [not null]
-  status dispute_status [not null, default: 'OPEN']
-  assigned_admin_id uuid
-  decision_type varchar(50)
-  sme_refund_amount decimal(12,2) [not null, default: 0]
-  student_payout_amount decimal(12,2) [not null, default: 0]
-  platform_fee_amount decimal(12,2) [not null, default: 0]
-  decision_rationale text
-  opened_at timestamp [not null]
-  resolved_at timestamp
+  student_role varchar(100)
+  tools text
+  skills text
+  external_url text
+  status portfolio_item_status [not null, default: 'DRAFT']
+  is_featured boolean [not null, default: false]
+  published_at timestamp
+  hidden_by_admin_id uuid
+  hidden_reason text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
 
   indexes {
-    (project_id, status)
-    (assigned_admin_id, status)
+    (student_profile_id, status)
+    (design_category_id, status)
+    (source_project_id)
+    (student_profile_id, is_featured)
   }
 
-  Note: "MVP stores the admin decision directly on disputes. A separate decision/appeal model can be added later."
+  Note: "Basic MVP Portfolio Builder. Public items linked to a D4U project must respect project confidentiality and allow_student_portfolio."
 }
 
-Table dispute_evidences {
+Table student_portfolio_files {
   id uuid [pk]
-  dispute_id uuid [not null]
-  submitted_by_user_id uuid [not null]
-  file_id uuid
-  comment text
+  portfolio_item_id uuid [not null]
+  file_id uuid [not null]
+  display_order int [not null, default: 0]
   created_at timestamp [not null]
+
+  indexes {
+    (portfolio_item_id, file_id) [unique]
+  }
 }
 
 Table ratings {
@@ -699,8 +643,7 @@ Ref: student_verifications.document_file_id > files.id
 Ref: student_verifications.reviewed_by_admin_id > users.id
 Ref: sme_profiles.user_id > users.id
 Ref: sme_profiles.logo_file_id > files.id
-Ref: sme_subscriptions.sme_profile_id > sme_profiles.id
-Ref: sme_subscriptions.subscription_plan_id > subscription_plans.id
+Ref: sme_profiles.subscription_plan_id > subscription_plans.id
 
 Ref: projects.sme_profile_id > sme_profiles.id
 Ref: projects.selected_student_profile_id > student_profiles.id
@@ -712,12 +655,7 @@ Ref: project_applications.student_profile_id > student_profiles.id
 Ref: project_offers.project_id > projects.id
 Ref: project_offers.student_profile_id > student_profiles.id
 Ref: project_offers.application_id > project_applications.id
-Ref: project_status_histories.project_id > projects.id
-Ref: project_status_histories.changed_by_user_id > users.id
-
-Ref: project_milestones.project_id > projects.id
 Ref: project_submissions.project_id > projects.id
-Ref: project_submissions.milestone_id > project_milestones.id
 Ref: project_submissions.submitted_by_student_id > student_profiles.id
 Ref: submission_files.submission_id > project_submissions.id
 Ref: submission_files.file_id > files.id
@@ -725,12 +663,6 @@ Ref: submission_files.watermarked_file_id > files.id
 Ref: review_actions.project_id > projects.id
 Ref: review_actions.submission_id > project_submissions.id
 Ref: review_actions.reviewer_user_id > users.id
-Ref: revision_requests.project_id > projects.id
-Ref: revision_requests.submission_id > project_submissions.id
-Ref: revision_requests.requested_by_user_id > users.id
-Ref: invalid_file_reports.project_id > projects.id
-Ref: invalid_file_reports.submission_id > project_submissions.id
-Ref: invalid_file_reports.reported_by_user_id > users.id
 Ref: files.owner_user_id > users.id
 
 Ref: escrows.project_id > projects.id
@@ -751,14 +683,12 @@ Ref: withdrawal_requests.wallet_id > wallets.id
 Ref: withdrawal_requests.requested_by_user_id > users.id
 Ref: withdrawal_requests.payment_method_id > payment_methods.id
 
-Ref: disputes.project_id > projects.id
-Ref: disputes.escrow_id > escrows.id
-Ref: disputes.opened_by_user_id > users.id
-Ref: disputes.against_user_id > users.id
-Ref: disputes.assigned_admin_id > users.id
-Ref: dispute_evidences.dispute_id > disputes.id
-Ref: dispute_evidences.submitted_by_user_id > users.id
-Ref: dispute_evidences.file_id > files.id
+Ref: student_portfolio_items.student_profile_id > student_profiles.id
+Ref: student_portfolio_items.source_project_id > projects.id
+Ref: student_portfolio_items.design_category_id > design_categories.id
+Ref: student_portfolio_items.hidden_by_admin_id > users.id
+Ref: student_portfolio_files.portfolio_item_id > student_portfolio_items.id
+Ref: student_portfolio_files.file_id > files.id
 
 Ref: ratings.project_id > projects.id
 Ref: ratings.rater_user_id > users.id
