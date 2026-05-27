@@ -53,6 +53,13 @@ public sealed record SubmitStudentVerificationRequest(
     long FileSizeBytes,
     string? Checksum);
 
+public sealed record RequestStudentEduEmailVerificationRequest(
+    string Email);
+
+public sealed record ConfirmStudentEduEmailVerificationRequest(
+    string Email,
+    string Code);
+
 public sealed record StudentVerificationResponse(
     Guid Id,
     Guid StudentProfileId,
@@ -63,8 +70,22 @@ public sealed record StudentVerificationResponse(
     DateTimeOffset SubmittedAt,
     DateTimeOffset? ReviewedAt);
 
+public sealed record StudentEmailVerificationResponse(
+    Guid Id,
+    Guid StudentProfileId,
+    string Email,
+    string Status,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset? ConfirmedAt);
+
 public sealed record RejectStudentVerificationRequest(
     string RejectionReason);
+
+public sealed record StudentVerificationDocumentResponse(
+    string StorageKey,
+    string OriginalFilename,
+    string MimeType);
 
 public sealed class AdminStudentVerificationListItemResponse
 {
@@ -111,4 +132,5 @@ public sealed class AdminStudentVerificationDetailResponse
     public string FileExtension { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
     public string? Checksum { get; set; }
+    public string? DocumentPreviewUrl { get; set; }
 }

@@ -16,6 +16,16 @@ public interface IProfileService
         SubmitStudentVerificationRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<StudentEmailVerificationResponse> RequestStudentEduEmailVerificationAsync(
+        Guid userId,
+        RequestStudentEduEmailVerificationRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<StudentEmailVerificationResponse> ConfirmStudentEduEmailVerificationAsync(
+        Guid userId,
+        ConfirmStudentEduEmailVerificationRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<SmeProfileResponse?> GetSmeProfileAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
@@ -30,6 +40,10 @@ public interface IProfileService
         CancellationToken cancellationToken = default);
 
     Task<AdminStudentVerificationDetailResponse> GetStudentVerificationDetailAsync(
+        Guid verificationId,
+        CancellationToken cancellationToken = default);
+
+    Task<StudentVerificationDocumentResponse> GetStudentVerificationDocumentAsync(
         Guid verificationId,
         CancellationToken cancellationToken = default);
 

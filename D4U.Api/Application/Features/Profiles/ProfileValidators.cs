@@ -92,3 +92,29 @@ public sealed class RejectStudentVerificationRequestValidator : AbstractValidato
             .MaximumLength(1000);
     }
 }
+
+public sealed class RequestStudentEduEmailVerificationRequestValidator : AbstractValidator<RequestStudentEduEmailVerificationRequest>
+{
+    public RequestStudentEduEmailVerificationRequestValidator()
+    {
+        RuleFor(request => request.Email)
+            .NotEmpty()
+            .EmailAddress()
+            .MaximumLength(255);
+    }
+}
+
+public sealed class ConfirmStudentEduEmailVerificationRequestValidator : AbstractValidator<ConfirmStudentEduEmailVerificationRequest>
+{
+    public ConfirmStudentEduEmailVerificationRequestValidator()
+    {
+        RuleFor(request => request.Email)
+            .NotEmpty()
+            .EmailAddress()
+            .MaximumLength(255);
+
+        RuleFor(request => request.Code)
+            .NotEmpty()
+            .Length(4, 12);
+    }
+}

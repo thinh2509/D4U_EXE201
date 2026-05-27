@@ -1,13 +1,24 @@
 namespace D4U.Api.Application.Features.Profiles;
 
+using System.Security.Cryptography;
+using System.Text;
 using Dapper;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Files;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
+using D4U.Api.Infrastructure.Email;
+using D4U.Api.Infrastructure.EmailVerification;
+using Microsoft.Extensions.Options;
 
-public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFactory connectionFactory) : IProfileService
+public sealed class ProfileService(
+    IUnitOfWork unitOfWork,
+    IDapperConnectionFactory connectionFactory,
+    IEmailSender emailSender,
+    IOptions<StudentEmailVerificationOptions> emailVerificationOptions) : IProfileService
 {
+    private const string BasicPlanCode = "BASIC";
+
     public async Task<StudentProfileResponse?> GetStudentProfileAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
@@ -143,6 +154,152 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
         return ToStudentVerificationResponse(verification);
     }
 
+    public async Task<StudentEmailVerificationResponse> RequestStudentEduEmailVerificationAsync(
+        Guid userId,
+        RequestStudentEduEmailVerificationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+
+        if (user.Role != UserRole.STUDENT)
+        {
+            throw new InvalidOperationException("Only STUDENT users can request EDU email verification.");
+        }
+
+        var profile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+            studentProfile => studentProfile.UserId == userId,
+            cancellationToken);
+
+        if (profile is null)
+        {
+            throw new InvalidOperationException("Student profile must be created before requesting EDU email verification.");
+        }
+
+        if (profile.VerificationStatus == "APPROVED")
+        {
+            throw new InvalidOperationException("Student profile is already verified.");
+        }
+
+        var normalizedEmail = NormalizeEmail(request.Email);
+
+        if (!IsAllowedEduEmail(normalizedEmail))
+        {
+            throw new InvalidOperationException("Student email must use an .edu or approved school domain.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var options = emailVerificationOptions.Value;
+        var code = CreateVerificationCode(options.CodeLength);
+        var verifications = unitOfWork.Repository<StudentEmailVerification>();
+
+        var existingPending = await verifications.FirstOrDefaultAsync(
+            verification => verification.StudentProfileId == profile.Id &&
+                            verification.Email == normalizedEmail &&
+                            verification.Status == "PENDING",
+            cancellationToken);
+
+        if (existingPending is not null)
+        {
+            existingPending.Status = "EXPIRED";
+        }
+
+        var verification = new StudentEmailVerification
+        {
+            Id = Guid.NewGuid(),
+            StudentProfileId = profile.Id,
+            UserId = userId,
+            Email = normalizedEmail,
+            CodeHash = HashVerificationCode(code),
+            Status = "PENDING",
+            RequestedAt = now,
+            ExpiresAt = now.AddMinutes(Math.Max(1, options.CodeExpiresMinutes))
+        };
+
+        profile.VerificationStatus = "PENDING";
+        profile.CanWithdraw = false;
+        profile.UpdatedAt = now;
+
+        await verifications.AddAsync(verification, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await SendStudentEduEmailVerificationCodeAsync(
+            user,
+            verification.Email,
+            code,
+            verification.ExpiresAt,
+            cancellationToken);
+
+        return ToStudentEmailVerificationResponse(verification);
+    }
+
+    public async Task<StudentEmailVerificationResponse> ConfirmStudentEduEmailVerificationAsync(
+        Guid userId,
+        ConfirmStudentEduEmailVerificationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+
+        if (user.Role != UserRole.STUDENT)
+        {
+            throw new InvalidOperationException("Only STUDENT users can confirm EDU email verification.");
+        }
+
+        var profile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+            studentProfile => studentProfile.UserId == userId,
+            cancellationToken);
+
+        if (profile is null)
+        {
+            throw new InvalidOperationException("Student profile must be created before confirming EDU email verification.");
+        }
+
+        var normalizedEmail = NormalizeEmail(request.Email);
+        var codeHash = HashVerificationCode(request.Code.Trim());
+        var verification = await unitOfWork.Repository<StudentEmailVerification>().FirstOrDefaultAsync(
+            item => item.StudentProfileId == profile.Id &&
+                    item.Email == normalizedEmail &&
+                    item.Status == "PENDING",
+            cancellationToken);
+
+        if (verification is null)
+        {
+            throw new InvalidOperationException("Pending EDU email verification was not found.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+
+        if (verification.ExpiresAt <= now)
+        {
+            verification.Status = "EXPIRED";
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("EDU email verification code has expired.");
+        }
+
+        if (!CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(verification.CodeHash),
+                Encoding.UTF8.GetBytes(codeHash)))
+        {
+            throw new InvalidOperationException("EDU email verification code is invalid.");
+        }
+
+        verification.Status = "APPROVED";
+        verification.ConfirmedAt = now;
+
+        profile.VerificationStatus = "APPROVED";
+        profile.CanWithdraw = true;
+        profile.UpdatedAt = now;
+
+        user.Status = UserStatus.ACTIVE;
+        if (string.Equals(user.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            user.EmailVerifiedAt ??= now;
+        }
+        user.UpdatedAt = now;
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToStudentEmailVerificationResponse(verification);
+    }
+
     public async Task<SmeProfileResponse?> GetSmeProfileAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
@@ -175,14 +332,23 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
 
         if (profile is null)
         {
+            var basicPlan = await RequireBasicSubscriptionPlanAsync(cancellationToken);
             profile = new SmeProfile
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
+                SubscriptionPlanId = basicPlan.Id,
+                SubscriptionStartedAt = now,
                 CreatedAt = now
             };
 
             await profiles.AddAsync(profile, cancellationToken);
+        }
+        else if (profile.SubscriptionPlanId == Guid.Empty)
+        {
+            var basicPlan = await RequireBasicSubscriptionPlanAsync(cancellationToken);
+            profile.SubscriptionPlanId = basicPlan.Id;
+            profile.SubscriptionStartedAt = profile.SubscriptionStartedAt == default ? now : profile.SubscriptionStartedAt;
         }
 
         profile.CompanyName = request.CompanyName.Trim();
@@ -196,6 +362,13 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToSmeProfileResponse(profile);
+    }
+
+    private async Task<SubscriptionPlan> RequireBasicSubscriptionPlanAsync(CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<SubscriptionPlan>().FirstOrDefaultAsync(
+            plan => plan.Code == BasicPlanCode && plan.IsActive,
+            cancellationToken) ?? throw new InvalidOperationException("Basic subscription plan was not found.");
     }
 
     public async Task<IReadOnlyList<AdminStudentVerificationListItemResponse>> ListStudentVerificationsAsync(
@@ -276,7 +449,36 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
         var detail = await connection.QuerySingleOrDefaultAsync<AdminStudentVerificationDetailResponse>(
             new CommandDefinition(sql, new { VerificationId = verificationId }, cancellationToken: cancellationToken));
 
-        return detail ?? throw new InvalidOperationException("Student verification was not found.");
+        if (detail is null)
+        {
+            throw new InvalidOperationException("Student verification was not found.");
+        }
+
+        detail.DocumentPreviewUrl = $"/api/v1/admin/student-verifications/{detail.Id}/document";
+        return detail;
+    }
+
+    public async Task<StudentVerificationDocumentResponse> GetStudentVerificationDocumentAsync(
+        Guid verificationId,
+        CancellationToken cancellationToken = default)
+    {
+        var verification = await RequireVerificationAsync(verificationId, cancellationToken);
+        var file = await unitOfWork.Repository<FileAsset>().GetByIdAsync(verification.DocumentFileId, cancellationToken);
+
+        if (file is null)
+        {
+            throw new InvalidOperationException("Verification document was not found.");
+        }
+
+        if (!string.Equals(file.StorageProvider, "LOCAL", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Verification document is not stored locally.");
+        }
+
+        return new StudentVerificationDocumentResponse(
+            file.StorageKey,
+            file.OriginalFilename,
+            file.MimeType);
     }
 
     public async Task<StudentVerificationResponse> ApproveStudentVerificationAsync(
@@ -418,5 +620,81 @@ public sealed class ProfileService(IUnitOfWork unitOfWork, IDapperConnectionFact
             verification.RejectionReason,
             verification.SubmittedAt,
             verification.ReviewedAt);
+    }
+
+    private static StudentEmailVerificationResponse ToStudentEmailVerificationResponse(
+        StudentEmailVerification verification)
+    {
+        return new StudentEmailVerificationResponse(
+            verification.Id,
+            verification.StudentProfileId,
+            verification.Email,
+            verification.Status,
+            verification.RequestedAt,
+            verification.ExpiresAt,
+            verification.ConfirmedAt);
+    }
+
+    private async Task SendStudentEduEmailVerificationCodeAsync(
+        User user,
+        string eduEmail,
+        string code,
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken)
+    {
+        var html = $"""
+            <p>Xin chào {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
+            <p>Bạn đang xác thực email sinh viên trên D4U.</p>
+            <p>Mã xác thực email EDU của bạn là:</p>
+            <h2 style="letter-spacing: 4px;">{code}</h2>
+            <p>Mã này hết hạn lúc {expiresAt:yyyy-MM-dd HH:mm:ss} UTC.</p>
+            <p>Không chia sẻ mã này cho bất kỳ ai. Nếu bạn không yêu cầu xác thực email sinh viên, vui lòng bỏ qua email này.</p>
+            """;
+
+        await emailSender.SendAsync(eduEmail, "D4U - Mã xác thực email sinh viên", html, cancellationToken);
+    }
+
+    private bool IsAllowedEduEmail(string email)
+    {
+        var atIndex = email.LastIndexOf('@');
+
+        if (atIndex < 0 || atIndex == email.Length - 1)
+        {
+            return false;
+        }
+
+        var domain = email[(atIndex + 1)..].ToLowerInvariant();
+        var allowedDomains = emailVerificationOptions.Value.AllowedDomains
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim().TrimStart('@').TrimStart('.').ToLowerInvariant())
+            .ToArray();
+
+        return allowedDomains.Any(allowedDomain =>
+            domain == allowedDomain || domain.EndsWith($".{allowedDomain}", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string CreateVerificationCode(int length)
+    {
+        var normalizedLength = Math.Clamp(length, 4, 12);
+        var builder = new StringBuilder(normalizedLength);
+        builder.Append(RandomNumberGenerator.GetInt32(1, 10));
+
+        for (var index = 1; index < normalizedLength; index++)
+        {
+            builder.Append(RandomNumberGenerator.GetInt32(0, 10));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string HashVerificationCode(string code)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(code.Trim()));
+        return Convert.ToHexString(bytes);
+    }
+
+    private static string NormalizeEmail(string email)
+    {
+        return email.Trim().ToLowerInvariant();
     }
 }
