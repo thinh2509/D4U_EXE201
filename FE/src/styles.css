@@ -831,6 +831,30 @@ a {
   gap: 16px;
 }
 
+.section-grid {
+  margin-top: 16px;
+}
+
+.embedded-table {
+  margin-top: 16px;
+}
+
+.native-select {
+  width: 100%;
+  min-height: 38px;
+  padding: 4px 11px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.native-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(18, 174, 234, 0.16);
+}
+
 .verification-banner {
   margin-bottom: 18px;
   padding: 20px;

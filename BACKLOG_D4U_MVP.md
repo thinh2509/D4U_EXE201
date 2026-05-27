@@ -155,11 +155,11 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 - [x] Final approval moves project to `COMPLETED`.
 - [x] Escrow moves to `RELEASE_PENDING`.
-- [ ] Calculate platform fee from escrow amount and stored fee rate.
-- [ ] Create disbursement with gross amount, fee, and net amount.
-- [ ] Credit Student wallet available balance with net amount.
-- [ ] Create wallet transaction `DISBURSEMENT_CREDIT`.
-- [ ] Escrow moves to `RELEASED`.
+- [x] Calculate platform fee from escrow amount and stored fee rate.
+- [x] Create disbursement with gross amount, fee, and net amount.
+- [x] Credit Student wallet available balance with net amount.
+- [x] Create wallet transaction `DISBURSEMENT_CREDIT`.
+- [x] Escrow moves to `RELEASED`.
 - [x] Project rating due date is set to 7 days after completion.
 - [ ] Mid-project cancellation before Sketch refunds 100% to SME and 0% to Student.
 - [ ] Mid-project cancellation after Sketch approved refunds 60% to SME and pays 40% to Student.
@@ -168,19 +168,19 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Wallet and Withdrawal
 
-- [ ] Student has wallet with available, pending, locked balances, currency, and status.
-- [ ] Student can create bank account payment method.
-- [ ] Student can request withdrawal.
-- [ ] Withdrawal requires wallet `ACTIVE`.
-- [ ] Withdrawal requires student `can_withdraw = true`.
-- [ ] Withdrawal minimum amount is 50,000 VND.
-- [ ] Withdrawal fee is 5,000 VND.
-- [ ] Admin/Finance can manually process withdrawal request after external bank transfer.
-- [ ] Successful withdrawal creates debit transaction.
-- [ ] Failed withdrawal creates reversal transaction.
-- [ ] Wallet balance must never go negative.
-- [ ] Wallet non-negative balance is enforced by database constraint as well as service validation.
-- [ ] MVP does not perform automatic bank payout or direct bank account balance synchronization.
+- [x] Student has wallet with available, pending, locked balances, currency, and status.
+- [x] Student can create bank account payment method.
+- [x] Student can request withdrawal.
+- [x] Withdrawal requires wallet `ACTIVE`.
+- [x] Withdrawal requires student `can_withdraw = true`.
+- [x] Withdrawal minimum amount is 50,000 VND.
+- [x] Withdrawal fee is 5,000 VND.
+- [x] Admin/Finance can manually process withdrawal request after external bank transfer.
+- [x] Successful withdrawal creates debit transaction.
+- [x] Failed withdrawal creates reversal transaction.
+- [x] Wallet balance must never go negative.
+- [x] Wallet non-negative balance is enforced by database constraint as well as service validation.
+- [x] MVP does not perform automatic bank payout or direct bank account balance synchronization.
 
 ## Phase 5 - Trust and Operations
 

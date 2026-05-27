@@ -2,7 +2,7 @@
 
 Tài liệu này dùng để test thủ công toàn bộ feature D4U đã hoàn thành trên branch `develop`. Nội dung bám theo các mục đã tick `[x]` trong `BACKLOG_D4U_MVP.md`: Phase 1 Foundation, Phase 2 Marketplace, Phase 3A PayOS Escrow Payment, và Phase 3B Project Execution.
 
-Không xem các phần sau là đã hoàn thành: Phase 4 wallet/disbursement, Portfolio Builder backend, Ratings, Paid Feature Packages, AI Matching entitlement, notification đầy đủ, automatic bank payout.
+Không xem các phần sau là đã hoàn thành: Phase 4 refund/cancellation split rules, Portfolio Builder backend, Ratings, Paid Feature Packages, AI Matching entitlement, notification đầy đủ, automatic bank payout.
 
 ## 1. Chuẩn Bị Môi Trường
 
@@ -1010,15 +1010,20 @@ Expected:
 - Project chuyển `COMPLETED`.
 - `projects.completed_at` được set.
 - `projects.rating_due_at = completed_at + 7 ngày`.
-- Escrow `FUNDED` chuyển `RELEASE_PENDING`.
-- Không credit wallet, không tạo withdrawal, không tự payout ngân hàng trong MVP hiện tại.
+- Escrow `FUNDED` chuyển `RELEASE_PENDING`, sau đó Phase 4A release service chuyển `RELEASED`.
+- Student wallet được credit net amount sau platform fee.
+- Không tự payout ngân hàng; withdrawal vẫn do Admin/Finance xử lý thủ công.
 
 SQL check:
 
 ```sql
-select p.status, p.completed_at, p.rating_due_at, e.status as escrow_status
+select p.status, p.completed_at, p.rating_due_at, e.status as escrow_status,
+       d.gross_amount, d.platform_fee_amount, d.net_amount, d.status as disbursement_status,
+       w.available_balance
 from projects p
 left join escrows e on e.project_id = p.id
+left join disbursements d on d.escrow_id = e.id
+left join wallets w on w.id = d.wallet_id
 where p.id = '<project-id>';
 ```
 
@@ -1142,7 +1147,7 @@ Expected:
 - Submission `SUBMITTED` có `review_due_at <= now` sẽ auto-approve nếu project đang `SKETCH_REVIEW` hoặc `FINAL_REVIEW`.
 - Sketch auto-approve chuyển project về `IN_PROGRESS`.
 - Final auto-approve chuyển project `COMPLETED`.
-- Final auto-approve dùng cùng completion handoff: set `completed_at`, `rating_due_at`, escrow `RELEASE_PENDING`.
+- Final auto-approve dùng cùng completion handoff: set `completed_at`, `rating_due_at`, escrow release sang `RELEASED`, credit Student wallet.
 - Tạo review action `AUTO_APPROVE`.
 - Tạo audit log `PROJECT_STATUS_CHANGED`.
 
@@ -1178,7 +1183,162 @@ where action = 'PROJECT_STATUS_CHANGED'
 order by created_at desc;
 ```
 
-## 8. Negative Regression Checklist
+## 8. Wallet, Disbursement Và Withdrawal
+
+### 8.1. Escrow Release Và Wallet Credit
+
+Điều kiện:
+
+- Project đã `COMPLETED`.
+- Escrow đã được handoff sang `RELEASE_PENDING`.
+- Student profile của selected student tồn tại.
+
+API retry/idempotency:
+
+- `POST /api/v1/projects/{projectId}/escrow/release` với Admin token.
+
+Expected:
+
+- Escrow chuyển `RELEASED`, set `released_at`.
+- Tạo đúng một `disbursements` record status `COMPLETED`.
+- `gross_amount = escrows.amount`.
+- `platform_fee_amount = escrows.platform_fee_amount` hoặc `amount * platform_fee_rate`.
+- `net_amount = gross_amount - platform_fee_amount`.
+- Student wallet được auto-create nếu chưa có.
+- `wallets.available_balance` tăng đúng `net_amount`.
+- Tạo `wallet_transactions` type `DISBURSEMENT_CREDIT`.
+- Gọi release lại không double credit.
+- Có audit log `ESCROW_RELEASED` và `WALLET_BALANCE_CHANGED`.
+
+SQL check:
+
+```sql
+select e.status, e.released_at, d.gross_amount, d.platform_fee_amount, d.net_amount,
+       d.status as disbursement_status, w.available_balance, wt.type, wt.amount, wt.balance_after
+from escrows e
+left join disbursements d on d.escrow_id = e.id
+left join wallets w on w.id = d.wallet_id
+left join wallet_transactions wt on wt.reference_id = d.id
+where e.project_id = '<project-id>';
+
+select action, entity_type, entity_id, before_json, after_json, created_at
+from audit_logs
+where action in ('ESCROW_RELEASED', 'WALLET_BALANCE_CHANGED')
+order by created_at desc;
+```
+
+### 8.2. Student Wallet UI/API
+
+UI:
+
+- `http://localhost:3000/student/wallet`
+
+API:
+
+- `GET /api/v1/wallets/me`
+- `GET /api/v1/wallets/me/transactions`
+
+Expected:
+
+- Student thấy available, pending, locked balance, currency và status.
+- Ledger hiển thị `DISBURSEMENT_CREDIT`, `WITHDRAWAL_DEBIT`, `WITHDRAWAL_FAILED_REVERSAL`.
+- Non-Student bị chặn bởi role authorization.
+
+### 8.3. Payment Method Và Withdrawal Request
+
+API:
+
+- `POST /api/v1/payment-methods`
+- `GET /api/v1/payment-methods/me`
+- `POST /api/v1/withdrawal-requests`
+- `GET /api/v1/withdrawal-requests/me`
+
+Create payment method request:
+
+```json
+{
+  "accountHolderName": "Student Test 001",
+  "accountNumber": "1234567890",
+  "isDefault": true
+}
+```
+
+Create withdrawal request:
+
+```json
+{
+  "paymentMethodId": "<payment-method-id>",
+  "amount": 50000
+}
+```
+
+Expected:
+
+- Payment method chỉ lưu `masked_account_number`, không lưu raw bank account number.
+- Amount dưới `50,000 VND` bị chặn.
+- Wallet không `ACTIVE` bị chặn.
+- Student `can_withdraw = false` bị chặn.
+- Không đủ available balance bị chặn.
+- Pending withdrawal move `available_balance` sang `locked_balance`.
+- Fee cố định `5,000 VND`, `net_amount = amount - 5,000`.
+
+SQL check:
+
+```sql
+select account_holder_name, masked_account_number, provider_token, is_default, status
+from payment_methods
+order by created_at desc;
+
+select w.available_balance, w.locked_balance, wr.amount, wr.fee_amount, wr.net_amount, wr.status
+from withdrawal_requests wr
+join wallets w on w.id = wr.wallet_id
+order by wr.requested_at desc;
+```
+
+### 8.4. Admin Process Withdrawal
+
+UI:
+
+- `http://localhost:3000/admin/withdrawals`
+
+API:
+
+- `GET /api/v1/admin/withdrawal-requests`
+- `POST /api/v1/admin/withdrawal-requests/{withdrawalRequestId}/process`
+
+Complete request:
+
+```json
+{
+  "decision": "COMPLETED",
+  "failureReason": null
+}
+```
+
+Failed request:
+
+```json
+{
+  "decision": "FAILED",
+  "failureReason": "Bank transfer was rejected."
+}
+```
+
+Expected completed:
+
+- Withdrawal chuyển `COMPLETED`.
+- Wallet locked balance giảm theo amount.
+- Tạo `wallet_transactions` type `WITHDRAWAL_DEBIT`.
+- Có audit log `WITHDRAWAL_PROCESSED`.
+
+Expected failed:
+
+- Withdrawal chuyển `FAILED`, lưu failure reason.
+- Wallet locked balance giảm, available balance tăng lại theo amount.
+- Tạo `wallet_transactions` type `WITHDRAWAL_FAILED_REVERSAL`.
+- Có audit log `WITHDRAWAL_PROCESSED`.
+
+## 9. Negative Regression Checklist
 
 | Case | Expected |
 | --- | --- |
@@ -1202,8 +1362,12 @@ order by created_at desc;
 | Student submit Final trước Sketch approved | Bị chặn |
 | SME không owner review submission | Bị chặn |
 | Admin force complete project không ở `ADMIN_REVIEW` | Bị chặn |
+| Release escrow đã `RELEASED` lần nữa | Không double credit wallet |
+| Withdrawal dưới `50,000 VND` | Bị chặn |
+| Withdrawal khi `can_withdraw = false` | Bị chặn |
+| Non-Admin process withdrawal | Bị chặn |
 
-## 9. SQL Tổng Hợp Sau E2E
+## 10. SQL Tổng Hợp Sau E2E
 
 ```sql
 select email, role, status, email_verified_at
@@ -1230,6 +1394,22 @@ select provider, provider_order_code, status, amount, paid_at, expires_at
 from payments
 order by created_at desc;
 
+select gross_amount, platform_fee_amount, net_amount, status, completed_at
+from disbursements
+order by created_at desc;
+
+select available_balance, pending_balance, locked_balance, currency, status
+from wallets
+order by created_at desc;
+
+select type, amount, balance_after, reference_type, reference_id, created_at
+from wallet_transactions
+order by created_at desc;
+
+select amount, fee_amount, net_amount, status, failure_reason, requested_at, processed_at
+from withdrawal_requests
+order by requested_at desc;
+
 select submission_type, milestone_type, revision_round, status, submitted_at, review_due_at, approved_at, auto_approved_at
 from project_submissions
 order by submitted_at desc;
@@ -1239,11 +1419,11 @@ from review_actions
 order by created_at desc;
 ```
 
-## 10. Known Gaps Và Skip Notes
+## 11. Known Gaps Và Skip Notes
 
 - PayOS payment success thật cần credentials thật và webhook callback hợp lệ; nếu không có, dùng `PAYMENT_PROVIDER=Mock` để smoke success/failure webhook local.
 - SMTP thật cần provider hợp lệ; nếu không có, account email OTP không nhận được trong inbox.
 - Google login cần Google OAuth client ID và frontend rebuild.
 - Frontend Phase 3B execution hiện chủ yếu là shell route; test submission/review/admin execution qua Swagger/API.
-- Phase 4 money movement chưa hoàn thành: chỉ test completion handoff tới `COMPLETED`, `RELEASE_PENDING`, `rating_due_at`; không kỳ vọng wallet credit, disbursement, withdrawal sau Final approval.
+- Phase 4 refund/cancellation split rules chưa hoàn thành: không kỳ vọng các tỷ lệ refund 100/0, 60/40, 20/80, 70/30 trong guide này.
 - Portfolio, Ratings, Paid Packages, AI Matching, notification đầy đủ chưa thuộc completed feature set trong guide này.

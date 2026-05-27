@@ -2,6 +2,7 @@ namespace D4U.Api.Infrastructure.BackgroundServices;
 
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
+using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,6 +39,7 @@ public sealed class SubmissionAutoApprovalBackgroundService(
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
+        var moneyMovementService = scope.ServiceProvider.GetRequiredService<IMoneyMovementService>();
         var now = DateTimeOffset.UtcNow;
 
         var dueSubmissions = await dbContext.ProjectSubmissions
@@ -110,6 +112,11 @@ public sealed class SubmissionAutoApprovalBackgroundService(
                     CreatedAt = now
                 },
                 cancellationToken);
+
+            if (submission.MilestoneType == SubmissionStage.FINAL)
+            {
+                await moneyMovementService.ReleaseProjectEscrowAsync(project.Id, null, cancellationToken);
+            }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

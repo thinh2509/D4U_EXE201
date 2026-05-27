@@ -5,6 +5,7 @@ using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Security;
 using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
+using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Application.Features.Payments;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
@@ -63,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IMoneyMovementService, MoneyMovementService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
