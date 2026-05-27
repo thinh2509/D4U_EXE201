@@ -40,11 +40,49 @@ services:
       Ai__ApiKey: "${AI_API_KEY:-}"
       Ai__Model: "${AI_MODEL:-mock-project-brief-v1}"
       Ai__TimeoutSeconds: "${AI_TIMEOUT_SECONDS:-30}"
+      Payment__Provider: "${PAYMENT_PROVIDER:-PayOS}"
+      Payment__ReturnUrl: "${PAYMENT_RETURN_URL:-http://localhost:3000/payment/success}"
+      Payment__CancelUrl: "${PAYMENT_CANCEL_URL:-http://localhost:3000/payment/cancel}"
+      Payment__PayOS__ClientId: "${PAYMENT_PAYOS_CLIENT_ID:-}"
+      Payment__PayOS__ApiKey: "${PAYMENT_PAYOS_API_KEY:-}"
+      Payment__PayOS__ChecksumKey: "${PAYMENT_PAYOS_CHECKSUM_KEY:-}"
+      Payment__PayOS__BaseUrl: "${PAYMENT_PAYOS_BASE_URL:-https://api-merchant.payos.vn}"
+      GoogleAuth__ClientId: "${GOOGLE_AUTH_CLIENT_ID:-}"
+      Email__SmtpHost: "${EMAIL_SMTP_HOST:-}"
+      Email__SmtpPort: "${EMAIL_SMTP_PORT:-587}"
+      Email__Username: "${EMAIL_USERNAME:-}"
+      Email__Password: "${EMAIL_PASSWORD:-}"
+      Email__FromEmail: "${EMAIL_FROM_EMAIL:-}"
+      Email__FromName: "${EMAIL_FROM_NAME:-D4U}"
+      Email__UseSsl: "${EMAIL_USE_SSL:-true}"
+      UserEmailVerification__CodeExpiresMinutes: "${USER_EMAIL_CODE_EXPIRES_MINUTES:-15}"
+      UserEmailVerification__CodeLength: "${USER_EMAIL_CODE_LENGTH:-6}"
+      StudentEmailVerification__AllowedDomains__0: "${STUDENT_EMAIL_ALLOWED_DOMAIN_0:-edu}"
+      StudentEmailVerification__AllowedDomains__1: "${STUDENT_EMAIL_ALLOWED_DOMAIN_1:-edu.vn}"
+      StudentEmailVerification__CodeExpiresMinutes: "${STUDENT_EMAIL_CODE_EXPIRES_MINUTES:-15}"
+      StudentEmailVerification__CodeLength: "${STUDENT_EMAIL_CODE_LENGTH:-6}"
+      StudentEmailVerification__IncludeCodeInResponseForDevelopment: "${STUDENT_EMAIL_INCLUDE_CODE_IN_RESPONSE:-true}"
     ports:
       - "127.0.0.1:${D4U_API_PORT:-8080}:8080"
+    volumes:
+      - d4u_uploads:/app/App_Data/uploads
     depends_on:
       postgres:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./FE
+      dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: "${GOOGLE_AUTH_CLIENT_ID:-}"
+    container_name: d4u-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${D4U_FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - api
+
 volumes:
   d4u_postgres_data:
+  d4u_uploads:

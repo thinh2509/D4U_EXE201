@@ -14,7 +14,15 @@ public sealed class ProjectsController(IProjectService projectService) : Control
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ProjectResponse>>> ListOpen(CancellationToken cancellationToken)
     {
-        var response = await projectService.ListOpenProjectsAsync(cancellationToken);
+        var response = await projectService.ListOpenProjectsAsync(GetRequiredUserId(), cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("mine")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<IReadOnlyList<ProjectResponse>>> ListMine(CancellationToken cancellationToken)
+    {
+        var response = await projectService.ListMyProjectsAsync(GetRequiredUserId(), cancellationToken);
         return Ok(response);
     }
 

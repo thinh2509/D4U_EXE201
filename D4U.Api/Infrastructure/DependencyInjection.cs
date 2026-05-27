@@ -5,16 +5,23 @@ using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Security;
 using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
+using D4U.Api.Application.Features.Payments;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
 using D4U.Api.Infrastructure.Ai;
 using D4U.Api.Infrastructure.Authentication;
+using D4U.Api.Infrastructure.BackgroundServices;
 using D4U.Api.Infrastructure.Caching;
+using D4U.Api.Infrastructure.Email;
+using D4U.Api.Infrastructure.EmailVerification;
+using D4U.Api.Infrastructure.Payments;
 using D4U.Api.Infrastructure.Persistence;
 using D4U.Api.Domain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -55,9 +62,28 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddHostedService<OfferPaymentExpiryBackgroundService>();
+        services.AddHttpClient<IPaymentProvider, PayOsPaymentProvider>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>()
+                .GetSection(PaymentOptions.SectionName)
+                .Get<PaymentOptions>() ?? new PaymentOptions();
+
+            client.BaseAddress = new Uri(options.PayOS.BaseUrl.TrimEnd('/'));
+        });
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddSingleton<IConfigurationManager<OpenIdConnectConfiguration>>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>().GetSection(GoogleAuthOptions.SectionName).Get<GoogleAuthOptions>() ?? new GoogleAuthOptions();
+            return new ConfigurationManager<OpenIdConnectConfiguration>(
+                options.MetadataAddress,
+                new OpenIdConnectConfigurationRetriever());
+        });
 
         services.AddD4URedisCache(configuration);
         services.AddD4UAuthentication(configuration);
@@ -126,6 +152,11 @@ public static class DependencyInjection
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.SectionName));
+        services.Configure<GoogleAuthOptions>(configuration.GetSection(GoogleAuthOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<UserEmailVerificationOptions>(configuration.GetSection(UserEmailVerificationOptions.SectionName));
+        services.Configure<StudentEmailVerificationOptions>(configuration.GetSection(StudentEmailVerificationOptions.SectionName));
+        services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
         services.Configure<OAuth2Options>(configuration.GetSection(OAuth2Options.SectionName));
         services.Configure<AdminBootstrapOptions>(configuration.GetSection(AdminBootstrapOptions.SectionName));
 

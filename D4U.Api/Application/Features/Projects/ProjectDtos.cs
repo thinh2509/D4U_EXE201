@@ -14,8 +14,8 @@ public sealed record UpsertProjectDraftRequest(
     DateTimeOffset SketchDeadlineAt,
     DateTimeOffset FinalDeadlineAt,
     int MaxRevisionRounds,
-    bool IsConfidential,
-    bool AllowStudentPortfolio);
+    bool? IsConfidential,
+    bool? AllowStudentPortfolio);
 
 public sealed record ProjectResponse(
     Guid Id,
@@ -38,7 +38,9 @@ public sealed record ProjectResponse(
     bool AllowStudentPortfolio,
     DateTimeOffset? PublishedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    bool HasApplied,
+    Guid? MyApplicationId);
 
 public sealed record CancelProjectRequest(
     string? CancellationReason);
@@ -60,6 +62,68 @@ public sealed record ProjectApplicationResponse(
     DateTimeOffset SubmittedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record SmeProjectApplicationSummaryResponse(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectTitle,
+    Guid StudentProfileId,
+    string StudentFullName,
+    decimal ProposedPrice,
+    string CoverLetter,
+    int? EstimatedDurationDays,
+    string Status,
+    DateTimeOffset SubmittedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record StudentProjectApplicationSummaryResponse(
+    Guid ApplicationId,
+    Guid ProjectId,
+    string ProjectTitle,
+    string ApplicationStatus,
+    decimal ProposedPrice,
+    string CoverLetter,
+    int? EstimatedDurationDays,
+    DateTimeOffset SubmittedAt,
+    DateTimeOffset UpdatedAt,
+    Guid? OfferId,
+    OfferStatus? OfferStatus,
+    decimal? OfferedAmount,
+    PaymentStatus? PaymentStatus,
+    EscrowStatus? EscrowStatus);
+
+public sealed record ProjectOfferFlowResponse(
+    Guid OfferId,
+    Guid ProjectId,
+    string ProjectTitle,
+    Guid StudentProfileId,
+    string StudentFullName,
+    Guid? ApplicationId,
+    string? ApplicationStatus,
+    OfferStatus OfferStatus,
+    decimal OfferedAmount,
+    DateTimeOffset? ExpiresAt,
+    DateTimeOffset? PaymentDueAt,
+    DateTimeOffset? AcceptedAt,
+    DateTimeOffset? RejectedAt,
+    DateTimeOffset CreatedAt,
+    Guid? PaymentId,
+    PaymentStatus? PaymentStatus,
+    Guid? EscrowId,
+    EscrowStatus? EscrowStatus,
+    string? CheckoutUrl,
+    DateTimeOffset? PaymentExpiresAt);
+
+public sealed record StudentProjectSummaryResponse(
+    Guid ProjectId,
+    string ProjectTitle,
+    ProjectStatus ProjectStatus,
+    decimal BudgetAmount,
+    string Currency,
+    DateTimeOffset TotalDeadlineAt,
+    DateTimeOffset? AcceptedAt,
+    Guid? EscrowId,
+    EscrowStatus? EscrowStatus);
+
 public sealed record CreateProjectOfferRequest(
     Guid StudentProfileId,
     Guid? ApplicationId,
@@ -74,7 +138,8 @@ public sealed record ProjectOfferResponse(
     OfferStatus Status,
     decimal OfferedAmount,
     DateTimeOffset? ExpiresAt,
+    DateTimeOffset? PaymentDueAt,
     DateTimeOffset? AcceptedAt,
     DateTimeOffset? RejectedAt,
-    DateTimeOffset? RevokedAt,
+    DateTimeOffset? ExpiredAt,
     DateTimeOffset CreatedAt);

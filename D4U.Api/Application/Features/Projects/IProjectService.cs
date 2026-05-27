@@ -25,6 +25,11 @@ public interface IProjectService
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ProjectResponse>> ListOpenProjectsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ProjectResponse>> ListMyProjectsAsync(
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     Task<ProjectResponse> GetProjectAsync(
@@ -41,6 +46,26 @@ public interface IProjectService
     Task<IReadOnlyList<ProjectApplicationResponse>> ListApplicationsAsync(
         Guid userId,
         Guid projectId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SmeProjectApplicationSummaryResponse>> ListMyApplicationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StudentProjectApplicationSummaryResponse>> ListMyStudentApplicationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ProjectOfferFlowResponse>> ListMyStudentOffersAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StudentProjectSummaryResponse>> ListMyStudentProjectsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ProjectOfferFlowResponse>> ListMySmeOffersAsync(
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     Task<ProjectOfferResponse> CreateOfferAsync(

@@ -162,14 +162,62 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
     }
 
     public async Task<IReadOnlyList<ProjectResponse>> ListOpenProjectsAsync(
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
-        return await (
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var studentProfile = user.Role == UserRole.STUDENT
+            ? await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+                profile => profile.UserId == userId,
+                cancellationToken)
+            : null;
+
+        var projects = await (
             from project in unitOfWork.Repository<Project>().Query()
             join category in unitOfWork.Repository<DesignCategory>().Query()
                 on project.DesignCategoryId equals category.Id
             where project.Status == ProjectStatus.OPEN && project.ProjectType == ProjectType.OPEN
             orderby project.PublishedAt descending
+            select new { Project = project, Category = category })
+            .ToListAsync(cancellationToken);
+
+        var applicationsByProjectId = new Dictionary<Guid, ProjectApplication>();
+
+        if (studentProfile is not null && projects.Count > 0)
+        {
+            var projectIds = projects.Select(value => value.Project.Id).ToList();
+            var applications = await unitOfWork.Repository<ProjectApplication>().Query()
+                .Where(application => application.StudentProfileId == studentProfile.Id && projectIds.Contains(application.ProjectId))
+                .OrderBy(application => application.SubmittedAt)
+                .ToListAsync(cancellationToken);
+
+            applicationsByProjectId = applications
+                .GroupBy(application => application.ProjectId)
+                .ToDictionary(group => group.Key, group => group.First());
+        }
+
+        return projects
+            .Select(value =>
+            {
+                applicationsByProjectId.TryGetValue(value.Project.Id, out var application);
+                return ToProjectResponse(value.Project, value.Category, application is not null, application?.Id);
+            })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<ProjectResponse>> ListMyProjectsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+
+        return await (
+            from project in unitOfWork.Repository<Project>().Query()
+            join category in unitOfWork.Repository<DesignCategory>().Query()
+                on project.DesignCategoryId equals category.Id
+            where project.SmeProfileId == smeProfile.Id
+            orderby project.UpdatedAt descending
             select new ProjectResponse(
                 project.Id,
                 project.SmeProfileId,
@@ -191,7 +239,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
                 project.AllowStudentPortfolio,
                 project.PublishedAt,
                 project.CreatedAt,
-                project.UpdatedAt))
+                project.UpdatedAt,
+                false,
+                null))
             .ToListAsync(cancellationToken);
     }
 
@@ -223,7 +273,23 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         }
 
         var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
-        return ToProjectResponse(project, category);
+        ProjectApplication? application = null;
+
+        if (user.Role == UserRole.STUDENT)
+        {
+            var studentProfile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+                profile => profile.UserId == userId,
+                cancellationToken);
+
+            if (studentProfile is not null)
+            {
+                application = await unitOfWork.Repository<ProjectApplication>().FirstOrDefaultAsync(
+                    value => value.ProjectId == projectId && value.StudentProfileId == studentProfile.Id,
+                    cancellationToken);
+            }
+        }
+
+        return ToProjectResponse(project, category, application is not null, application?.Id);
     }
 
     public async Task<ProjectApplicationResponse> SubmitApplicationAsync(
@@ -271,7 +337,14 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         };
 
         await applications.AddAsync(application, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsDuplicateProjectApplication(exception))
+        {
+            throw new InvalidOperationException("Student has already applied to this project.", exception);
+        }
 
         return await ToApplicationResponseAsync(application, cancellationToken);
     }
@@ -310,6 +383,165 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
                 application.SubmittedAt,
                 application.UpdatedAt))
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SmeProjectApplicationSummaryResponse>> ListMyApplicationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+
+        return await (
+            from application in unitOfWork.Repository<ProjectApplication>().Query()
+            join project in unitOfWork.Repository<Project>().Query()
+                on application.ProjectId equals project.Id
+            join studentProfile in unitOfWork.Repository<StudentProfile>().Query()
+                on application.StudentProfileId equals studentProfile.Id
+            join studentUser in unitOfWork.Repository<User>().Query()
+                on studentProfile.UserId equals studentUser.Id
+            where project.SmeProfileId == smeProfile.Id
+            orderby application.SubmittedAt descending
+            select new SmeProjectApplicationSummaryResponse(
+                application.Id,
+                application.ProjectId,
+                project.Title,
+                application.StudentProfileId,
+                studentUser.FullName,
+                application.ProposedPrice,
+                application.CoverLetter,
+                application.EstimatedDurationDays,
+                application.Status,
+                application.SubmittedAt,
+                application.UpdatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<StudentProjectApplicationSummaryResponse>> ListMyStudentApplicationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var studentProfile = await RequireVerifiedStudentProfileAsync(user, cancellationToken);
+
+        var applications = await (
+            from application in unitOfWork.Repository<ProjectApplication>().Query()
+            join project in unitOfWork.Repository<Project>().Query()
+                on application.ProjectId equals project.Id
+            where application.StudentProfileId == studentProfile.Id
+            orderby application.SubmittedAt descending
+            select new
+            {
+                Application = application,
+                ProjectTitle = project.Title
+            })
+            .ToListAsync(cancellationToken);
+
+        var projectIds = applications.Select(value => value.Application.ProjectId).Distinct().ToList();
+        var applicationIds = applications.Select(value => value.Application.Id).ToList();
+        var offers = await unitOfWork.Repository<ProjectOffer>().Query()
+            .Where(value => value.StudentProfileId == studentProfile.Id && projectIds.Contains(value.ProjectId))
+            .ToListAsync(cancellationToken);
+        var offersByApplicationId = offers
+            .Where(value => value.ApplicationId.HasValue && applicationIds.Contains(value.ApplicationId.Value))
+            .GroupBy(value => value.ApplicationId!.Value)
+            .ToDictionary(value => value.Key, value => value.OrderByDescending(offer => offer.CreatedAt).First());
+        var escrows = await unitOfWork.Repository<Escrow>().Query()
+            .Where(value => value.StudentProfileId == studentProfile.Id && projectIds.Contains(value.ProjectId))
+            .ToListAsync(cancellationToken);
+        var escrowsByProjectId = escrows.ToDictionary(value => value.ProjectId);
+        var paymentsByEscrowId = await GetLatestPaymentsByEscrowIdAsync(escrows.Select(value => value.Id).ToList(), cancellationToken);
+
+        return applications
+            .Select(value =>
+            {
+                offersByApplicationId.TryGetValue(value.Application.Id, out var offer);
+                escrowsByProjectId.TryGetValue(value.Application.ProjectId, out var escrow);
+                var payment = escrow is null ? null : paymentsByEscrowId.GetValueOrDefault(escrow.Id);
+
+                return new StudentProjectApplicationSummaryResponse(
+                    value.Application.Id,
+                    value.Application.ProjectId,
+                    value.ProjectTitle,
+                    value.Application.Status,
+                    value.Application.ProposedPrice,
+                    value.Application.CoverLetter,
+                    value.Application.EstimatedDurationDays,
+                    value.Application.SubmittedAt,
+                    value.Application.UpdatedAt,
+                    offer?.Id,
+                    offer?.Status,
+                    offer?.OfferedAmount,
+                    payment?.Status,
+                    escrow?.Status);
+            })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<ProjectOfferFlowResponse>> ListMyStudentOffersAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var studentProfile = await RequireVerifiedStudentProfileAsync(user, cancellationToken);
+        var offers = await unitOfWork.Repository<ProjectOffer>().Query()
+            .Where(value => value.StudentProfileId == studentProfile.Id)
+            .OrderByDescending(value => value.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return await ToOfferFlowResponsesAsync(offers, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<StudentProjectSummaryResponse>> ListMyStudentProjectsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var studentProfile = await RequireVerifiedStudentProfileAsync(user, cancellationToken);
+        var projects = await unitOfWork.Repository<Project>().Query()
+            .Where(value => value.SelectedStudentProfileId == studentProfile.Id)
+            .OrderByDescending(value => value.UpdatedAt)
+            .ToListAsync(cancellationToken);
+        var projectIds = projects.Select(value => value.Id).ToList();
+        var escrows = await unitOfWork.Repository<Escrow>().Query()
+            .Where(value => value.StudentProfileId == studentProfile.Id && projectIds.Contains(value.ProjectId))
+            .ToListAsync(cancellationToken);
+        var escrowsByProjectId = escrows.ToDictionary(value => value.ProjectId);
+
+        return projects
+            .Select(project =>
+            {
+                escrowsByProjectId.TryGetValue(project.Id, out var escrow);
+                return new StudentProjectSummaryResponse(
+                    project.Id,
+                    project.Title,
+                    project.Status,
+                    project.BudgetAmount,
+                    project.Currency,
+                    project.TotalDeadlineAt,
+                    project.AcceptedAt,
+                    escrow?.Id,
+                    escrow?.Status);
+            })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<ProjectOfferFlowResponse>> ListMySmeOffersAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var projectIds = await unitOfWork.Repository<Project>().Query()
+            .Where(value => value.SmeProfileId == smeProfile.Id)
+            .Select(value => value.Id)
+            .ToListAsync(cancellationToken);
+        var offers = await unitOfWork.Repository<ProjectOffer>().Query()
+            .Where(value => projectIds.Contains(value.ProjectId))
+            .OrderByDescending(value => value.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return await ToOfferFlowResponsesAsync(offers, cancellationToken);
     }
 
     public async Task<ProjectOfferResponse> CreateOfferAsync(
@@ -366,12 +598,15 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         var hasPendingOffer = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
             offer => offer.ProjectId == projectId &&
                 offer.StudentProfileId == studentProfile.Id &&
-                (offer.Status == OfferStatus.PENDING_PAYMENT || offer.Status == OfferStatus.WAITING_ACCEPTANCE),
+                (offer.Status == OfferStatus.PENDING_PAYMENT ||
+                    offer.Status == OfferStatus.WAITING_ACCEPTANCE ||
+                    offer.Status == OfferStatus.ACCEPTED ||
+                    offer.Status == OfferStatus.ACTIVE),
             cancellationToken);
 
         if (hasPendingOffer)
         {
-            throw new InvalidOperationException("A pending offer already exists for this student and project.");
+            throw new InvalidOperationException("An active offer already exists for this student and project.");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -381,9 +616,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             ProjectId = projectId,
             StudentProfileId = studentProfile.Id,
             ApplicationId = request.ApplicationId,
-            Status = OfferStatus.PENDING_PAYMENT,
+            Status = OfferStatus.WAITING_ACCEPTANCE,
             OfferedAmount = request.OfferedAmount,
-            ExpiresAt = request.ExpiresAt,
+            ExpiresAt = now.AddHours(48),
             CreatedAt = now
         };
 
@@ -421,21 +656,27 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         if (offer.Status != OfferStatus.WAITING_ACCEPTANCE)
         {
-            throw new InvalidOperationException("Only funded offers waiting for acceptance can be accepted.");
+            throw new InvalidOperationException("Only offers waiting for student acceptance can be accepted.");
         }
 
         var project = await RequireProjectAsync(offer.ProjectId, cancellationToken);
-        var previousStatus = project.Status;
         var now = DateTimeOffset.UtcNow;
+
+        if (offer.ExpiresAt.HasValue && offer.ExpiresAt.Value <= now)
+        {
+            offer.Status = OfferStatus.EXPIRED;
+            offer.ExpiredAt = now;
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Offer acceptance window has expired.");
+        }
 
         offer.Status = OfferStatus.ACCEPTED;
         offer.AcceptedAt = now;
+        offer.PaymentDueAt = now.AddHours(72);
         project.SelectedStudentProfileId = studentProfile.Id;
-        project.Status = ProjectStatus.IN_PROGRESS;
         project.AcceptedAt = now;
         project.UpdatedAt = now;
 
-        await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.IN_PROGRESS, userId, "Student accepted funded offer.", cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToOfferResponse(offer);
@@ -455,9 +696,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             throw new UnauthorizedAccessException("Only the invited student can reject this offer.");
         }
 
-        if (offer.Status is not (OfferStatus.PENDING_PAYMENT or OfferStatus.WAITING_ACCEPTANCE))
+        if (offer.Status != OfferStatus.WAITING_ACCEPTANCE)
         {
-            throw new InvalidOperationException("Only pending offers can be rejected.");
+            throw new InvalidOperationException("Only offers waiting for student decision can be rejected.");
         }
 
         offer.Status = OfferStatus.REJECTED;
@@ -478,6 +719,12 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         var project = await RequireProjectAsync(offer.ProjectId, cancellationToken);
 
+        if (project.SelectedStudentProfileId == studentProfile.Id)
+        {
+            project.SelectedStudentProfileId = null;
+            project.AcceptedAt = null;
+        }
+
         if (project.Status == ProjectStatus.OFFER_SELECTED)
         {
             var previousStatus = project.Status;
@@ -492,6 +739,111 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToOfferResponse(offer);
+    }
+
+    private async Task<IReadOnlyList<ProjectOfferFlowResponse>> ToOfferFlowResponsesAsync(
+        IReadOnlyList<ProjectOffer> offers,
+        CancellationToken cancellationToken)
+    {
+        if (offers.Count == 0)
+        {
+            return [];
+        }
+
+        var projectIds = offers.Select(value => value.ProjectId).Distinct().ToList();
+        var studentProfileIds = offers.Select(value => value.StudentProfileId).Distinct().ToList();
+        var applicationIds = offers
+            .Where(value => value.ApplicationId.HasValue)
+            .Select(value => value.ApplicationId!.Value)
+            .Distinct()
+            .ToList();
+        var projects = await unitOfWork.Repository<Project>().Query()
+            .Where(value => projectIds.Contains(value.Id))
+            .ToListAsync(cancellationToken);
+        var projectsById = projects.ToDictionary(value => value.Id);
+        var studentProfiles = await unitOfWork.Repository<StudentProfile>().Query()
+            .Where(value => studentProfileIds.Contains(value.Id))
+            .ToListAsync(cancellationToken);
+        var studentProfilesById = studentProfiles.ToDictionary(value => value.Id);
+        var studentUserIds = studentProfiles.Select(value => value.UserId).Distinct().ToList();
+        var studentUsers = await unitOfWork.Repository<User>().Query()
+            .Where(value => studentUserIds.Contains(value.Id))
+            .ToListAsync(cancellationToken);
+        var studentUsersById = studentUsers.ToDictionary(value => value.Id);
+        var applications = await unitOfWork.Repository<ProjectApplication>().Query()
+            .Where(value => applicationIds.Contains(value.Id))
+            .ToListAsync(cancellationToken);
+        var applicationsById = applications.ToDictionary(value => value.Id);
+        var escrows = await unitOfWork.Repository<Escrow>().Query()
+            .Where(value => projectIds.Contains(value.ProjectId) && studentProfileIds.Contains(value.StudentProfileId))
+            .ToListAsync(cancellationToken);
+        var escrowsByProjectStudent = escrows.ToDictionary(value => (value.ProjectId, value.StudentProfileId));
+        var paymentsByEscrowId = await GetLatestPaymentsByEscrowIdAsync(escrows.Select(value => value.Id).ToList(), cancellationToken);
+
+        return offers
+            .Select(offer =>
+            {
+                projectsById.TryGetValue(offer.ProjectId, out var project);
+                studentProfilesById.TryGetValue(offer.StudentProfileId, out var studentProfile);
+                var studentFullName = string.Empty;
+
+                if (studentProfile is not null &&
+                    studentUsersById.TryGetValue(studentProfile.UserId, out var studentUser))
+                {
+                    studentFullName = studentUser.FullName;
+                }
+
+                ProjectApplication? application = null;
+                if (offer.ApplicationId.HasValue)
+                {
+                    applicationsById.TryGetValue(offer.ApplicationId.Value, out application);
+                }
+
+                escrowsByProjectStudent.TryGetValue((offer.ProjectId, offer.StudentProfileId), out var escrow);
+                var payment = escrow is null ? null : paymentsByEscrowId.GetValueOrDefault(escrow.Id);
+
+                return new ProjectOfferFlowResponse(
+                    offer.Id,
+                    offer.ProjectId,
+                    project?.Title ?? string.Empty,
+                    offer.StudentProfileId,
+                    studentFullName,
+                    offer.ApplicationId,
+                    application?.Status,
+                    offer.Status,
+                    offer.OfferedAmount,
+                    offer.ExpiresAt,
+                    offer.PaymentDueAt,
+                    offer.AcceptedAt,
+                    offer.RejectedAt,
+                    offer.CreatedAt,
+                    payment?.Id,
+                    payment?.Status,
+                    escrow?.Id,
+                    escrow?.Status,
+                    payment?.CheckoutUrl,
+                    payment?.ExpiresAt);
+            })
+            .ToList();
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, Payment>> GetLatestPaymentsByEscrowIdAsync(
+        IReadOnlyList<Guid> escrowIds,
+        CancellationToken cancellationToken)
+    {
+        if (escrowIds.Count == 0)
+        {
+            return new Dictionary<Guid, Payment>();
+        }
+
+        var payments = await unitOfWork.Repository<Payment>().Query()
+            .Where(value => value.EscrowId.HasValue && escrowIds.Contains(value.EscrowId.Value))
+            .OrderByDescending(value => value.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return payments
+            .GroupBy(value => value.EscrowId!.Value)
+            .ToDictionary(value => value.Key, value => value.First());
     }
 
     private async Task<User> RequireUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -584,18 +936,19 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         Guid smeProfileId,
         CancellationToken cancellationToken)
     {
-        var subscription = await unitOfWork.Repository<SmeSubscription>().Query()
-            .Where(value => value.SmeProfileId == smeProfileId && value.Status == ActiveSubscriptionStatus)
-            .OrderByDescending(value => value.StartedAt)
-            .FirstOrDefaultAsync(cancellationToken);
+        var smeProfile = await unitOfWork.Repository<SmeProfile>().GetByIdAsync(smeProfileId, cancellationToken)
+            ?? throw new InvalidOperationException("SME profile was not found.");
 
-        if (subscription is not null)
+        if (smeProfile.SubscriptionPlanId != Guid.Empty)
         {
             var existingPlan = await unitOfWork.Repository<SubscriptionPlan>().GetByIdAsync(
-                subscription.SubscriptionPlanId,
+                smeProfile.SubscriptionPlanId,
                 cancellationToken);
 
-            return existingPlan ?? throw new InvalidOperationException("Active subscription plan was not found.");
+            if (existingPlan is not null && existingPlan.IsActive)
+            {
+                return existingPlan;
+            }
         }
 
         var basicPlan = await unitOfWork.Repository<SubscriptionPlan>().FirstOrDefaultAsync(
@@ -608,17 +961,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         }
 
         var now = DateTimeOffset.UtcNow;
-        await unitOfWork.Repository<SmeSubscription>().AddAsync(
-            new SmeSubscription
-            {
-                Id = Guid.NewGuid(),
-                SmeProfileId = smeProfileId,
-                SubscriptionPlanId = basicPlan.Id,
-                Status = ActiveSubscriptionStatus,
-                StartedAt = now,
-                CreatedAt = now
-            },
-            cancellationToken);
+        smeProfile.SubscriptionPlanId = basicPlan.Id;
+        smeProfile.SubscriptionStartedAt = smeProfile.SubscriptionStartedAt == default ? now : smeProfile.SubscriptionStartedAt;
+        smeProfile.UpdatedAt = now;
 
         return basicPlan;
     }
@@ -663,18 +1008,26 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         string reason,
         CancellationToken cancellationToken)
     {
-        await unitOfWork.Repository<ProjectStatusHistory>().AddAsync(
-            new ProjectStatusHistory
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
             {
                 Id = Guid.NewGuid(),
-                ProjectId = projectId,
-                FromStatus = fromStatus,
-                ToStatus = toStatus,
-                ChangedByUserId = changedByUserId,
-                ChangeReason = reason,
+                ActorUserId = changedByUserId,
+                Action = "PROJECT_STATUS_CHANGED",
+                EntityType = nameof(Project),
+                EntityId = projectId,
+                BeforeJson = fromStatus is null ? null : $$"""{"status":"{{fromStatus}}"}""",
+                AfterJson = $$"""{"status":"{{toStatus}}","reason":"{{reason}}"}""",
                 CreatedAt = DateTimeOffset.UtcNow
             },
             cancellationToken);
+    }
+
+    private static bool IsDuplicateProjectApplication(DbUpdateException exception)
+    {
+        return exception.ToString().Contains(
+            "IX_project_applications_project_id_student_profile_id",
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ValidateProjectRules(UpsertProjectDraftRequest request)
@@ -708,11 +1061,15 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         project.SketchDeadlineAt = request.SketchDeadlineAt;
         project.FinalDeadlineAt = request.FinalDeadlineAt;
         project.MaxRevisionRounds = request.MaxRevisionRounds;
-        project.IsConfidential = request.IsConfidential;
-        project.AllowStudentPortfolio = request.AllowStudentPortfolio;
+        project.IsConfidential = request.IsConfidential ?? false;
+        project.AllowStudentPortfolio = request.AllowStudentPortfolio ?? true;
     }
 
-    private static ProjectResponse ToProjectResponse(Project project, DesignCategory category)
+    private static ProjectResponse ToProjectResponse(
+        Project project,
+        DesignCategory category,
+        bool hasApplied = false,
+        Guid? myApplicationId = null)
     {
         return new ProjectResponse(
             project.Id,
@@ -735,7 +1092,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             project.AllowStudentPortfolio,
             project.PublishedAt,
             project.CreatedAt,
-            project.UpdatedAt);
+            project.UpdatedAt,
+            hasApplied,
+            myApplicationId);
     }
 
     private async Task<ProjectApplicationResponse> ToApplicationResponseAsync(
@@ -773,9 +1132,10 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             offer.Status,
             offer.OfferedAmount,
             offer.ExpiresAt,
+            offer.PaymentDueAt,
             offer.AcceptedAt,
             offer.RejectedAt,
-            offer.RevokedAt,
+            offer.ExpiredAt,
             offer.CreatedAt);
     }
 }

@@ -18,12 +18,13 @@ public sealed class ProjectOfferConfiguration : IEntityTypeConfiguration<Project
         entity.Property(offer => offer.ProjectId).HasColumnName("project_id").IsRequired();
         entity.Property(offer => offer.StudentProfileId).HasColumnName("student_profile_id").IsRequired();
         entity.Property(offer => offer.ApplicationId).HasColumnName("application_id");
-        entity.Property(offer => offer.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(40).HasDefaultValue(OfferStatus.PENDING_PAYMENT).IsRequired();
+        entity.Property(offer => offer.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(40).HasDefaultValue(OfferStatus.WAITING_ACCEPTANCE).IsRequired();
         entity.Property(offer => offer.OfferedAmount).HasColumnName("offered_amount").HasPrecision(12, 2).IsRequired();
         entity.Property(offer => offer.ExpiresAt).HasColumnName("expires_at");
+        entity.Property(offer => offer.PaymentDueAt).HasColumnName("payment_due_at");
         entity.Property(offer => offer.AcceptedAt).HasColumnName("accepted_at");
         entity.Property(offer => offer.RejectedAt).HasColumnName("rejected_at");
-        entity.Property(offer => offer.RevokedAt).HasColumnName("revoked_at");
+        entity.Property(offer => offer.ExpiredAt).HasColumnName("expired_at");
         entity.Property(offer => offer.CreatedAt).HasColumnName("created_at").IsRequired();
 
         entity.HasOne<Project>().WithMany().HasForeignKey(offer => offer.ProjectId).OnDelete(DeleteBehavior.Restrict);
