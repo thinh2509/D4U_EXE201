@@ -24,10 +24,14 @@ public sealed class SmeProfileConfiguration : IEntityTypeConfiguration<SmeProfil
         entity.Property(profile => profile.AverageRating).HasColumnName("average_rating").HasPrecision(3, 2).HasDefaultValue(0m).IsRequired();
         entity.Property(profile => profile.CompletedProjectsCount).HasColumnName("completed_projects_count").HasDefaultValue(0).IsRequired();
         entity.Property(profile => profile.ActiveOpenProjectCount).HasColumnName("active_open_project_count").HasDefaultValue(0).IsRequired();
+        entity.Property(profile => profile.SubscriptionPlanId).HasColumnName("subscription_plan_id").IsRequired();
+        entity.Property(profile => profile.SubscriptionStartedAt).HasColumnName("subscription_started_at").IsRequired();
+        entity.Property(profile => profile.SubscriptionCurrentPeriodEnd).HasColumnName("subscription_current_period_end");
         entity.Property(profile => profile.CreatedAt).HasColumnName("created_at").IsRequired();
         entity.Property(profile => profile.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
         entity.HasOne<User>().WithOne().HasForeignKey<SmeProfile>(profile => profile.UserId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<FileAsset>().WithMany().HasForeignKey(profile => profile.LogoFileId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne<SubscriptionPlan>().WithMany().HasForeignKey(profile => profile.SubscriptionPlanId).OnDelete(DeleteBehavior.Restrict);
     }
 }

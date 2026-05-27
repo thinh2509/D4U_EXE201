@@ -28,28 +28,24 @@ public enum ProjectStatus
     OPEN,
     PRIVATE_INVITED,
     OFFER_SELECTED,
-    PAYMENT_SECURED,
-    WAITING_FOR_ACCEPTANCE,
     IN_PROGRESS,
-    SKETCH_SUBMITTED,
-    SKETCH_IN_REVIEW,
+    SKETCH_REVIEW,
     REVISION_REQUESTED,
-    FINAL_SUBMITTED,
-    FINAL_IN_REVIEW,
+    FINAL_REVIEW,
+    ADMIN_REVIEW,
     COMPLETED,
-    FUNDS_AVAILABLE,
-    CANCELLED,
-    DISPUTED
+    CANCELLED
 }
 
 public enum OfferStatus
 {
-    PENDING_PAYMENT,
     WAITING_ACCEPTANCE,
     ACCEPTED,
     REJECTED,
-    REVOKED,
-    EXPIRED
+    EXPIRED,
+    PENDING_PAYMENT,
+    PAYMENT_FAILED,
+    ACTIVE
 }
 
 public enum PaymentStatus
@@ -69,25 +65,13 @@ public enum EscrowStatus
     RELEASED,
     REFUNDED,
     PARTIALLY_REFUNDED,
-    DISPUTED,
     CANCELLED
 }
 
-public enum MilestoneType
+public enum SubmissionStage
 {
     SKETCH,
     FINAL
-}
-
-public enum MilestoneStatus
-{
-    PENDING,
-    SUBMITTED,
-    IN_REVIEW,
-    APPROVED,
-    REVISION_REQUESTED,
-    AUTO_APPROVED,
-    CANCELLED
 }
 
 public enum SubmissionType
@@ -103,8 +87,7 @@ public enum SubmissionStatus
     VALID,
     INVALID_REPORTED,
     APPROVED,
-    REVISION_REQUESTED,
-    DISPUTED
+    REVISION_REQUESTED
 }
 
 public enum ReviewActionType
@@ -113,8 +96,9 @@ public enum ReviewActionType
     APPROVE_FINAL,
     REQUEST_REVISION,
     REPORT_INVALID_FILE,
-    OPEN_DISPUTE,
-    AUTO_APPROVE
+    AUTO_APPROVE,
+    ADMIN_FORCE_COMPLETE,
+    ADMIN_CANCEL
 }
 
 public enum InvalidFileReason
@@ -125,15 +109,6 @@ public enum InvalidFileReason
     UNRELATED,
     BROKEN_LINK,
     OTHER
-}
-
-public enum DisputeStatus
-{
-    OPEN,
-    UNDER_REVIEW,
-    RESOLVED,
-    REJECTED,
-    CANCELLED
 }
 
 public enum WalletStatus

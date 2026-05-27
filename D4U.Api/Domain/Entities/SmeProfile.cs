@@ -15,6 +15,9 @@ public sealed class SmeProfile
     public decimal AverageRating { get; set; }
     public int CompletedProjectsCount { get; set; }
     public int ActiveOpenProjectCount { get; set; }
+    public Guid SubscriptionPlanId { get; set; }
+    public DateTimeOffset SubscriptionStartedAt { get; set; }
+    public DateTimeOffset? SubscriptionCurrentPeriodEnd { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

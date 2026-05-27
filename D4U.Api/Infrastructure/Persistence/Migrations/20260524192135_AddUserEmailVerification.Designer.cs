@@ -3,6 +3,7 @@ using System;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace D4U.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(D4UDbContext))]
-    partial class D4UDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260524192135_AddUserEmailVerification")]
+    partial class AddUserEmailVerification
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -241,6 +244,143 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("disbursements", "public");
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.Dispute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AgainstUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("against_user_id");
+
+                    b.Property<Guid?>("AssignedAdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_admin_id");
+
+                    b.Property<string>("DecisionRationale")
+                        .HasColumnType("text")
+                        .HasColumnName("decision_rationale");
+
+                    b.Property<string>("DecisionType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("decision_type");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<Guid?>("EscrowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("escrow_id");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("opened_at");
+
+                    b.Property<Guid>("OpenedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by_user_id");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("platform_fee_amount");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<decimal>("SmeRefundAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("sme_refund_amount");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("OPEN")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("StudentPayoutAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("student_payout_amount");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgainstUserId");
+
+                    b.HasIndex("EscrowId");
+
+                    b.HasIndex("OpenedByUserId");
+
+                    b.HasIndex("AssignedAdminId", "Status");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.ToTable("disputes", "public");
+                });
+
+            modelBuilder.Entity("D4U.Api.Domain.Entities.DisputeEvidence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("DisputeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dispute_id");
+
+                    b.Property<Guid?>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<Guid>("SubmittedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submitted_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisputeId");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.ToTable("dispute_evidences", "public");
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.Escrow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -410,6 +550,66 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("files", "public");
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.InvalidFileReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<Guid>("ReportedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reported_by_user_id");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<DateTimeOffset>("ReuploadDueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reupload_due_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("OPEN")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submission_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("invalid_file_reports", "public");
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -487,10 +687,6 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("amount");
 
-                    b.Property<string>("CheckoutUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("checkout_url");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -508,10 +704,6 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("escrow_id");
 
-                    b.Property<DateTimeOffset?>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
                     b.Property<DateTimeOffset?>("PaidAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("paid_at");
@@ -526,22 +718,10 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("provider");
 
-                    b.Property<long?>("ProviderOrderCode")
-                        .HasColumnType("bigint")
-                        .HasColumnName("provider_order_code");
-
                     b.Property<string>("ProviderTransactionId")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("provider_transaction_id");
-
-                    b.Property<string>("QrCode")
-                        .HasColumnType("text")
-                        .HasColumnName("qr_code");
-
-                    b.Property<string>("RawProviderResponseJson")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("raw_provider_response_json");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -551,18 +731,11 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("PENDING")
                         .HasColumnName("status");
 
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EscrowId", "Status");
 
                     b.HasIndex("PayerUserId", "CreatedAt");
-
-                    b.HasIndex("Provider", "ProviderOrderCode")
-                        .IsUnique();
 
                     b.HasIndex("Provider", "ProviderTransactionId")
                         .IsUnique();
@@ -867,6 +1040,71 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("project_attachments", "public");
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectMilestone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<DateTimeOffset?>("AutoApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("auto_approved_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("DeadlineAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deadline_at");
+
+                    b.Property<string>("MilestoneType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("milestone_type");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<DateTimeOffset?>("ReviewDueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("review_due_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("PENDING")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "MilestoneType")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "DeadlineAt");
+
+                    b.HasIndex("Status", "ReviewDueAt");
+
+                    b.ToTable("project_milestones", "public");
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectOffer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -886,10 +1124,6 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<DateTimeOffset?>("ExpiredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expired_at");
-
                     b.Property<DateTimeOffset?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
@@ -899,10 +1133,6 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("offered_amount");
 
-                    b.Property<DateTimeOffset?>("PaymentDueAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("payment_due_at");
-
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_id");
@@ -911,12 +1141,16 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("rejected_at");
 
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
-                        .HasDefaultValue("WAITING_ACCEPTANCE")
+                        .HasDefaultValue("PENDING_PAYMENT")
                         .HasColumnName("status");
 
                     b.Property<Guid>("StudentProfileId")
@@ -934,6 +1168,53 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("project_offers", "public");
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ChangeReason")
+                        .HasColumnType("text")
+                        .HasColumnName("change_reason");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("from_status");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("to_status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("project_status_histories", "public");
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectSubmission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -941,31 +1222,17 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTimeOffset?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("approved_at");
-
-                    b.Property<DateTimeOffset?>("AutoApprovedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("auto_approved_at");
-
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<string>("MilestoneType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("milestone_type");
+                    b.Property<Guid>("MilestoneId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("milestone_id");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_id");
-
-                    b.Property<DateTimeOffset?>("ReviewDueAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("review_due_at");
 
                     b.Property<int>("RevisionRound")
                         .ValueGeneratedOnAdd()
@@ -997,11 +1264,9 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MilestoneId");
+
                     b.HasIndex("SubmittedByStudentId");
-
-                    b.HasIndex("Status", "ReviewDueAt");
-
-                    b.HasIndex("ProjectId", "MilestoneType", "Status");
 
                     b.HasIndex("ProjectId", "SubmissionType", "RevisionRound");
 
@@ -1153,42 +1418,13 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<DateTimeOffset?>("DueAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("due_at");
-
-                    b.Property<string>("InvalidFileReason")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("invalid_file_reason");
-
-                    b.Property<string>("MetadataJson")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("metadata_json");
-
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_id");
 
-                    b.Property<string>("RequestedChanges")
-                        .HasColumnType("text")
-                        .HasColumnName("requested_changes");
-
-                    b.Property<DateTimeOffset?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("resolved_at");
-
-                    b.Property<DateTimeOffset?>("ReuploadDueAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reupload_due_at");
-
                     b.Property<Guid?>("ReviewerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("reviewer_user_id");
-
-                    b.Property<int?>("RevisionRound")
-                        .HasColumnType("integer")
-                        .HasColumnName("revision_round");
 
                     b.Property<Guid>("SubmissionId")
                         .HasColumnType("uuid")
@@ -1196,15 +1432,75 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProjectId");
+
                     b.HasIndex("ReviewerUserId");
 
-                    b.HasIndex("ProjectId", "Action");
-
-                    b.HasIndex("ProjectId", "RevisionRound");
-
-                    b.HasIndex("SubmissionId", "Action");
+                    b.HasIndex("SubmissionId");
 
                     b.ToTable("review_actions", "public");
+                });
+
+            modelBuilder.Entity("D4U.Api.Domain.Entities.RevisionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<string>("RequestedChanges")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("requested_changes");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<int>("RevisionRound")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision_round");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("OPEN")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submission_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.HasIndex("ProjectId", "RevisionRound", "SubmissionId")
+                        .IsUnique();
+
+                    b.ToTable("revision_requests", "public");
                 });
 
             modelBuilder.Entity("D4U.Api.Domain.Entities.SmeProfile", b =>
@@ -1273,18 +1569,6 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("representative_name");
 
-                    b.Property<DateTimeOffset?>("SubscriptionCurrentPeriodEnd")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("subscription_current_period_end");
-
-                    b.Property<Guid>("SubscriptionPlanId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subscription_plan_id");
-
-                    b.Property<DateTimeOffset>("SubscriptionStartedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("subscription_started_at");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1297,12 +1581,58 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("LogoFileId");
 
-                    b.HasIndex("SubscriptionPlanId");
-
                     b.HasIndex("UserId")
                         .IsUnique();
 
                     b.ToTable("sme_profiles", "public");
+                });
+
+            modelBuilder.Entity("D4U.Api.Domain.Entities.SmeSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("CurrentPeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("current_period_end");
+
+                    b.Property<Guid>("SmeProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sme_profile_id");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("ACTIVE")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubscriptionPlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_plan_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionPlanId");
+
+                    b.HasIndex("SmeProfileId", "Status");
+
+                    b.ToTable("sme_subscriptions", "public");
                 });
 
             modelBuilder.Entity("D4U.Api.Domain.Entities.StudentEmailVerification", b =>
@@ -1917,10 +2247,7 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                     b.HasIndex("StudentProfileId")
                         .IsUnique();
 
-                    b.ToTable("wallets", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_wallets_non_negative_balances", "available_balance >= 0 AND pending_balance >= 0 AND locked_balance >= 0");
-                        });
+                    b.ToTable("wallets", "public");
                 });
 
             modelBuilder.Entity("D4U.Api.Domain.Entities.WalletTransaction", b =>
@@ -2075,6 +2402,56 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.Dispute", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AgainstUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedAdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("D4U.Api.Domain.Entities.Escrow", null)
+                        .WithMany()
+                        .HasForeignKey("EscrowId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OpenedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D4U.Api.Domain.Entities.DisputeEvidence", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.Dispute", null)
+                        .WithMany()
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.FileAsset", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.Escrow", b =>
                 {
                     b.HasOne("D4U.Api.Domain.Entities.Project", null)
@@ -2102,6 +2479,27 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("OwnerUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("D4U.Api.Domain.Entities.InvalidFileReport", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.ProjectSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("D4U.Api.Domain.Entities.Notification", b =>
@@ -2191,6 +2589,15 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectMilestone", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectOffer", b =>
                 {
                     b.HasOne("D4U.Api.Domain.Entities.ProjectApplication", null)
@@ -2211,8 +2618,28 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectStatusHistory", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("D4U.Api.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.ProjectSubmission", b =>
                 {
+                    b.HasOne("D4U.Api.Domain.Entities.ProjectMilestone", null)
+                        .WithMany()
+                        .HasForeignKey("MilestoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("D4U.Api.Domain.Entities.Project", null)
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -2286,6 +2713,27 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("D4U.Api.Domain.Entities.RevisionRequest", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.ProjectSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("D4U.Api.Domain.Entities.SmeProfile", b =>
                 {
                     b.HasOne("D4U.Api.Domain.Entities.FileAsset", null)
@@ -2293,15 +2741,24 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("LogoFileId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("D4U.Api.Domain.Entities.SubscriptionPlan", null)
-                        .WithMany()
-                        .HasForeignKey("SubscriptionPlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("D4U.Api.Domain.Entities.User", null)
                         .WithOne()
                         .HasForeignKey("D4U.Api.Domain.Entities.SmeProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("D4U.Api.Domain.Entities.SmeSubscription", b =>
+                {
+                    b.HasOne("D4U.Api.Domain.Entities.SmeProfile", null)
+                        .WithMany()
+                        .HasForeignKey("SmeProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("D4U.Api.Domain.Entities.SubscriptionPlan", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

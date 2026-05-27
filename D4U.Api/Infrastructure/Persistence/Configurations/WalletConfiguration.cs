@@ -27,5 +27,9 @@ public sealed class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
         entity.HasOne<User>().WithOne().HasForeignKey<Wallet>(wallet => wallet.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<StudentProfile>().WithOne().HasForeignKey<Wallet>(wallet => wallet.StudentProfileId).OnDelete(DeleteBehavior.Restrict);
+
+        entity.ToTable(table => table.HasCheckConstraint(
+            "CK_wallets_non_negative_balances",
+            "available_balance >= 0 AND pending_balance >= 0 AND locked_balance >= 0"));
     }
 }

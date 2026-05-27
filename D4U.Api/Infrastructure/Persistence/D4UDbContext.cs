@@ -7,25 +7,23 @@ public sealed class D4UDbContext(DbContextOptions<D4UDbContext> options) : DbCon
 {
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserExternalLogin> UserExternalLogins => Set<UserExternalLogin>();
+    public DbSet<UserEmailVerification> UserEmailVerifications => Set<UserEmailVerification>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<AdminProfile> AdminProfiles => Set<AdminProfile>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<StudentVerification> StudentVerifications => Set<StudentVerification>();
+    public DbSet<StudentEmailVerification> StudentEmailVerifications => Set<StudentEmailVerification>();
     public DbSet<SmeProfile> SmeProfiles => Set<SmeProfile>();
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
-    public DbSet<SmeSubscription> SmeSubscriptions => Set<SmeSubscription>();
     public DbSet<DesignCategory> DesignCategories => Set<DesignCategory>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectAttachment> ProjectAttachments => Set<ProjectAttachment>();
     public DbSet<ProjectApplication> ProjectApplications => Set<ProjectApplication>();
     public DbSet<ProjectOffer> ProjectOffers => Set<ProjectOffer>();
-    public DbSet<ProjectStatusHistory> ProjectStatusHistories => Set<ProjectStatusHistory>();
-    public DbSet<ProjectMilestone> ProjectMilestones => Set<ProjectMilestone>();
     public DbSet<ProjectSubmission> ProjectSubmissions => Set<ProjectSubmission>();
     public DbSet<SubmissionFile> SubmissionFiles => Set<SubmissionFile>();
     public DbSet<ReviewAction> ReviewActions => Set<ReviewAction>();
-    public DbSet<RevisionRequest> RevisionRequests => Set<RevisionRequest>();
-    public DbSet<InvalidFileReport> InvalidFileReports => Set<InvalidFileReport>();
     public DbSet<FileAsset> Files => Set<FileAsset>();
     public DbSet<Escrow> Escrows => Set<Escrow>();
     public DbSet<Payment> Payments => Set<Payment>();
@@ -35,8 +33,6 @@ public sealed class D4UDbContext(DbContextOptions<D4UDbContext> options) : DbCon
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
-    public DbSet<Dispute> Disputes => Set<Dispute>();
-    public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
