@@ -12,6 +12,12 @@ public interface IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default);
 
+    Task<AuthResponse> LoginWithGoogleAsync(
+        GoogleLoginRequest request,
+        string? deviceInfo,
+        string? ipAddress,
+        CancellationToken cancellationToken = default);
+
     Task<AuthResponse> RefreshAsync(
         RefreshTokenRequest request,
         string? deviceInfo,
@@ -20,6 +26,14 @@ public interface IAuthService
 
     Task LogoutAsync(
         LogoutRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<UserEmailVerificationResponse> RequestEmailVerificationAsync(
+        RequestUserEmailVerificationRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<UserEmailVerificationResponse> ConfirmEmailVerificationAsync(
+        ConfirmUserEmailVerificationRequest request,
         CancellationToken cancellationToken = default);
 
     Task<AuthUserResponse> GetCurrentUserAsync(

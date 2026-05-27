@@ -53,6 +53,20 @@ public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>
     }
 }
 
+public sealed class GoogleLoginRequestValidator : AbstractValidator<GoogleLoginRequest>
+{
+    public GoogleLoginRequestValidator()
+    {
+        RuleFor(request => request.IdToken)
+            .NotEmpty()
+            .MaximumLength(10000);
+
+        RuleFor(request => request.Role)
+            .Must(role => role is UserRole.STUDENT or UserRole.SME)
+            .WithMessage("Google login only supports STUDENT and SME self-registration.");
+    }
+}
+
 public sealed class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenRequest>
 {
     public RefreshTokenRequestValidator()
@@ -70,5 +84,31 @@ public sealed class LogoutRequestValidator : AbstractValidator<LogoutRequest>
         RuleFor(request => request.RefreshToken)
             .NotEmpty()
             .MaximumLength(512);
+    }
+}
+
+public sealed class RequestUserEmailVerificationRequestValidator : AbstractValidator<RequestUserEmailVerificationRequest>
+{
+    public RequestUserEmailVerificationRequestValidator()
+    {
+        RuleFor(request => request.Email)
+            .NotEmpty()
+            .EmailAddress()
+            .MaximumLength(255);
+    }
+}
+
+public sealed class ConfirmUserEmailVerificationRequestValidator : AbstractValidator<ConfirmUserEmailVerificationRequest>
+{
+    public ConfirmUserEmailVerificationRequestValidator()
+    {
+        RuleFor(request => request.Email)
+            .NotEmpty()
+            .EmailAddress()
+            .MaximumLength(255);
+
+        RuleFor(request => request.Code)
+            .NotEmpty()
+            .Length(4, 12);
     }
 }

@@ -13,11 +13,28 @@ public sealed record LoginRequest(
     string Email,
     string Password);
 
+public sealed record GoogleLoginRequest(
+    string IdToken,
+    UserRole Role);
+
 public sealed record RefreshTokenRequest(
     string RefreshToken);
 
 public sealed record LogoutRequest(
     string RefreshToken);
+
+public sealed record RequestUserEmailVerificationRequest(
+    string Email);
+
+public sealed record ConfirmUserEmailVerificationRequest(
+    string Email,
+    string Code);
+
+public sealed record UserEmailVerificationResponse(
+    string Email,
+    string Status,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset? ConfirmedAt);
 
 public sealed record AuthResponse(
     string AccessToken,

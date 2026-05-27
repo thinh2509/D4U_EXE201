@@ -34,6 +34,21 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("google")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> Google(
+        GoogleLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await authService.LoginWithGoogleAsync(
+            request,
+            Request.Headers.UserAgent.ToString(),
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Refresh(
@@ -57,6 +72,26 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     {
         await authService.LogoutAsync(request, cancellationToken);
         return NoContent();
+    }
+
+    [HttpPost("email-verification/request")]
+    [AllowAnonymous]
+    public async Task<ActionResult<UserEmailVerificationResponse>> RequestEmailVerification(
+        RequestUserEmailVerificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await authService.RequestEmailVerificationAsync(request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("email-verification/confirm")]
+    [AllowAnonymous]
+    public async Task<ActionResult<UserEmailVerificationResponse>> ConfirmEmailVerification(
+        ConfirmUserEmailVerificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await authService.ConfirmEmailVerificationAsync(request, cancellationToken);
+        return Ok(response);
     }
 
     [HttpGet("me")]
