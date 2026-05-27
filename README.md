@@ -73,6 +73,8 @@ Layer responsibilities:
 
 Backend foundation details are documented in [BACKEND_FOUNDATION_D4U.md](BACKEND_FOUNDATION_D4U.md).
 
+Completed feature manual E2E testing is documented in [D4U_COMPLETED_FEATURE_E2E_TEST_GUIDE_VI.md](D4U_COMPLETED_FEATURE_E2E_TEST_GUIDE_VI.md).
+
 ### Prerequisites
 
 - Visual Studio 2022 version 17.8 or newer
