@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout.jsx';
 import { ProtectedRoute, PublicRoute, roleHome } from './components/RouteGuards.jsx';
+import { LandingPage } from './pages/landing/LandingPage.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
 import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { RegisterPage } from './pages/auth/RegisterPage.jsx';
@@ -39,7 +40,7 @@ export default function App() {
       <Route path="/payment/success" element={<PaymentSuccessPage />} />
       <Route path="/payment/cancel" element={<PaymentCancelPage />} />
       <Route path="/forbidden" element={<ProtectedRoute><ForbiddenPage /></ProtectedRoute>} />
-      <Route path="/" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />
+      <Route path="/" element={<LandingPage />} />
 
       <Route element={<ProtectedRoute roles={['STUDENT']}><AppLayout /></ProtectedRoute>}>
         <Route path="/student/dashboard" element={<DashboardPage />} />
