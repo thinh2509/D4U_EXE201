@@ -238,7 +238,7 @@ Rules:
 Open project flow:
 
 1. Student views an `OPEN` project.
-2. Student submits an application with proposed price, cover letter, and estimated duration.
+2. Student either confirms the published budget and deadlines or submits a custom proposal with a different price and solution description.
 3. A Student can apply only once per project.
 4. SME reviews applications.
 5. SME selects one application.
@@ -253,6 +253,7 @@ Private project flow:
 Offer rules:
 
 - Offer starts as `WAITING_ACCEPTANCE`.
+- For an open project application, the offer amount is copied from the selected application and cannot be overridden by SME.
 - Student has 48 hours to accept or reject the offer.
 - Student can accept or reject before SME pays escrow.
 - Accepted offer selects the Student but does not start execution yet.

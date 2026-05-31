@@ -644,14 +644,16 @@ Apply request:
 ```json
 {
   "proposedPrice": 2800000,
-  "coverLetter": "Em đã từng làm nhận diện thương hiệu cho quán cà phê và có thể gửi sketch đầu trong 5 ngày.",
-  "estimatedDurationDays": 14
+  "coverLetter": "Em đề xuất hướng nhận diện tối giản, ưu tiên khả năng ứng dụng trên bao bì và social media.",
+  "estimatedDurationDays": null
 }
 ```
 
 Expected:
 
 - Student verified mới apply được.
+- Quick apply lấy `proposedPrice` bằng budget project và dùng ghi chú xác nhận mặc định.
+- Chỉ khi Student bấm `Đề xuất khác`, UI mới yêu cầu giá mới và giải pháp đề xuất.
 - Application status `SUBMITTED`.
 - Open project response có `hasApplied = true`.
 
@@ -687,6 +689,9 @@ Create offer request:
 Expected:
 
 - Offer tạo status `WAITING_ACCEPTANCE`.
+- Với offer gắn application, backend luôn lấy `offeredAmount` từ `project_applications.proposed_price`, kể cả client gửi amount khác.
+- SME chỉ xác nhận gửi offer; server tự đặt hạn phản hồi sau 48 giờ.
+- Private offer không có application vẫn nhận `offeredAmount` từ request.
 - Project chuyển/giữ trạng thái offer selected theo flow backend.
 - Student thấy offer ở `/student/offers`.
 

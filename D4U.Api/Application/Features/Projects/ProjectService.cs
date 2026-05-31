@@ -619,7 +619,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             StudentProfileId = studentProfile.Id,
             ApplicationId = request.ApplicationId,
             Status = OfferStatus.WAITING_ACCEPTANCE,
-            OfferedAmount = request.OfferedAmount,
+            OfferedAmount = application?.ProposedPrice ?? request.OfferedAmount,
             ExpiresAt = now.AddHours(48),
             CreatedAt = now
         };
