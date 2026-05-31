@@ -188,10 +188,10 @@ export function LandingPage() {
               </Col>
               <Col xs={24} lg={12}>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative', zIndex: 2 }}>
-                    <img src="https://images.unsplash.com/photo-1630522790862-73f100c60da2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMHdvcmtpbmclMjBsYXB0b3AlMjBjcmVhdGl2ZXxlbnwxfHx8fDE3NzI4MTc2MDh8MA&ixlib=rb-4.1.0&q=80&w=1080" alt="Designer working" style={{ width: '100%', height: '550px', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ position: 'relative', zIndex: 2 }}>
+                    <img src="/brand/hero-laptops.png" alt="D4U Dashboards" style={{ width: '100%', height: 'auto', maxHeight: '550px', objectFit: 'contain', display: 'block' }} />
                   </div>
-                  <div style={{ position: 'absolute', bottom: '-24px', right: '-24px', width: '128px', height: '128px', background: 'linear-gradient(to bottom right, #02577A, #02A9F7)', borderRadius: '24px', opacity: 0.2, filter: 'blur(30px)', zIndex: 1 }} />
+                  <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '200px', height: '200px', background: 'linear-gradient(to bottom right, #02577A, #02A9F7)', borderRadius: '50%', opacity: 0.15, filter: 'blur(40px)', zIndex: 1 }} />
                 </div>
               </Col>
             </Row>
