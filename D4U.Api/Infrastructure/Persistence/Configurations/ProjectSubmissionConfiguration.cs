@@ -22,7 +22,7 @@ public sealed class ProjectSubmissionConfiguration : IEntityTypeConfiguration<Pr
         entity.Property(submission => submission.MilestoneType).HasColumnName("milestone_type").HasConversion<string>().HasMaxLength(20).IsRequired();
         entity.Property(submission => submission.RevisionRound).HasColumnName("revision_round").HasDefaultValue(0).IsRequired();
         entity.Property(submission => submission.Description).HasColumnName("description");
-        entity.Property(submission => submission.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(40).HasDefaultValue(SubmissionStatus.SUBMITTED).IsRequired();
+        entity.Property(submission => submission.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(40).HasDefaultValue(SubmissionStatus.SUBMITTED).IsRequired().IsConcurrencyToken();
         entity.Property(submission => submission.SubmittedAt).HasColumnName("submitted_at").IsRequired();
         entity.Property(submission => submission.ReviewDueAt).HasColumnName("review_due_at");
         entity.Property(submission => submission.ApprovedAt).HasColumnName("approved_at");

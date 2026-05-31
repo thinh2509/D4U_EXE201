@@ -716,7 +716,7 @@ Không ghi Client ID, API Key hoặc Checksum Key vào biên bản.
 ### 7.1. Student Chọn File Và Xác Nhận Nộp
 
 1. Student mở workspace khi next action là `Nộp Sketch`, `Nộp bản chỉnh sửa` hoặc `Nộp Final`.
-2. Bấm `Chọn file`, chọn nhiều file `.jpg`, `.jpeg`, `.png` hoặc `.pdf`, mỗi file tối đa 20 MB.
+2. Bấm `Chọn file`, chọn nhiều file `.jpg`, `.png` hoặc `.pdf`, mỗi file tối đa 20 MB.
 3. Kiểm tra draft list hiển thị tên, định dạng, dung lượng và nút xóa từng file.
 4. Xóa một file khỏi draft list. File bị xóa không được upload.
 5. Bấm `Nộp bài`.
@@ -728,7 +728,8 @@ Kết quả cần thấy:
 - File chỉ được upload sau bước xác nhận.
 - Nếu một file upload lỗi, quá trình dừng và thông báo ghi rõ tên file lỗi.
 - Sau khi thành công, draft list được xóa và Student thấy trạng thái chờ SME duyệt cùng review deadline.
-- File `.zip` hoặc file lớn hơn 20 MB bị chặn trước khi gọi backend.
+- File `.zip`, file lớn hơn 20 MB hoặc file giả đuôi có nội dung không khớp định dạng bị chặn.
+- File upload thành công nhưng không được gắn vào submission sẽ được worker dọn sau 24 giờ.
 
 ### 7.2. SME Xử Lý Bản Mới Nhất
 
@@ -759,3 +760,33 @@ Kết quả backend cần thấy:
 - Submission mới có type `REVISION`, giữ cùng milestone Sketch hoặc Final.
 - Báo file lỗi kỹ thuật không tăng `current_revision_round`.
 - `review_actions` giữ action `REPORT_INVALID_FILE` để audit.
+
+## 8. Regression Sau Core Stabilization
+
+### 8.1. Offer Hết Hạn Trả Application Về Hàng Chờ
+
+1. Tạo offer từ một application và để offer `WAITING_ACCEPTANCE`.
+2. Đặt `expires_at` của offer về quá khứ hoặc chờ worker chạy.
+3. Kiểm tra offer chuyển `EXPIRED`.
+4. Kiểm tra application liên kết trở về `SUBMITTED`, không bị kẹt ở `SELECTED`.
+5. Kiểm tra project trở về `OPEN` hoặc `PRIVATE_INVITED` nếu không còn offer active.
+
+### 8.2. Checkout PayOS Hết Hạn Nhưng Offer Vẫn Còn Thời Gian
+
+1. Tạo checkout PayOS nhưng không thanh toán.
+2. Đặt `payments.expires_at` về quá khứ hoặc chờ quá 15 phút.
+3. Kiểm tra payment chuyển `EXPIRED`, offer chuyển `PAYMENT_FAILED`.
+4. Kiểm tra SME vẫn tạo được checkout mới nếu `payment_due_at` 72 giờ chưa hết hạn.
+5. Tạo checkout retry mới, giữ một checkout cũ quá hạn và kiểm tra worker không kéo offer mới khỏi `PENDING_PAYMENT`.
+
+### 8.3. Upload Submission Được Harden
+
+1. Upload file `.pdf` thật, tối đa đúng 20 MB: backend chấp nhận.
+2. Đổi tên file text hoặc file thực thi thành `.pdf`: backend từ chối vì signature không khớp.
+3. Upload file hợp lệ nhưng không submit: worker dọn metadata và file local sau 24 giờ.
+
+### 8.4. Return Page Không Spinner Vô Tận
+
+1. Mở `/payment/success?paymentId=<payment-id>` khi webhook chưa tới.
+2. Sau tối đa 60 giây, kiểm tra spinner đổi thành cảnh báo.
+3. Kiểm tra có nút `Thử lại` và lối tắt về workspace hoặc danh sách offer.

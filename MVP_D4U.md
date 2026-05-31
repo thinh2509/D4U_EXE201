@@ -261,6 +261,7 @@ Offer rules:
 - SME can pay escrow only after the Student accepts the offer.
 - PayOS webhook success funds escrow and starts the execution flow.
 - If Student does not decide within 48 hours, the offer becomes `EXPIRED`.
+- When an offer expires or is rejected, its selected application returns to `SUBMITTED` so SME can choose again.
 - If SME does not pay within 72 hours after Student acceptance, the offer becomes `EXPIRED`, any pending payment is expired/cancelled, and the Student is released from the offer.
 - If Student rejects or the offer expires before payment, no refund is needed because escrow has not been funded.
 
@@ -291,6 +292,7 @@ Rules:
 - SME cannot start escrow payment until the Student has accepted the offer.
 - Project cannot start until escrow is funded.
 - Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
+- Each checkout payment expires independently after its provider checkout window. SME can create a new checkout while the 72-hour offer payment window remains open.
 - Provider transaction id must be unique per provider.
 - Payment webhooks must be idempotent.
 - PayOS webhook is the only trusted source for payment success.
@@ -987,7 +989,7 @@ Prompt guardrails:
 - [x] PayOS webhook success funds escrow.
 - [x] Project becomes `IN_PROGRESS`.
 - [ ] Offer expires if Student does not accept/reject within 48 hours.
-- [ ] Accepted offer expires if SME does not pay within 72 hours.
+- [x] Accepted offer expires if SME does not pay within 72 hours.
 - [ ] Payment failed/cancelled/expired never starts a project.
 - [ ] System supports fixed Sketch and Final submission stages without requiring a separate milestone table.
 - [ ] Student can submit Sketch with valid files.

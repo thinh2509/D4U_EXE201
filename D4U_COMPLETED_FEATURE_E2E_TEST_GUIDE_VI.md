@@ -934,7 +934,7 @@ Expected:
 
 ## 7. Project Execution
 
-Lưu ý: frontend hiện có shell route cho execution/submissions, nhưng các thao tác Phase 3B chính nên test qua Swagger/API.
+Lưu ý: frontend đã có project workspace cho Student và SME; Swagger/API vẫn hữu ích để kiểm tra dữ liệu và các nhánh lỗi.
 
 ### 7.1. Student Submit Sketch
 
@@ -1421,11 +1421,37 @@ from review_actions
 order by created_at desc;
 ```
 
+## 11.1. Core Stabilization Regression
+
+### Offer Và Application Expiry
+
+- Offer `WAITING_ACCEPTANCE` hết hạn phải chuyển `EXPIRED`.
+- Application liên kết phải trở về `SUBMITTED`, không giữ trạng thái `SELECTED`.
+- Nếu không còn offer active, project trở về `OPEN` hoặc `PRIVATE_INVITED`.
+
+### Checkout Payment Expiry
+
+- Payment `PENDING` có checkout quá hạn phải chuyển `EXPIRED` độc lập với cửa sổ thanh toán offer 72 giờ.
+- Offer chuyển `PAYMENT_FAILED`; SME được tạo checkout mới nếu `payment_due_at` vẫn còn hạn.
+- Nếu checkout cũ hết hạn nhưng checkout retry mới vẫn còn hạn, offer phải giữ `PENDING_PAYMENT`.
+- Khi cửa sổ 72 giờ hết hạn, offer chuyển `EXPIRED`, escrow pending chuyển `CANCELLED`.
+
+### Submission Upload Hardening
+
+- Chỉ nhận `.jpg`, `.png`, `.pdf`, tối đa 20 MB mỗi file.
+- File giả đuôi bị backend từ chối nếu signature nội dung không khớp extension.
+- File local upload thành công nhưng chưa gắn submission được worker dọn sau 24 giờ.
+
+### PayOS Return UX
+
+- Return page chỉ đọc trạng thái backend, poll mỗi 2 giây tối đa 60 giây.
+- Khi timeout, trang hiển thị cảnh báo, nút `Thử lại`, và CTA về workspace hoặc danh sách offer.
+
 ## 11. Known Gaps Và Skip Notes
 
 - PayOS payment success thật cần credentials thật và webhook callback hợp lệ; nếu không có, dùng `PAYMENT_PROVIDER=Mock` để smoke success/failure webhook local.
 - SMTP thật cần provider hợp lệ; nếu không có, account email OTP không nhận được trong inbox.
 - Google login cần Google OAuth client ID và frontend rebuild.
-- Frontend Phase 3B execution hiện chủ yếu là shell route; test submission/review/admin execution qua Swagger/API.
+- Frontend Phase 3B execution đã có workspace Student/SME; Admin review nâng cao vẫn có thể test qua Swagger/API.
 - Phase 4 refund/cancellation split rules chưa hoàn thành: không kỳ vọng các tỷ lệ refund 100/0, 60/40, 20/80, 70/30 trong guide này.
 - Portfolio, Ratings, Paid Packages, AI Matching, notification đầy đủ chưa thuộc completed feature set trong guide này.

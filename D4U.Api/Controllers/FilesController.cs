@@ -14,7 +14,7 @@ public sealed class FilesController(ISubmissionFileService submissionFileService
     [HttpPost("submissions")]
     [Authorize(Roles = nameof(UserRole.STUDENT))]
     [Consumes("multipart/form-data")]
-    [RequestSizeLimit(20 * 1024 * 1024)]
+    [RequestSizeLimit(21 * 1024 * 1024)]
     public async Task<ActionResult<SubmissionUploadResponse>> UploadSubmission(
         IFormFile file,
         CancellationToken cancellationToken)

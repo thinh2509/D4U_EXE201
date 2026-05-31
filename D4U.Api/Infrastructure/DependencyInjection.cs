@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
         services.AddHostedService<EscrowReleaseBackgroundService>();
+        services.AddHostedService<SubmissionOrphanCleanupBackgroundService>();
         services.AddScoped<MockPaymentProvider>();
         services.AddHttpClient<PayOsPaymentProvider>((serviceProvider, client) =>
         {

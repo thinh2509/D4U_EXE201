@@ -23,7 +23,7 @@ import { formatCurrency, formatDate, formatFileSize, getFileExtension } from '..
 import { FeatureShellPage } from './MvpShellPage.jsx';
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
-const allowedExtensions = new Set(['jpg', 'jpeg', 'png', 'pdf']);
+const allowedExtensions = new Set(['jpg', 'png', 'pdf']);
 const reviewableStatuses = new Set(['SUBMITTED', 'VALID']);
 
 const nextActionLabels = {
@@ -322,7 +322,7 @@ export function ProjectExecutionPage() {
                   <Form.Item label="Mô tả bản nộp" name="description">
                     <Input.TextArea rows={3} placeholder="Ghi chú ngắn để SME hiểu nội dung bản nộp" />
                   </Form.Item>
-                  <Upload beforeUpload={addDraftFile} fileList={[]} accept=".jpg,.jpeg,.png,.pdf" multiple>
+                  <Upload beforeUpload={addDraftFile} fileList={[]} accept=".jpg,.png,.pdf" multiple>
                     <Button icon={<UploadOutlined />}>Chọn file</Button>
                   </Upload>
                   <div className="workspace-draft-list">

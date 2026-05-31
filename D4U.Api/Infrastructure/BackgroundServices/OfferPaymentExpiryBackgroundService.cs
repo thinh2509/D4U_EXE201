@@ -40,6 +40,7 @@ public sealed class OfferPaymentExpiryBackgroundService(
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
         var now = DateTimeOffset.UtcNow;
+        await ExpireCheckoutPaymentsAsync(dbContext, now, cancellationToken);
 
         var staleOffers = await dbContext.ProjectOffers
             .Where(offer =>
@@ -55,6 +56,7 @@ public sealed class OfferPaymentExpiryBackgroundService(
 
         if (staleOffers.Count == 0)
         {
+            await dbContext.SaveChangesAsync(cancellationToken);
             return;
         }
 
@@ -69,6 +71,48 @@ public sealed class OfferPaymentExpiryBackgroundService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task ExpireCheckoutPaymentsAsync(
+        D4UDbContext dbContext,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var stalePayments = await dbContext.Payments
+            .Where(payment => payment.Status == PaymentStatus.PENDING && payment.ExpiresAt <= now)
+            .ToListAsync(cancellationToken);
+
+        foreach (var payment in stalePayments)
+        {
+            payment.Status = PaymentStatus.EXPIRED;
+            payment.UpdatedAt = now;
+            await AddPaymentExpiredAuditLogAsync(dbContext, payment, now, "CHECKOUT_TIMEOUT", cancellationToken);
+
+            if (payment.EscrowId.HasValue)
+            {
+                var escrow = await dbContext.Escrows.FirstOrDefaultAsync(
+                    value => value.Id == payment.EscrowId.Value,
+                    cancellationToken);
+                var hasActiveCheckout = await dbContext.Payments.AnyAsync(
+                    value => value.Id != payment.Id &&
+                        value.EscrowId == payment.EscrowId &&
+                        value.Status == PaymentStatus.PENDING &&
+                        value.ExpiresAt > now,
+                    cancellationToken);
+                var offer = escrow is null || hasActiveCheckout
+                    ? null
+                    : await dbContext.ProjectOffers.FirstOrDefaultAsync(
+                        value => value.ProjectId == escrow.ProjectId &&
+                            value.StudentProfileId == escrow.StudentProfileId &&
+                            value.Status == OfferStatus.PENDING_PAYMENT,
+                        cancellationToken);
+
+                if (offer is not null)
+                {
+                    OfferStateMachine.TransitionTo(offer, OfferStatus.PAYMENT_FAILED, now);
+                }
+            }
+        }
     }
 
     private static async Task ExpirePendingPaymentsAsync(
@@ -94,19 +138,7 @@ public sealed class OfferPaymentExpiryBackgroundService(
         {
             payment.Status = PaymentStatus.EXPIRED;
             payment.UpdatedAt = now;
-
-            await dbContext.AuditLogs.AddAsync(
-                new AuditLog
-                {
-                    Id = Guid.NewGuid(),
-                    Action = "PAYMENT_EXPIRED",
-                    EntityType = nameof(Payment),
-                    EntityId = payment.Id,
-                    BeforeJson = $$"""{"status":"{{PaymentStatus.PENDING}}"}""",
-                    AfterJson = $$"""{"status":"{{PaymentStatus.EXPIRED}}","reason":"TIMEOUT"}""",
-                    CreatedAt = now
-                },
-                cancellationToken);
+            await AddPaymentExpiredAuditLogAsync(dbContext, payment, now, "OFFER_TIMEOUT", cancellationToken);
         }
 
         if (escrow.Status == EscrowStatus.PENDING_PAYMENT)
@@ -130,6 +162,8 @@ public sealed class OfferPaymentExpiryBackgroundService(
         {
             return;
         }
+
+        await ReleaseApplicationAsync(dbContext, offer, now, cancellationToken);
 
         if (project.SelectedStudentProfileId == offer.StudentProfileId)
         {
@@ -158,6 +192,49 @@ public sealed class OfferPaymentExpiryBackgroundService(
         }
 
         project.UpdatedAt = now;
+    }
+
+    private static async Task ReleaseApplicationAsync(
+        D4UDbContext dbContext,
+        ProjectOffer offer,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!offer.ApplicationId.HasValue)
+        {
+            return;
+        }
+
+        var application = await dbContext.ProjectApplications.FirstOrDefaultAsync(
+            value => value.Id == offer.ApplicationId.Value,
+            cancellationToken);
+
+        if (application is not null && application.Status == "SELECTED")
+        {
+            application.Status = "SUBMITTED";
+            application.UpdatedAt = now;
+        }
+    }
+
+    private static async Task AddPaymentExpiredAuditLogAsync(
+        D4UDbContext dbContext,
+        Payment payment,
+        DateTimeOffset now,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        await dbContext.AuditLogs.AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "PAYMENT_EXPIRED",
+                EntityType = nameof(Payment),
+                EntityId = payment.Id,
+                BeforeJson = $$"""{"status":"{{PaymentStatus.PENDING}}"}""",
+                AfterJson = $$"""{"status":"{{PaymentStatus.EXPIRED}}","reason":"{{reason}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
     }
 
     private static async Task AddOfferAuditLogAsync(

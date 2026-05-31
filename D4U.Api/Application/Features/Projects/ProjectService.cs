@@ -667,6 +667,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         if (offer.ExpiresAt.HasValue && offer.ExpiresAt.Value <= now)
         {
             OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
+            await ReleaseApplicationIfSelectedAsync(offer, now, cancellationToken);
             await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, userId, "Offer acceptance window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Offer acceptance window has expired.");
@@ -1179,6 +1180,27 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         await AddStatusHistoryAsync(project.Id, previousStatus, project.Status, actorUserId, reason, cancellationToken);
     }
 
+    private async Task ReleaseApplicationIfSelectedAsync(
+        ProjectOffer offer,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!offer.ApplicationId.HasValue)
+        {
+            return;
+        }
+
+        var application = await unitOfWork.Repository<ProjectApplication>().GetByIdAsync(
+            offer.ApplicationId.Value,
+            cancellationToken);
+
+        if (application is not null && application.Status == "SELECTED")
+        {
+            application.Status = "SUBMITTED";
+            application.UpdatedAt = now;
+        }
+    }
+
     private async Task EnsureFundedEscrowAsync(
         Guid projectId,
         Guid studentProfileId,
@@ -1268,7 +1290,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             throw new InvalidOperationException("Deleted files cannot be submitted.");
         }
 
-        if (file.OwnerUserId.HasValue && file.OwnerUserId.Value != userId)
+        if (file.OwnerUserId != userId)
         {
             throw new UnauthorizedAccessException("Submission file belongs to another user.");
         }

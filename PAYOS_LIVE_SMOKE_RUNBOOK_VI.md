@@ -111,12 +111,17 @@ Ky vong PayOS tra HTTP 2xx. API D4U chi cap nhat payment khi webhook co signatur
 4. SME vao workspace va mo PayOS checkout.
 5. Chuyen khoan that theo QR.
 6. PayOS return page poll backend moi 2 giay, toi da 60 giay.
+   Neu webhook chua toi sau 60 giay, trang hien canh bao, nut `Thu lai` va loi tat ve workspace.
 7. Webhook hop le cap nhat payment `SUCCESS`, escrow `FUNDED`, project `IN_PROGRESS`.
 8. Student upload va nop Sketch; SME approve.
 9. Student upload va nop Final; SME approve.
 10. Worker release escrow idempotent: escrow `RELEASED`, co mot disbursement va mot wallet transaction `DISBURSEMENT_CREDIT`.
 
 Gui lai webhook hoac retry release khong duoc credit vi lan hai.
+
+Neu checkout `PENDING` qua 15 phut, worker chuyen payment sang `EXPIRED` va offer sang `PAYMENT_FAILED`.
+SME co the tao checkout moi neu cua so thanh toan 72 gio cua offer van con hieu luc.
+Checkout cu het han khong duoc keo offer khoi `PENDING_PAYMENT` neu checkout retry moi van con han.
 
 ## 6. SQL Check
 

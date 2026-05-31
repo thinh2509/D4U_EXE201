@@ -1,4 +1,9 @@
-import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { Alert, Button, Card, Space, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -16,10 +21,13 @@ function PaymentResultLayout({ type }) {
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
   const [timedOut, setTimedOut] = useState(false);
+  const [pollAttempt, setPollAttempt] = useState(0);
 
   useEffect(() => {
     if (!isSuccess || !paymentId) return undefined;
 
+    setError(null);
+    setTimedOut(false);
     let attempts = 0;
     let stopped = false;
     const poll = async () => {
@@ -46,34 +54,46 @@ function PaymentResultLayout({ type }) {
 
     poll();
     return () => { stopped = true; };
-  }, [isSuccess, navigate, paymentId]);
+  }, [isSuccess, navigate, paymentId, pollAttempt]);
+
+  const retryPolling = () => setPollAttempt((current) => current + 1);
+  const workspacePath = payment?.projectId ? `/projects/${payment.projectId}/execution` : '/sme/offers';
 
   return (
     <div className="centered-shell">
       <Card className="auth-card payment-result-card">
         <Space direction="vertical" size="large" className="full-width">
           {isSuccess ? (
-            payment?.status === 'SUCCESS' ? <CheckCircleOutlined className="result-icon success" /> : <LoadingOutlined className="result-icon" />
+            payment?.status === 'SUCCESS' ? (
+              <CheckCircleOutlined className="result-icon success" />
+            ) : timedOut ? (
+              <ExclamationCircleOutlined className="result-icon warning" />
+            ) : (
+              <LoadingOutlined className="result-icon" />
+            )
           ) : (
             <CloseCircleOutlined className="result-icon danger" />
           )}
           <div>
-            <Title level={2}>{payment?.status === 'SUCCESS' ? 'Thanh toan thanh cong' : isSuccess ? 'Dang xac nhan thanh toan' : 'Thanh toan da bi huy'}</Title>
+            <Title level={2}>{payment?.status === 'SUCCESS' ? 'Thanh toán thành công' : isSuccess ? 'Đang xác nhận thanh toán' : 'Thanh toán đã bị hủy'}</Title>
             <Paragraph className="muted-text">
               {isSuccess
                 ? payment?.status === 'SUCCESS'
-                  ? 'PayOS da xac nhan giao dich. Dang chuyen ve project workspace.'
-                  : 'Trang nay chi doc trang thai backend. Project bat dau sau khi webhook PayOS hop le duoc xu ly.'
-                : 'Offer van cho thanh toan neu con hieu luc. SME co the mo lai link PayOS tu workspace.'}
+                  ? 'PayOS đã xác nhận giao dịch. Đang chuyển về project workspace.'
+                  : 'Trang này chỉ đọc trạng thái backend. Project bắt đầu sau khi webhook PayOS hợp lệ được xử lý.'
+                : 'Offer vẫn chờ thanh toán nếu còn hiệu lực. SME có thể mở lại link PayOS từ workspace.'}
             </Paragraph>
           </div>
           {paymentId ? <Alert type="info" showIcon message={<Text>Payment: {paymentId}</Text>} /> : null}
-          {payment ? <Alert type="info" showIcon message={<Space>Trang thai backend: <StatusBadge status={payment.status} /></Space>} /> : null}
+          {payment ? <Alert type="info" showIcon message={<Space>Trạng thái backend: <StatusBadge status={payment.status} /></Space>} /> : null}
           {error ? <Alert type="warning" showIcon message={error} /> : null}
-          {timedOut ? <Alert type="warning" showIcon message="Chua nhan duoc webhook sau 60 giay. Mo workspace va lam moi de kiem tra lai." /> : null}
-          <Button type="primary">
-            <Link to="/">Ve trang chinh</Link>
-          </Button>
+          {timedOut ? <Alert type="warning" showIcon message="Chưa nhận được webhook sau 60 giây. Bạn có thể thử lại hoặc về workspace để kiểm tra." /> : null}
+          <Space wrap>
+            {timedOut ? <Button onClick={retryPolling}>Thử lại</Button> : null}
+            <Button type="primary">
+              <Link to={workspacePath}>{payment?.projectId ? 'Về workspace' : 'Về danh sách offer'}</Link>
+            </Button>
+          </Space>
         </Space>
       </Card>
     </div>

@@ -49,6 +49,7 @@ public sealed class PaymentService(
         if (offer.PaymentDueAt.HasValue && offer.PaymentDueAt.Value <= now)
         {
             OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
+            await ReleaseApplicationIfSelectedAsync(offer, now, cancellationToken);
             await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, "Offer payment window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Offer payment window has expired.");
@@ -409,6 +410,27 @@ public sealed class PaymentService(
                 CreatedAt = now
             },
             cancellationToken);
+    }
+
+    private async Task ReleaseApplicationIfSelectedAsync(
+        ProjectOffer offer,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!offer.ApplicationId.HasValue)
+        {
+            return;
+        }
+
+        var application = await unitOfWork.Repository<ProjectApplication>().GetByIdAsync(
+            offer.ApplicationId.Value,
+            cancellationToken);
+
+        if (application is not null && application.Status == "SELECTED")
+        {
+            application.Status = "SUBMITTED";
+            application.UpdatedAt = now;
+        }
     }
 
     private async Task<SubscriptionPlan> EnsureActiveSubscriptionPlanAsync(

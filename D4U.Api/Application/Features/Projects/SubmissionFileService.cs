@@ -39,6 +39,11 @@ public sealed class SubmissionFileService(
             throw new InvalidOperationException("Submission file extension must be jpg, png, or pdf.");
         }
 
+        if (!await HasExpectedSignatureAsync(file, extension, cancellationToken))
+        {
+            throw new InvalidOperationException("Submission file content does not match its extension.");
+        }
+
         var uploadsRoot = Path.Combine(environment.ContentRootPath, "App_Data", "uploads");
         var relativeStorageKey = Path.Combine("submissions", userId.ToString("N"), $"{Guid.NewGuid():N}.{extension}");
         var absolutePath = Path.Combine(uploadsRoot, relativeStorageKey);
@@ -162,6 +167,29 @@ public sealed class SubmissionFileService(
             "png" => "image/png",
             "pdf" => "application/pdf",
             _ => "application/octet-stream"
+        };
+    }
+
+    private static async Task<bool> HasExpectedSignatureAsync(
+        IFormFile file,
+        string extension,
+        CancellationToken cancellationToken)
+    {
+        var signature = new byte[8];
+        await using var input = file.OpenReadStream();
+        var read = await input.ReadAsync(signature.AsMemory(0, signature.Length), cancellationToken);
+
+        return extension switch
+        {
+            "jpg" => read >= 3 &&
+                signature[0] == 0xFF &&
+                signature[1] == 0xD8 &&
+                signature[2] == 0xFF,
+            "png" => read >= 8 &&
+                signature.AsSpan(0, 8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }),
+            "pdf" => read >= 5 &&
+                signature.AsSpan(0, 5).SequenceEqual(new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D }),
+            _ => false
         };
     }
 }

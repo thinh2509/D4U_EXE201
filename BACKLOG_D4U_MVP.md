@@ -81,7 +81,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 - [x] Student can submit one application per open project.
 - [x] Duplicate applications are blocked by service validation, database uniqueness, and Student UI state.
-- [x] Application captures proposed price, cover letter, and estimated duration.
+- [x] Application captures proposed price and solution note; estimated duration remains optional for compatibility.
 - [x] SME can view applications for own project.
 - [x] SME can select an application and create offer.
 - [x] SME can create private project offer without an application.
@@ -112,6 +112,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] SME payment window expires after 72 hours from Student acceptance.
 - [x] Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
 - [x] Pending payment expiry marks stale payment records safely and releases the accepted offer when appropriate.
+- [x] Expired checkout records move from `PENDING` to `EXPIRED` independently of the 72-hour SME payment window.
 - [x] Background job or hosted service handles offer/payment expiry idempotently.
 - [x] Keep a mock/sandbox payment provider only for local development and automated tests.
 - [x] Frontend SME offer/application screen shows `Thanh toán escrow`.
@@ -134,6 +135,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] System auto-approves Final after 5 business days without SME review and triggers completion/disbursement flow.
 - [x] Store submission type, revision round, description, status, and submitted timestamp.
 - [x] Store submission files with optional watermarked file and original-download permission.
+- [x] Validate submission file signature and clean up unlinked local submission uploads after 24 hours.
 
 ### Review, Revision, and Invalid Files
 
