@@ -709,3 +709,54 @@ Ghi lại tối thiểu:
 | Người test Student | |
 
 Không ghi Client ID, API Key hoặc Checksum Key vào biên bản.
+
+## 7. Bổ Sung Kiểm Tra Workspace Nộp Bài
+
+Áp dụng cho route chung `/projects/{projectId}/execution`. Student và SME mở cùng URL nhưng thấy giao diện theo vai trò của mình. Workspace tự poll backend mỗi 5 giây; nút `Làm mới` vẫn dùng được khi cần kiểm tra ngay.
+
+### 7.1. Student Chọn File Và Xác Nhận Nộp
+
+1. Student mở workspace khi next action là `Nộp Sketch`, `Nộp bản chỉnh sửa` hoặc `Nộp Final`.
+2. Bấm `Chọn file`, chọn nhiều file `.jpg`, `.jpeg`, `.png` hoặc `.pdf`, mỗi file tối đa 20 MB.
+3. Kiểm tra draft list hiển thị tên, định dạng, dung lượng và nút xóa từng file.
+4. Xóa một file khỏi draft list. File bị xóa không được upload.
+5. Bấm `Nộp bài`.
+6. Kiểm tra modal xác nhận hiển thị đúng milestone, mô tả và danh sách file còn lại.
+7. Bấm `Xác nhận nộp`.
+
+Kết quả cần thấy:
+
+- File chỉ được upload sau bước xác nhận.
+- Nếu một file upload lỗi, quá trình dừng và thông báo ghi rõ tên file lỗi.
+- Sau khi thành công, draft list được xóa và Student thấy trạng thái chờ SME duyệt cùng review deadline.
+- File `.zip` hoặc file lớn hơn 20 MB bị chặn trước khi gọi backend.
+
+### 7.2. SME Xử Lý Bản Mới Nhất
+
+1. SME giữ workspace đang mở sau khi Student nộp bài.
+2. Chờ tối đa 5 giây hoặc bấm `Làm mới`.
+3. Tại panel `Bản đang chờ duyệt`, kiểm tra milestone, vòng sửa, mô tả, thời gian nộp, hạn duyệt và file download.
+4. Download file bằng nút trong panel.
+5. Chọn một trong ba action: `Duyệt`, `Yêu cầu chỉnh sửa`, `Báo file lỗi`.
+
+Kết quả cần thấy:
+
+- Panel luôn hiển thị submission `SUBMITTED` hoặc `VALID` mới nhất.
+- Bảng `Lịch sử nộp bài` và `Lịch sử phản hồi` sắp xếp mới nhất trước.
+- Polling không xóa draft file hoặc nội dung mô tả Student đang nhập.
+
+### 7.3. Nhánh Báo File Lỗi Và Upload Lại
+
+1. SME bấm `Báo file lỗi`, chọn `CANNOT_OPEN`, nhập mô tả và hạn upload lại.
+2. Student chờ tối đa 5 giây hoặc bấm `Làm mới`.
+3. Kiểm tra Student thấy next action `Nộp bản chỉnh sửa`, lý do file lỗi và deadline trong `Lịch sử phản hồi`.
+4. Student chọn file mới và xác nhận nộp lại.
+5. SME chờ tối đa 5 giây, kiểm tra panel đang chờ duyệt hiển thị bản mới nhất rồi download và duyệt.
+
+Kết quả backend cần thấy:
+
+- Submission cũ giữ status `INVALID_REPORTED`.
+- Project chuyển sang `REVISION_REQUESTED`.
+- Submission mới có type `REVISION`, giữ cùng milestone Sketch hoặc Final.
+- Báo file lỗi kỹ thuật không tăng `current_revision_round`.
+- `review_actions` giữ action `REPORT_INVALID_FILE` để audit.

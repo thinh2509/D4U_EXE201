@@ -1026,6 +1026,14 @@ Negative:
 
 - Submit Final trước Sketch approved bị chặn.
 
+### 7.3.1. Workspace Tương Tác Student Và SME
+
+- Student chọn nhiều file vào draft local trước khi bấm `Nộp bài`; file chỉ upload sau modal xác nhận.
+- Workspace tự poll mỗi 5 giây và vẫn giữ nút `Làm mới`.
+- SME dùng panel `Bản đang chờ duyệt` để xử lý submission mới nhất thay vì tìm trong lịch sử.
+- Khi SME báo file lỗi, submission cũ giữ `INVALID_REPORTED`, project chuyển `REVISION_REQUESTED`, Student được upload lại cùng milestone và hệ thống không tăng revision round do lỗi kỹ thuật.
+- Xem kịch bản chi tiết trong `D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md`, mục `7. Bổ Sung Kiểm Tra Workspace Nộp Bài`.
+
 ### 7.4. SME Approve Final
 
 API:

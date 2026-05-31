@@ -60,6 +60,24 @@ a {
   margin: 10px 0 14px;
 }
 
+.workspace-draft-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.workspace-draft-item {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
 .muted-text {
   color: var(--muted);
   font-size: 13px;

@@ -28,7 +28,7 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
         var submissions = await LoadSubmissionsAsync(projectId, cancellationToken);
         var reviewActions = await dbContext.ReviewActions
             .Where(value => value.ProjectId == projectId)
-            .OrderBy(value => value.CreatedAt)
+            .OrderByDescending(value => value.CreatedAt)
             .Select(value => new WorkspaceReviewActionResponse(
                 value.Id,
                 value.SubmissionId,
@@ -109,7 +109,7 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
     {
         var submissions = await dbContext.ProjectSubmissions
             .Where(value => value.ProjectId == projectId)
-            .OrderBy(value => value.SubmittedAt)
+            .OrderByDescending(value => value.SubmittedAt)
             .ToListAsync(cancellationToken);
         var submissionIds = submissions.Select(value => value.Id).ToList();
         var files = await (

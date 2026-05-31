@@ -757,7 +757,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         if (project.Status == ProjectStatus.REVISION_REQUESTED)
         {
-            var previousSubmission = await GetLatestRevisionRequestedSubmissionAsync(project.Id, cancellationToken)
+            var previousSubmission = await GetLatestResubmissionRequiredSubmissionAsync(project.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Revision request was not found for this project.");
 
             if (previousSubmission.MilestoneType != milestoneType)
@@ -947,6 +947,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         EnsureSubmissionCanBeReviewed(project, submission);
 
         var now = DateTimeOffset.UtcNow;
+        var previousProjectStatus = project.Status;
+        project.Status = ProjectStatus.REVISION_REQUESTED;
+        project.UpdatedAt = now;
         submission.Status = SubmissionStatus.INVALID_REPORTED;
 
         await unitOfWork.Repository<ReviewAction>().AddAsync(
@@ -965,6 +968,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             },
             cancellationToken);
 
+        await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME reported invalid file.", cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await ToSubmissionResponseAsync(submission, cancellationToken);
@@ -1299,12 +1303,14 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             cancellationToken);
     }
 
-    private async Task<ProjectSubmission?> GetLatestRevisionRequestedSubmissionAsync(
+    private async Task<ProjectSubmission?> GetLatestResubmissionRequiredSubmissionAsync(
         Guid projectId,
         CancellationToken cancellationToken)
     {
         return await unitOfWork.Repository<ProjectSubmission>().Query()
-            .Where(value => value.ProjectId == projectId && value.Status == SubmissionStatus.REVISION_REQUESTED)
+            .Where(value => value.ProjectId == projectId &&
+                (value.Status == SubmissionStatus.REVISION_REQUESTED ||
+                 value.Status == SubmissionStatus.INVALID_REPORTED))
             .OrderByDescending(value => value.SubmittedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
