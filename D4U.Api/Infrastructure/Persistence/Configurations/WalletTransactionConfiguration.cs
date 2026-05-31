@@ -13,6 +13,9 @@ public sealed class WalletTransactionConfiguration : IEntityTypeConfiguration<Wa
         entity.HasKey(transaction => transaction.Id);
         entity.HasIndex(transaction => new { transaction.WalletId, transaction.CreatedAt });
         entity.HasIndex(transaction => new { transaction.ReferenceType, transaction.ReferenceId });
+        entity.HasIndex(transaction => new { transaction.ReferenceType, transaction.ReferenceId, transaction.Type })
+            .IsUnique()
+            .HasFilter("reference_type IS NOT NULL AND reference_id IS NOT NULL");
 
         entity.Property(transaction => transaction.Id).HasColumnName("id");
         entity.Property(transaction => transaction.WalletId).HasColumnName("wallet_id").IsRequired();

@@ -3,9 +3,12 @@ namespace D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
+using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class MoneyMovementService(IUnitOfWork unitOfWork) : IMoneyMovementService
+public sealed class MoneyMovementService(
+    IUnitOfWork unitOfWork,
+    D4UDbContext dbContext) : IMoneyMovementService
 {
     private const decimal MinimumWithdrawalAmount = 50000m;
     private const decimal WithdrawalFeeAmount = 5000m;
@@ -17,6 +20,40 @@ public sealed class MoneyMovementService(IUnitOfWork unitOfWork) : IMoneyMovemen
         Guid projectId,
         Guid? actorUserId,
         CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var response = await ReleaseProjectEscrowCoreAsync(projectId, actorUserId, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return response;
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var projectEscrowIds = unitOfWork.Repository<Escrow>().Query()
+                .Where(escrow => escrow.ProjectId == projectId)
+                .Select(escrow => escrow.Id);
+            var existingDisbursement = await unitOfWork.Repository<Disbursement>().Query()
+                .Where(value => projectEscrowIds.Contains(value.EscrowId))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingDisbursement is null)
+            {
+                throw;
+            }
+
+            return ToDisbursementResponse(existingDisbursement);
+        }
+    }
+
+    private async Task<DisbursementResponse?> ReleaseProjectEscrowCoreAsync(
+        Guid projectId,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
     {
         var project = await unitOfWork.Repository<Project>().GetByIdAsync(projectId, cancellationToken)
             ?? throw new InvalidOperationException("Project was not found.");

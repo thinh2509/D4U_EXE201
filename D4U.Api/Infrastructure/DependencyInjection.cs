@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
+        services.AddHostedService<EscrowReleaseBackgroundService>();
         services.AddScoped<MockPaymentProvider>();
         services.AddHttpClient<PayOsPaymentProvider>((serviceProvider, client) =>
         {

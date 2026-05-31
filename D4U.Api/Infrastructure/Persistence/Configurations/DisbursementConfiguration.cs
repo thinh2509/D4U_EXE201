@@ -11,6 +11,7 @@ public sealed class DisbursementConfiguration : IEntityTypeConfiguration<Disburs
     {
         entity.ToTable("disbursements");
         entity.HasKey(disbursement => disbursement.Id);
+        entity.HasIndex(disbursement => disbursement.EscrowId).IsUnique();
 
         entity.Property(disbursement => disbursement.Id).HasColumnName("id");
         entity.Property(disbursement => disbursement.EscrowId).HasColumnName("escrow_id").IsRequired();

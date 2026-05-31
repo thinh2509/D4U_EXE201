@@ -2,14 +2,11 @@ namespace D4U.Api.Application.Features.Projects;
 
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Files;
-using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class ProjectService(
-    IUnitOfWork unitOfWork,
-    IMoneyMovementService moneyMovementService) : IProjectService
+public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 {
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
@@ -883,11 +880,6 @@ public sealed class ProjectService(
 
         await AddStatusHistoryAsync(project.Id, previousProjectStatus, project.Status, userId, $"{submission.MilestoneType} approved by SME.", cancellationToken);
 
-        if (submission.MilestoneType == SubmissionStage.FINAL)
-        {
-            await moneyMovementService.ReleaseProjectEscrowAsync(project.Id, userId, cancellationToken);
-        }
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await ToSubmissionResponseAsync(submission, cancellationToken);
@@ -1011,7 +1003,6 @@ public sealed class ProjectService(
 
         await AddAdminReviewActionAsync(project, latestSubmission, userId, ReviewActionType.ADMIN_FORCE_COMPLETE, request.Reason, now, cancellationToken);
         await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.COMPLETED, userId, request.Reason ?? "Admin force completed project.", cancellationToken);
-        await moneyMovementService.ReleaseProjectEscrowAsync(project.Id, userId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToProjectResponse(project, category);
