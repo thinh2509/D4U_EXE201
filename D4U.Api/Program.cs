@@ -45,6 +45,8 @@ app.UseAuthentication();
 app.UseMiddleware<AccountStatusMiddleware>();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .AllowAnonymous();
 app.MapControllers();
 
 app.Run();

@@ -1,5 +1,34 @@
 # D4U Completed Feature E2E Test Guide
 
+PayOS live smoke va Cloudflare named tunnel duoc huong dan rieng tai [PAYOS_LIVE_SMOKE_RUNBOOK_VI.md](PAYOS_LIVE_SMOKE_RUNBOOK_VI.md).
+
+## 0. Core Flow Workspace Va Live Payment
+
+Kich ban Done uu tien trong tuan `01/06/2026` den `07/06/2026`:
+
+1. SME dang project; Student apply.
+2. SME tao offer; Student accept.
+3. SME mo `/projects/{projectId}/execution`, chon thanh toan PayOS va thanh toan that.
+4. Return page chi poll `GET /api/v1/payments/{paymentId}`. Client khong duoc tu cap nhat payment success.
+5. Webhook PayOS hop le chuyen payment sang `SUCCESS`, escrow sang `FUNDED`, project sang `IN_PROGRESS`.
+6. Student vao workspace, upload jpg/png/pdf toi da 20 MB qua `POST /api/v1/files/submissions`, sau do nop Sketch.
+7. SME vao workspace, download file va approve Sketch hoac request revision/report invalid file.
+8. Student nop Final; SME approve.
+9. Completion handoff chuyen escrow sang `RELEASE_PENDING`; hosted worker release idempotent sang `RELEASED`.
+10. Vi Student tang dung net amount; chi co mot disbursement va mot `DISBURSEMENT_CREDIT`.
+
+SQL kiem tra bo sung:
+
+```sql
+select id, status, provider, paid_at from payments order by created_at desc limit 5;
+select id, project_id, status, funded_at, released_at from escrows order by created_at desc limit 5;
+select escrow_id, gross_amount, platform_fee_amount, net_amount, status from disbursements order by created_at desc limit 5;
+select user_id, available_balance, locked_balance from wallets order by created_at desc limit 5;
+select type, amount, balance_after, reference_type, reference_id from wallet_transactions order by created_at desc limit 10;
+```
+
+Withdrawal trong tranche nay chi smoke manual: Student tao request; Admin complete hoac fail; balance khong am. Refund split rules thuoc Phase 4B.
+
 Tài liệu này dùng để test thủ công toàn bộ feature D4U đã hoàn thành trên branch `develop`. Nội dung bám theo các mục đã tick `[x]` trong `BACKLOG_D4U_MVP.md`: Phase 1 Foundation, Phase 2 Marketplace, Phase 3A PayOS Escrow Payment, và Phase 3B Project Execution.
 
 Không xem các phần sau là đã hoàn thành: Phase 4 refund/cancellation split rules, Portfolio Builder backend, Ratings, Paid Feature Packages, AI Matching entitlement, notification đầy đủ, automatic bank payout.

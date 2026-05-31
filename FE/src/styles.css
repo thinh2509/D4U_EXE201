@@ -51,6 +51,15 @@ a {
   width: 100%;
 }
 
+.workspace-primary-action,
+.workspace-action-form {
+  margin-top: 16px;
+}
+
+.workspace-upload-list {
+  margin: 10px 0 14px;
+}
+
 .muted-text {
   color: var(--muted);
   font-size: 13px;

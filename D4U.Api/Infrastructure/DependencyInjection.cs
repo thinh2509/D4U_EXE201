@@ -63,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IProjectWorkspaceService, ProjectWorkspaceService>();
+        services.AddScoped<ISubmissionFileService, SubmissionFileService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IMoneyMovementService, MoneyMovementService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
