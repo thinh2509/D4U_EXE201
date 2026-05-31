@@ -25,6 +25,7 @@ const dashboardCards = {
   ],
   SME: [
     ['Tạo dự án', 'Viết brief, dùng AI hỗ trợ và publish khi sẵn sàng.', '/sme/projects/new', <FolderOpenOutlined />],
+    ['Đề nghị & escrow', 'Theo dõi offer đã accept và mở thanh toán PayOS cho từng dự án.', '/sme/offers', <CreditCardOutlined />],
     ['AI Brief', 'Nhận gợi ý brief có thể chỉnh sửa trước khi lưu.', '/sme/ai-brief', <BulbOutlined />],
     ['AI Matching', 'Tìm sinh viên phù hợp khi có gói tính năng đang hoạt động.', '/sme/ai-matching', <TeamOutlined />],
     ['Gói & thanh toán', 'Mua gói tính năng bằng provider payment-in thật.', '/sme/billing', <CreditCardOutlined />]

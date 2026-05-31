@@ -117,7 +117,7 @@ export function SmeProjectDetailPage() {
             <Space direction="vertical" className="full-width">
               <Button block icon={<EditOutlined />} onClick={() => navigate(`/sme/projects/${projectId}/edit`)}>Sửa dự án</Button>
               <Button block icon={<FileSearchOutlined />} onClick={() => navigate(`/sme/projects/${projectId}/applications`)}>Xem ứng tuyển</Button>
-              {canOpenWorkspace ? <Button block type="primary" icon={<FileDoneOutlined />} onClick={() => navigate(`/projects/${projectId}/execution`)}>Workspace</Button> : null}
+              {canOpenWorkspace ? <Button block type="primary" icon={<FileDoneOutlined />} onClick={() => navigate(`/projects/${projectId}/execution`)}>Workspace & escrow</Button> : null}
               <Button block type="primary" icon={<RocketOutlined />} loading={acting} onClick={publish} disabled={project.status !== 'DRAFT'}>Publish</Button>
               <Button block danger icon={<StopOutlined />} loading={acting} onClick={cancel} disabled={!['DRAFT', 'OPEN', 'PRIVATE_INVITED'].includes(project.status)}>Hủy dự án</Button>
               <Button block danger icon={<DeleteOutlined />} loading={acting} onClick={remove}>Xóa</Button>

@@ -155,14 +155,14 @@ export function SmeOffersPage() {
       render: (_, row) => (
         <Space wrap>
           <Button type="primary" ghost onClick={() => window.location.assign(`/projects/${row.projectId}/execution`)}>
-            Workspace
+            Workspace & escrow
           </Button>
           <Button
             disabled={!['ACCEPTED', 'PAYMENT_FAILED'].includes(row.offerStatus) || row.paymentStatus === 'SUCCESS'}
             loading={reopening === row.offerId}
             onClick={() => reopenPayment(row)}
           >
-            Mở thanh toán
+            Thanh toán PayOS
           </Button>
         </Space>
       )

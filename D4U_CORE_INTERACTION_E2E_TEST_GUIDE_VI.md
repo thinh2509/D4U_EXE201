@@ -242,9 +242,9 @@ Kết quả cần thấy:
 2. Mở `<public-origin>/sme/offers`.
 3. Bấm `Làm mới`.
 4. Tại offer vừa được accept, kiểm tra có hai nút:
-   - `Workspace`: mở trang điều phối project.
-   - `Mở thanh toán`: mở checkout PayOS trực tiếp từ danh sách offer.
-5. Bấm `Workspace`.
+   - `Workspace & escrow`: mở trang điều phối project.
+   - `Thanh toán PayOS`: mở checkout PayOS trực tiếp từ danh sách offer.
+5. Bấm `Workspace & escrow`.
 
 Kết quả cần thấy:
 
@@ -255,9 +255,9 @@ Kết quả cần thấy:
 Lưu ý:
 
 - Nút PayOS không nằm tại trang project detail `/sme/projects/{projectId}`.
-- Nếu đang ở project detail, bấm `Workspace` trong card `Thao tác`.
+- Nếu đang ở project detail, bấm `Workspace & escrow` trong card `Thao tác`.
 - Nếu không thấy nút `Workspace`, bấm `Làm mới` và kiểm tra Student đã bấm `Chấp nhận` offer.
-- Nếu muốn bỏ qua workspace, mở `/sme/offers` và bấm `Mở thanh toán`.
+- Nếu muốn bỏ qua workspace, mở `/sme/offers` và bấm `Thanh toán PayOS`.
 
 **Bước 10 - SME tạo checkout PayOS**
 
