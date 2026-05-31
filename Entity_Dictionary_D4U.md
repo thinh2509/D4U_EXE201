@@ -169,7 +169,7 @@ Key attributes:
 - `status`: project workflow status.
 - `budget_amount`, `currency`: commercial terms.
 - `total_deadline_at`, `sketch_deadline_at`, `final_deadline_at`: deadlines.
-- `max_revision_rounds`, `current_revision_round`: revision control.
+- `max_revision_rounds`: legacy compatibility field; not used to block revision requests. `current_revision_round`: auditable revision counter.
 - `is_confidential`, `allow_student_portfolio`: privacy settings.
 - `rating_due_at`, `published_at`, `accepted_at`, `completed_at`, `cancelled_at`: lifecycle timestamps.
 

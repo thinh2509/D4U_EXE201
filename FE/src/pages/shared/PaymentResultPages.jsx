@@ -24,7 +24,7 @@ function PaymentResultLayout({ type }) {
     let stopped = false;
     const poll = async () => {
       try {
-        const current = await paymentApi.getPaymentStatus(paymentId);
+        const current = await paymentApi.getReturnStatus(paymentId);
         if (stopped) return;
         setPayment(current);
         if (current.status === 'SUCCESS') {
@@ -58,10 +58,12 @@ function PaymentResultLayout({ type }) {
             <CloseCircleOutlined className="result-icon danger" />
           )}
           <div>
-            <Title level={2}>{isSuccess ? 'Dang xac nhan thanh toan' : 'Thanh toan da bi huy'}</Title>
+            <Title level={2}>{payment?.status === 'SUCCESS' ? 'Thanh toan thanh cong' : isSuccess ? 'Dang xac nhan thanh toan' : 'Thanh toan da bi huy'}</Title>
             <Paragraph className="muted-text">
               {isSuccess
-                ? 'Trang nay chi doc trang thai backend. Project bat dau sau khi webhook PayOS hop le duoc xu ly.'
+                ? payment?.status === 'SUCCESS'
+                  ? 'PayOS da xac nhan giao dich. Dang chuyen ve project workspace.'
+                  : 'Trang nay chi doc trang thai backend. Project bat dau sau khi webhook PayOS hop le duoc xu ly.'
                 : 'Offer van cho thanh toan neu con hieu luc. SME co the mo lai link PayOS tu workspace.'}
             </Paragraph>
           </div>

@@ -62,7 +62,6 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
             access.Project.Currency,
             access.Project.TotalDeadlineAt,
             access.Project.CurrentRevisionRound,
-            access.Project.MaxRevisionRounds,
             offer is null
                 ? null
                 : new WorkspaceOfferResponse(

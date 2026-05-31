@@ -302,7 +302,7 @@ export function ProjectExecutionPage() {
               <Descriptions.Item label="Nguoi xem">{workspace.viewerRole}</Descriptions.Item>
               <Descriptions.Item label="Ngan sach">{formatCurrency(workspace.budgetAmount, workspace.currency)}</Descriptions.Item>
               <Descriptions.Item label="Deadline">{formatDate(workspace.totalDeadlineAt)}</Descriptions.Item>
-              <Descriptions.Item label="Revision">{workspace.currentRevisionRound}/{workspace.maxRevisionRounds}</Descriptions.Item>
+              <Descriptions.Item label="So lan chinh sua">{workspace.currentRevisionRound}</Descriptions.Item>
               <Descriptions.Item label="Offer">{workspace.offer ? <StatusBadge status={workspace.offer.status} /> : 'Chua co'}</Descriptions.Item>
               <Descriptions.Item label="Payment">{workspace.payment ? <StatusBadge status={workspace.payment.status} /> : 'Chua co'}</Descriptions.Item>
               <Descriptions.Item label="Escrow">{workspace.escrow ? <StatusBadge status={workspace.escrow.status} /> : 'Chua co'}</Descriptions.Item>

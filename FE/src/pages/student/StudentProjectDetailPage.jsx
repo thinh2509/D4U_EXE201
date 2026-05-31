@@ -76,7 +76,6 @@ export function StudentProjectDetailPage() {
             <Descriptions column={{ xs: 1, md: 2 }} bordered>
               <Descriptions.Item label="Trạng thái"><StatusBadge status={project.status} /></Descriptions.Item>
               <Descriptions.Item label="Loại dự án">{project.projectType}</Descriptions.Item>
-              <Descriptions.Item label="Số vòng chỉnh sửa tối đa">{project.maxRevisionRounds}</Descriptions.Item>
               <Descriptions.Item label="Mục đích sử dụng" span={2}>{project.usagePurpose || 'Chưa có'}</Descriptions.Item>
             </Descriptions>
           </Card>

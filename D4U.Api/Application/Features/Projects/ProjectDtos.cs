@@ -13,7 +13,6 @@ public sealed record UpsertProjectDraftRequest(
     DateTimeOffset TotalDeadlineAt,
     DateTimeOffset SketchDeadlineAt,
     DateTimeOffset FinalDeadlineAt,
-    int MaxRevisionRounds,
     bool? IsConfidential,
     bool? AllowStudentPortfolio);
 
@@ -32,7 +31,6 @@ public sealed record ProjectResponse(
     DateTimeOffset TotalDeadlineAt,
     DateTimeOffset SketchDeadlineAt,
     DateTimeOffset FinalDeadlineAt,
-    int MaxRevisionRounds,
     int CurrentRevisionRound,
     bool IsConfidential,
     bool AllowStudentPortfolio,

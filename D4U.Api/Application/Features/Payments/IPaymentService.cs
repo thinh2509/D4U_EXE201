@@ -12,6 +12,10 @@ public interface IPaymentService
         Guid paymentId,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentReturnStatusResponse> GetReturnStatusAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken = default);
+
     Task<EscrowResponse> GetProjectEscrowAsync(
         Guid userId,
         Guid projectId,

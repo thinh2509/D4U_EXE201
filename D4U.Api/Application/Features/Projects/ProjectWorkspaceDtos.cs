@@ -21,7 +21,6 @@ public sealed record ProjectWorkspaceResponse(
     string Currency,
     DateTimeOffset TotalDeadlineAt,
     int CurrentRevisionRound,
-    int MaxRevisionRounds,
     WorkspaceOfferResponse? Offer,
     WorkspacePaymentResponse? Payment,
     WorkspaceEscrowResponse? Escrow,

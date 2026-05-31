@@ -64,7 +64,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 ### Project Creation and Publishing
 
 - [x] SME can create draft project.
-- [x] Project captures title, brief, usage purpose, design category, type, budget, deadlines, revision limit, confidentiality, and portfolio permission.
+- [x] Project captures title, brief, usage purpose, design category, type, budget, deadlines, confidentiality, and portfolio permission.
 - [x] Validate budget is greater than zero.
 - [x] Validate sketch deadline is before or equal to final deadline.
 - [x] Validate final deadline is before or equal to total deadline.
@@ -141,9 +141,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] SME can request revision through `review_actions` with requested changes and due date.
 - [x] Project moves to `REVISION_REQUESTED`.
 - [x] Student can submit revision.
-- [x] Revision round cannot exceed project max revision rounds.
-- [x] When revision limit is reached, SME cannot request another revision.
-- [x] Project can move to `ADMIN_REVIEW` when revision limit blocks normal resolution.
+- [x] Revision round is tracked for audit history without limiting how many revisions SME can request.
 - [x] Admin can force complete or cancel a project in `ADMIN_REVIEW`.
 - [x] SME can report invalid file through `review_actions`.
 - [x] Invalid file review action captures reason, description, status, and reupload due date.

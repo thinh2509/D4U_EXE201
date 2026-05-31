@@ -149,6 +149,24 @@ public sealed class PaymentService(
         return ToEscrowResponse(escrow);
     }
 
+    public async Task<PaymentReturnStatusResponse> GetReturnStatusAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken = default)
+    {
+        var payment = await unitOfWork.Repository<Payment>().GetByIdAsync(paymentId, cancellationToken)
+            ?? throw new InvalidOperationException("Payment was not found.");
+
+        if (!payment.EscrowId.HasValue)
+        {
+            throw new InvalidOperationException("Payment is not linked to escrow.");
+        }
+
+        var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken)
+            ?? throw new InvalidOperationException("Escrow was not found.");
+
+        return new PaymentReturnStatusResponse(payment.Id, escrow.ProjectId, payment.Status);
+    }
+
     public async Task ProcessPayOsWebhookAsync(
         PayOsWebhookRequest request,
         CancellationToken cancellationToken = default)

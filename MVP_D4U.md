@@ -212,7 +212,6 @@ SME creates a project with:
 - Total deadline.
 - Sketch deadline.
 - Final deadline.
-- Max revision rounds.
 - Confidential flag.
 - Student portfolio permission flag.
 - Attachments.
@@ -374,10 +373,7 @@ Revision flow:
 3. Project moves to `REVISION_REQUESTED`.
 4. Student submits a revision.
 5. SME reviews again.
-6. Revision round cannot exceed the project max revision rounds.
-7. When max revision rounds are reached, SME cannot request another revision.
-8. SME must approve Final or escalate the project to `ADMIN_REVIEW`.
-9. Admin can force complete or cancel with partial refund according to the MVP cancellation policy.
+6. Revision round is recorded for audit history without limiting how many revisions SME can request.
 
 Invalid file flow:
 
@@ -389,7 +385,7 @@ Invalid file flow:
 
 Admin review flow:
 
-1. Project enters `ADMIN_REVIEW` only when the normal review flow is blocked, such as revision limit reached.
+1. Project enters `ADMIN_REVIEW` only when an Admin decision is explicitly required by an operational workflow.
 2. Admin reviews project context, submissions, and review actions.
 3. Admin can force complete or cancel.
 4. Admin decision must create an audit log.
@@ -583,7 +579,7 @@ State machine rules:
 - `ACCEPTED` means the Student agreed and SME must pay within 72 hours.
 - `ACTIVE` means escrow is funded and project execution has started; project and escrow statuses remain the authoritative execution state.
 - `PAYMENT_FAILED` means payment failed, cancelled, or expired before funding.
-- `ADMIN_REVIEW` is a controlled MVP resolution path for revision-limit deadlocks, not a dispute workflow.
+- `ADMIN_REVIEW` remains an operational resolution path, not a revision-limit rule or dispute workflow.
 
 ## 5. Main Business Flows
 
@@ -634,9 +630,8 @@ Expected result:
 6. Student submits Final.
 7. SME approves, requests revision, or reports invalid file.
 8. System auto-approves Final after 5 business days without SME review.
-9. If revision limit is reached, project can move to `ADMIN_REVIEW`.
-10. Final is approved.
-11. Project is completed.
+9. Final is approved.
+10. Project is completed.
 
 Expected result:
 
@@ -848,7 +843,7 @@ Detailed attributes and relationships are in `Entity_Dictionary_D4U.md`. DBML fo
 - Revision request as review action.
 - Invalid file report as review action.
 - Auto-approve Sketch/Final after 5 business days without SME review.
-- Admin review resolution after revision limit is reached.
+- Admin review resolution for operational exceptions.
 
 ### Phase 4: Completion and Money Movement
 
@@ -930,7 +925,7 @@ Mitigation:
 Mitigation:
 
 - Auto-approve Sketch and Final after 5 business days without SME review.
-- Move revision-limit deadlocks into `ADMIN_REVIEW`.
+- Keep revision history auditable while allowing SME and Student to iterate freely.
 - Define partial refund policy for mid-project cancellation before implementing execution.
 
 ### 10.5. Scope creep
@@ -1002,7 +997,7 @@ Prompt guardrails:
 - [ ] Student can submit Final.
 - [ ] SME can approve Final.
 - [ ] System auto-approves Final after 5 business days without SME review.
-- [ ] Project can enter `ADMIN_REVIEW` when revision limit blocks normal resolution.
+- [ ] Revision history remains auditable without limiting SME revision requests.
 - [ ] Project becomes `COMPLETED`.
 - [ ] Escrow releases successfully.
 - [ ] Mid-project cancellation uses the defined partial refund policy.

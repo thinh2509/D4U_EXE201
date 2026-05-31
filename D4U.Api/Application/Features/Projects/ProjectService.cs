@@ -235,7 +235,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
                 project.TotalDeadlineAt,
                 project.SketchDeadlineAt,
                 project.FinalDeadlineAt,
-                project.MaxRevisionRounds,
                 project.CurrentRevisionRound,
                 project.IsConfidential,
                 project.AllowStudentPortfolio,
@@ -906,15 +905,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         var now = DateTimeOffset.UtcNow;
         var previousProjectStatus = project.Status;
-
-        if (project.CurrentRevisionRound >= project.MaxRevisionRounds)
-        {
-            project.Status = ProjectStatus.ADMIN_REVIEW;
-            project.UpdatedAt = now;
-            await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.ADMIN_REVIEW, userId, "Revision limit reached.", cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-            return await ToSubmissionResponseAsync(submission, cancellationToken);
-        }
 
         project.CurrentRevisionRound += 1;
         project.Status = ProjectStatus.REVISION_REQUESTED;
@@ -1632,7 +1622,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         project.TotalDeadlineAt = request.TotalDeadlineAt;
         project.SketchDeadlineAt = request.SketchDeadlineAt;
         project.FinalDeadlineAt = request.FinalDeadlineAt;
-        project.MaxRevisionRounds = request.MaxRevisionRounds;
         project.IsConfidential = request.IsConfidential ?? false;
         project.AllowStudentPortfolio = request.AllowStudentPortfolio ?? true;
     }
@@ -1658,7 +1647,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             project.TotalDeadlineAt,
             project.SketchDeadlineAt,
             project.FinalDeadlineAt,
-            project.MaxRevisionRounds,
             project.CurrentRevisionRound,
             project.IsConfidential,
             project.AllowStudentPortfolio,

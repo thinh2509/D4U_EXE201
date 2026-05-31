@@ -15,6 +15,11 @@ public sealed record PaymentResponse(
     string? QrCode,
     DateTimeOffset? ExpiresAt);
 
+public sealed record PaymentReturnStatusResponse(
+    Guid PaymentId,
+    Guid ProjectId,
+    PaymentStatus Status);
+
 public sealed record EscrowResponse(
     Guid Id,
     Guid ProjectId,
