@@ -2,6 +2,8 @@
 
 PayOS live smoke va Cloudflare named tunnel duoc huong dan rieng tai [PAYOS_LIVE_SMOKE_RUNBOOK_VI.md](PAYOS_LIVE_SMOKE_RUNBOOK_VI.md).
 
+Kich ban test core theo tuong tac SME va Student tung buoc nam tai [D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md](D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md).
+
 ## 0. Core Flow Workspace Va Live Payment
 
 Kich ban Done uu tien trong tuan `01/06/2026` den `07/06/2026`:
@@ -189,7 +191,6 @@ Project mẫu:
   "projectType": "OPEN",
   "budgetAmount": 3000000,
   "currency": "VND",
-  "maxRevisionRounds": 2,
   "isConfidential": false,
   "allowStudentPortfolio": true
 }
@@ -577,7 +578,6 @@ Create draft request:
   "totalDeadlineAt": "2026-06-30T00:00:00Z",
   "sketchDeadlineAt": "2026-06-10T00:00:00Z",
   "finalDeadlineAt": "2026-06-20T00:00:00Z",
-  "maxRevisionRounds": 2,
   "isConfidential": false,
   "allowStudentPortfolio": true
 }
@@ -1099,49 +1099,9 @@ Expected:
 - Revision submit dùng `submission_type = REVISION`.
 - Project quay lại `SKETCH_REVIEW` hoặc `FINAL_REVIEW` theo milestone cần revise.
 
-### 7.6. Revision Limit Và Admin Review
+### 7.6. Revision Không Giới Hạn
 
-Điều kiện:
-
-- Project có `maxRevisionRounds = 0` hoặc đã đạt limit.
-
-API:
-
-- SME gọi `POST /api/v1/projects/{projectId}/submissions/{submissionId}/revision-requests`.
-
-Expected:
-
-- Khi vượt/đạt limit, project chuyển `ADMIN_REVIEW`.
-- SME không tạo thêm revision round mới.
-
-Admin force complete:
-
-```json
-{
-  "reason": "Admin resolved after revision limit."
-}
-```
-
-API:
-
-- `POST /api/v1/projects/{projectId}/admin/force-complete`
-
-Expected:
-
-- Chỉ Admin gọi được.
-- Project phải đang `ADMIN_REVIEW`.
-- Project chuyển `COMPLETED`.
-- Tạo review action `ADMIN_FORCE_COMPLETE` và audit log.
-
-Admin cancel:
-
-- `POST /api/v1/projects/{projectId}/admin/cancel`
-
-Expected:
-
-- Project chuyển `CANCELLED`.
-- Có cancellation reason.
-- Tạo review action `ADMIN_CANCEL` và audit log.
+SME có thể yêu cầu chỉnh sửa nhiều lần khi cần. Hệ thống vẫn tăng `revision_round` để audit nhưng không chặn theo số lần chỉnh sửa và không chuyển `ADMIN_REVIEW` do hết lượt.
 
 ### 7.7. SME Report Invalid File
 

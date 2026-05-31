@@ -39,6 +39,16 @@ cloudflared tunnel run d4u-demo
 
 Frontend Nginx da proxy `/api/*` toi API container. Vi vay hostname public frontend cung la hostname webhook API.
 
+### Quick Tunnel Tam Thoi
+
+Neu can smoke ngay khi chua co domain, co the chay Quick Tunnel:
+
+```powershell
+cloudflared tunnel --url http://localhost:3000 --no-autoupdate
+```
+
+Lay URL `https://<random>.trycloudflare.com` trong output va dung URL do cho webhook URL. Khi smoke local tren cung may dang chay browser, giu `PAYMENT_RETURN_URL=http://localhost:3000/payment/success` va `PAYMENT_CANCEL_URL=http://localhost:3000/payment/cancel` de browser quay ve dung origin dang luu session SME. Quick Tunnel khong co uptime guarantee va URL se thay doi sau khi restart; chi dung cho smoke test tam thoi.
+
 ## 3. Cau Hinh `.env`
 
 ```env
