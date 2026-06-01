@@ -871,7 +871,7 @@ Expected:
 - Escrow chuyển `FUNDED`.
 - Offer chuyển `ACTIVE`.
 - Project chuyển `IN_PROGRESS`.
-- Client-side success page không tự đánh dấu payment success nếu chưa có webhook hợp lệ.
+- Client-side success page không tự đánh dấu payment success từ query string. Backend chỉ cập nhật sau webhook hợp lệ hoặc reconcile trusted trực tiếp với PayOS.
 
 Skip nếu chưa có PayOS credentials hoặc public callback URL.
 
@@ -1359,7 +1359,7 @@ Expected failed:
 | SME tạo payment khi offer chưa accepted | Bị chặn |
 | Offer accepted quá 72 giờ chưa paid | Offer `EXPIRED`, pending payment `EXPIRED`, escrow `CANCELLED` |
 | Webhook success đến sau payment `FAILED`/`CANCELLED`/`EXPIRED` | Không start project |
-| Client tự gọi success page payment | Không đổi payment/escrow/project nếu không có webhook |
+| Client tự gọi success page payment | Không đổi payment/escrow/project nếu PayOS chưa xác nhận qua webhook hoặc reconcile trusted |
 | Student submit Sketch khi escrow chưa `FUNDED` | Bị chặn |
 | Student submit Final trước Sketch approved | Bị chặn |
 | SME không owner review submission | Bị chặn |
@@ -1445,7 +1445,8 @@ order by created_at desc;
 ### PayOS Return UX
 
 - Return page chỉ đọc trạng thái backend, poll mỗi 2 giây tối đa 60 giây.
-- Khi timeout, trang hiển thị cảnh báo, nút `Thử lại`, và CTA về workspace hoặc danh sách offer.
+- Khi payment còn `PENDING`, backend reconcile server-to-server với PayOS tối đa mỗi 5 giây; query string client không được dùng làm bằng chứng thanh toán.
+- Khi timeout, trang hiển thị cảnh báo, nút `Kiểm tra lại`, và CTA về workspace hoặc danh sách offer.
 
 ## 11. Known Gaps Và Skip Notes
 

@@ -281,9 +281,10 @@ Kết quả cần thấy:
 
 Kết quả cần thấy:
 
-- Return page hiển thị trạng thái đang xác nhận.
+- Return page hiển thị trạng thái `Đang đối soát với PayOS`, tiến độ, lần kiểm tra gần nhất và hạn checkout.
 - Trang chỉ poll backend; không tự đánh dấu thành công từ query string.
-- Sau khi webhook PayOS tới backend, trang chuyển về workspace.
+- Backend ưu tiên webhook và có thể reconcile trực tiếp với PayOS qua `GET /v2/payment-requests/{orderCode}` khi payment còn `PENDING`.
+- Sau khi webhook hoặc reconcile trusted từ PayOS xác nhận `PAID`, trang chuyển về workspace.
 
 **Bước 12 - Xác nhận project đã bắt đầu**
 
@@ -788,5 +789,5 @@ Kết quả backend cần thấy:
 ### 8.4. Return Page Không Spinner Vô Tận
 
 1. Mở `/payment/success?paymentId=<payment-id>` khi webhook chưa tới.
-2. Sau tối đa 60 giây, kiểm tra spinner đổi thành cảnh báo.
-3. Kiểm tra có nút `Thử lại` và lối tắt về workspace hoặc danh sách offer.
+2. Sau tối đa 60 giây, kiểm tra trạng thái chờ đổi thành cảnh báo.
+3. Kiểm tra có nút `Kiểm tra lại` và lối tắt về workspace hoặc danh sách offer.

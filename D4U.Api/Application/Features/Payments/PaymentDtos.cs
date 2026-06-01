@@ -18,7 +18,9 @@ public sealed record PaymentResponse(
 public sealed record PaymentReturnStatusResponse(
     Guid PaymentId,
     Guid ProjectId,
-    PaymentStatus Status);
+    PaymentStatus Status,
+    DateTimeOffset? ExpiresAt,
+    DateTimeOffset CheckedAt);
 
 public sealed record EscrowResponse(
     Guid Id,

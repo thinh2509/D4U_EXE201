@@ -8,6 +8,10 @@ public interface IPaymentProvider
         PaymentProviderCreateRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentProviderStatusResponse?> GetPaymentStatusAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default);
+
     bool IsValidWebhook(PayOsWebhookRequest request);
 }
 

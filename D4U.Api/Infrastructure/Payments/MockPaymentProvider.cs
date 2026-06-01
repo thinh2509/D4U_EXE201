@@ -36,4 +36,11 @@ public sealed class MockPaymentProvider : IPaymentProvider
     {
         return request.Signature is "" or "mock";
     }
+
+    public Task<PaymentProviderStatusResponse?> GetPaymentStatusAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<PaymentProviderStatusResponse?>(null);
+    }
 }
