@@ -1597,7 +1597,7 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
                             Code = "BASIC",
                             IsActive = true,
-                            MaxActiveOpenProjects = 2,
+                            MaxActiveOpenProjects = 5,
                             MaxProjectBudget = 5000000m,
                             MonthlyPrice = 0m,
                             Name = "Basic",

@@ -158,7 +158,7 @@ MVP subscription plans:
 
 | Plan | Monthly price | Platform fee | Active open projects | Max budget |
 | --- | ---: | ---: | ---: | ---: |
-| BASIC | 0 VND | 10% | 2 | 5,000,000 VND |
+| BASIC | 0 VND | 10% | 5 | 5,000,000 VND |
 | PRO | 199,000 VND | 7% | 10 | 20,000,000 VND |
 | PREMIUM | 499,000 VND | 5% | Unlimited | Unlimited |
 
@@ -975,7 +975,7 @@ Prompt guardrails:
 - [x] SME can create profile.
 - [x] Admin can approve or reject Student verification.
 - [x] Basic, Pro, and Premium plans are seeded.
-- [x] Basic SME cannot publish more than 2 active open projects.
+- [x] Basic SME cannot publish more than 5 active open projects.
 - [x] Basic SME cannot publish a project above 5,000,000 VND.
 - [x] SME can use AI Project Brief Assistant to prefill project draft content.
 - [x] SME can create and publish an open project.

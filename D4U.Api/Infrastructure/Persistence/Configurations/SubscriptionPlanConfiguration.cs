@@ -31,7 +31,7 @@ public sealed class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Sub
                 Name = "Basic",
                 MonthlyPrice = 0m,
                 PlatformFeeRate = 0.10m,
-                MaxActiveOpenProjects = 2,
+                MaxActiveOpenProjects = 5,
                 MaxProjectBudget = 5_000_000m,
                 IsActive = true
             },

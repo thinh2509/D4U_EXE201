@@ -71,7 +71,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] SME can publish open project.
 - [x] Enforce subscription active open project limit on publish.
 - [x] Enforce subscription max budget on publish.
-- [x] Basic plan cannot publish more than 2 active open projects.
+- [x] Basic plan cannot publish more than 5 active open projects.
 - [x] Basic plan cannot publish project over 5,000,000 VND.
 - [x] Create project status history for important transitions.
 - [x] SME can cancel own draft/open/private-invited project.

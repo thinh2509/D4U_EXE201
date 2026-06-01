@@ -594,7 +594,7 @@ Negative:
 - Budget `<= 0` bị chặn.
 - Sketch deadline sau final deadline bị chặn.
 - Final deadline sau total deadline bị chặn.
-- Basic plan không publish quá 2 active open projects.
+- Basic plan không publish quá 5 active open projects.
 - Basic plan không publish project trên `5,000,000 VND`.
 
 SQL:
@@ -1352,7 +1352,7 @@ Expected failed:
 | Project budget `0` hoặc âm | Bị chặn |
 | Sketch deadline sau Final deadline | Bị chặn |
 | Final deadline sau Total deadline | Bị chặn |
-| Basic plan publish project thứ 3 đang `OPEN` | Bị chặn |
+| Basic plan publish project thứ 6 đang `OPEN` | Bị chặn |
 | Basic plan budget trên `5,000,000 VND` | Bị chặn |
 | Student apply trùng project | Bị chặn |
 | Offer `WAITING_ACCEPTANCE` quá 48 giờ | Chuyển `EXPIRED`, project release nếu không còn active offer |
