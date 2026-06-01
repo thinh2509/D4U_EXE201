@@ -64,14 +64,14 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 ### Project Creation and Publishing
 
 - [x] SME can create draft project.
-- [x] Project captures title, brief, usage purpose, design category, type, budget, deadlines, revision limit, confidentiality, and portfolio permission.
+- [x] Project captures title, brief, usage purpose, design category, type, budget, deadlines, confidentiality, and portfolio permission.
 - [x] Validate budget is greater than zero.
 - [x] Validate sketch deadline is before or equal to final deadline.
 - [x] Validate final deadline is before or equal to total deadline.
 - [x] SME can publish open project.
 - [x] Enforce subscription active open project limit on publish.
 - [x] Enforce subscription max budget on publish.
-- [x] Basic plan cannot publish more than 2 active open projects.
+- [x] Basic plan cannot publish more than 5 active open projects.
 - [x] Basic plan cannot publish project over 5,000,000 VND.
 - [x] Create project status history for important transitions.
 - [x] SME can cancel own draft/open/private-invited project.
@@ -81,7 +81,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 - [x] Student can submit one application per open project.
 - [x] Duplicate applications are blocked by service validation, database uniqueness, and Student UI state.
-- [x] Application captures proposed price, cover letter, and estimated duration.
+- [x] Application captures proposed price and solution note; estimated duration remains optional for compatibility.
 - [x] SME can view applications for own project.
 - [x] SME can select an application and create offer.
 - [x] SME can create private project offer without an application.
@@ -112,6 +112,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] SME payment window expires after 72 hours from Student acceptance.
 - [x] Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
 - [x] Pending payment expiry marks stale payment records safely and releases the accepted offer when appropriate.
+- [x] Expired checkout records move from `PENDING` to `EXPIRED` independently of the 72-hour SME payment window.
 - [x] Background job or hosted service handles offer/payment expiry idempotently.
 - [x] Keep a mock/sandbox payment provider only for local development and automated tests.
 - [x] Frontend SME offer/application screen shows `Thanh toán escrow`.
@@ -134,6 +135,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] System auto-approves Final after 5 business days without SME review and triggers completion/disbursement flow.
 - [x] Store submission type, revision round, description, status, and submitted timestamp.
 - [x] Store submission files with optional watermarked file and original-download permission.
+- [x] Validate submission file signature and clean up unlinked local submission uploads after 24 hours.
 
 ### Review, Revision, and Invalid Files
 
@@ -141,9 +143,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] SME can request revision through `review_actions` with requested changes and due date.
 - [x] Project moves to `REVISION_REQUESTED`.
 - [x] Student can submit revision.
-- [x] Revision round cannot exceed project max revision rounds.
-- [x] When revision limit is reached, SME cannot request another revision.
-- [x] Project can move to `ADMIN_REVIEW` when revision limit blocks normal resolution.
+- [x] Revision round is tracked for audit history without limiting how many revisions SME can request.
 - [x] Admin can force complete or cancel a project in `ADMIN_REVIEW`.
 - [x] SME can report invalid file through `review_actions`.
 - [x] Invalid file review action captures reason, description, status, and reupload due date.

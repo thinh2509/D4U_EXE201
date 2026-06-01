@@ -63,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IProjectWorkspaceService, ProjectWorkspaceService>();
+        services.AddScoped<ISubmissionFileService, SubmissionFileService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IMoneyMovementService, MoneyMovementService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
@@ -72,6 +74,7 @@ public static class DependencyInjection
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
         services.AddHostedService<EscrowReleaseBackgroundService>();
+        services.AddHostedService<SubmissionOrphanCleanupBackgroundService>();
         services.AddScoped<MockPaymentProvider>();
         services.AddHttpClient<PayOsPaymentProvider>((serviceProvider, client) =>
         {

@@ -154,15 +154,15 @@ export function SmeOffersPage() {
       title: 'Hành động',
       render: (_, row) => (
         <Space wrap>
-          <Button type="primary" ghost onClick={() => window.location.assign(`/sme/projects/${row.projectId}/applications`)}>
-            Xem ứng tuyển
+          <Button type="primary" ghost onClick={() => window.location.assign(`/projects/${row.projectId}/execution`)}>
+            Workspace & escrow
           </Button>
           <Button
-            disabled={row.offerStatus !== 'ACCEPTED' || row.paymentStatus === 'SUCCESS'}
+            disabled={!['ACCEPTED', 'PAYMENT_FAILED'].includes(row.offerStatus) || row.paymentStatus === 'SUCCESS'}
             loading={reopening === row.offerId}
             onClick={() => reopenPayment(row)}
           >
-            Mở thanh toán
+            Thanh toán PayOS
           </Button>
         </Space>
       )

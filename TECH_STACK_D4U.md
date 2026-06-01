@@ -464,7 +464,7 @@ Rules:
 - `project_submissions` stores the fixed stage `SKETCH` or `FINAL`; no separate milestone table is needed in optimized MVP.
 - Revision requests and invalid file reports are stored as `review_actions`.
 - Sketch and Final are auto-approved after 5 business days without SME review.
-- When revision limit is reached, project can move to `ADMIN_REVIEW` for Admin force complete/cancel.
+- Revision requests are not capped. Store revision rounds for audit history; keep `ADMIN_REVIEW` for explicit operational exceptions.
 
 ### 5.9. Wallets
 

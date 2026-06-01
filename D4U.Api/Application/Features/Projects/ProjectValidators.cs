@@ -40,8 +40,6 @@ public sealed class UpsertProjectDraftRequestValidator : AbstractValidator<Upser
             .LessThanOrEqualTo(request => request.TotalDeadlineAt)
             .WithMessage("Final deadline must be before or equal to total deadline.");
 
-        RuleFor(request => request.MaxRevisionRounds)
-            .InclusiveBetween(0, 10);
     }
 }
 

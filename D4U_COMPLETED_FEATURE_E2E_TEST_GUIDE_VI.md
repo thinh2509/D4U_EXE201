@@ -1,5 +1,36 @@
 # D4U Completed Feature E2E Test Guide
 
+PayOS live smoke va Cloudflare named tunnel duoc huong dan rieng tai [PAYOS_LIVE_SMOKE_RUNBOOK_VI.md](PAYOS_LIVE_SMOKE_RUNBOOK_VI.md).
+
+Kich ban test core theo tuong tac SME va Student tung buoc nam tai [D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md](D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md).
+
+## 0. Core Flow Workspace Va Live Payment
+
+Kich ban Done uu tien trong tuan `01/06/2026` den `07/06/2026`:
+
+1. SME dang project; Student apply.
+2. SME tao offer; Student accept.
+3. SME mo `/projects/{projectId}/execution`, chon thanh toan PayOS va thanh toan that.
+4. Return page chi poll `GET /api/v1/payments/{paymentId}`. Client khong duoc tu cap nhat payment success.
+5. Webhook PayOS hop le chuyen payment sang `SUCCESS`, escrow sang `FUNDED`, project sang `IN_PROGRESS`.
+6. Student vao workspace, upload jpg/png/pdf toi da 20 MB qua `POST /api/v1/files/submissions`, sau do nop Sketch.
+7. SME vao workspace, download file va approve Sketch hoac request revision/report invalid file.
+8. Student nop Final; SME approve.
+9. Completion handoff chuyen escrow sang `RELEASE_PENDING`; hosted worker release idempotent sang `RELEASED`.
+10. Vi Student tang dung net amount; chi co mot disbursement va mot `DISBURSEMENT_CREDIT`.
+
+SQL kiem tra bo sung:
+
+```sql
+select id, status, provider, paid_at from payments order by created_at desc limit 5;
+select id, project_id, status, funded_at, released_at from escrows order by created_at desc limit 5;
+select escrow_id, gross_amount, platform_fee_amount, net_amount, status from disbursements order by created_at desc limit 5;
+select user_id, available_balance, locked_balance from wallets order by created_at desc limit 5;
+select type, amount, balance_after, reference_type, reference_id from wallet_transactions order by created_at desc limit 10;
+```
+
+Withdrawal trong tranche nay chi smoke manual: Student tao request; Admin complete hoac fail; balance khong am. Refund split rules thuoc Phase 4B.
+
 Tài liệu này dùng để test thủ công toàn bộ feature D4U đã hoàn thành trên branch `develop`. Nội dung bám theo các mục đã tick `[x]` trong `BACKLOG_D4U_MVP.md`: Phase 1 Foundation, Phase 2 Marketplace, Phase 3A PayOS Escrow Payment, và Phase 3B Project Execution.
 
 Không xem các phần sau là đã hoàn thành: Phase 4 refund/cancellation split rules, Portfolio Builder backend, Ratings, Paid Feature Packages, AI Matching entitlement, notification đầy đủ, automatic bank payout.
@@ -160,7 +191,6 @@ Project mẫu:
   "projectType": "OPEN",
   "budgetAmount": 3000000,
   "currency": "VND",
-  "maxRevisionRounds": 2,
   "isConfidential": false,
   "allowStudentPortfolio": true
 }
@@ -548,7 +578,6 @@ Create draft request:
   "totalDeadlineAt": "2026-06-30T00:00:00Z",
   "sketchDeadlineAt": "2026-06-10T00:00:00Z",
   "finalDeadlineAt": "2026-06-20T00:00:00Z",
-  "maxRevisionRounds": 2,
   "isConfidential": false,
   "allowStudentPortfolio": true
 }
@@ -565,7 +594,7 @@ Negative:
 - Budget `<= 0` bị chặn.
 - Sketch deadline sau final deadline bị chặn.
 - Final deadline sau total deadline bị chặn.
-- Basic plan không publish quá 2 active open projects.
+- Basic plan không publish quá 5 active open projects.
 - Basic plan không publish project trên `5,000,000 VND`.
 
 SQL:
@@ -615,14 +644,16 @@ Apply request:
 ```json
 {
   "proposedPrice": 2800000,
-  "coverLetter": "Em đã từng làm nhận diện thương hiệu cho quán cà phê và có thể gửi sketch đầu trong 5 ngày.",
-  "estimatedDurationDays": 14
+  "coverLetter": "Em đề xuất hướng nhận diện tối giản, ưu tiên khả năng ứng dụng trên bao bì và social media.",
+  "estimatedDurationDays": null
 }
 ```
 
 Expected:
 
 - Student verified mới apply được.
+- Quick apply lấy `proposedPrice` bằng budget project và dùng ghi chú xác nhận mặc định.
+- Chỉ khi Student bấm `Đề xuất khác`, UI mới yêu cầu giá mới và giải pháp đề xuất.
 - Application status `SUBMITTED`.
 - Open project response có `hasApplied = true`.
 
@@ -658,6 +689,9 @@ Create offer request:
 Expected:
 
 - Offer tạo status `WAITING_ACCEPTANCE`.
+- Với offer gắn application, backend luôn lấy `offeredAmount` từ `project_applications.proposed_price`, kể cả client gửi amount khác.
+- SME chỉ xác nhận gửi offer; server tự đặt hạn phản hồi sau 48 giờ.
+- Private offer không có application vẫn nhận `offeredAmount` từ request.
 - Project chuyển/giữ trạng thái offer selected theo flow backend.
 - Student thấy offer ở `/student/offers`.
 
@@ -837,7 +871,7 @@ Expected:
 - Escrow chuyển `FUNDED`.
 - Offer chuyển `ACTIVE`.
 - Project chuyển `IN_PROGRESS`.
-- Client-side success page không tự đánh dấu payment success nếu chưa có webhook hợp lệ.
+- Client-side success page không tự đánh dấu payment success từ query string. Backend chỉ cập nhật sau webhook hợp lệ hoặc reconcile trusted trực tiếp với PayOS.
 
 Skip nếu chưa có PayOS credentials hoặc public callback URL.
 
@@ -900,7 +934,7 @@ Expected:
 
 ## 7. Project Execution
 
-Lưu ý: frontend hiện có shell route cho execution/submissions, nhưng các thao tác Phase 3B chính nên test qua Swagger/API.
+Lưu ý: frontend đã có project workspace cho Student và SME; Swagger/API vẫn hữu ích để kiểm tra dữ liệu và các nhánh lỗi.
 
 ### 7.1. Student Submit Sketch
 
@@ -997,6 +1031,14 @@ Negative:
 
 - Submit Final trước Sketch approved bị chặn.
 
+### 7.3.1. Workspace Tương Tác Student Và SME
+
+- Student chọn nhiều file vào draft local trước khi bấm `Nộp bài`; file chỉ upload sau modal xác nhận.
+- Workspace tự poll mỗi 5 giây và vẫn giữ nút `Làm mới`.
+- SME dùng panel `Bản đang chờ duyệt` để xử lý submission mới nhất thay vì tìm trong lịch sử.
+- Khi SME báo file lỗi, submission cũ giữ `INVALID_REPORTED`, project chuyển `REVISION_REQUESTED`, Student được upload lại cùng milestone và hệ thống không tăng revision round do lỗi kỹ thuật.
+- Xem kịch bản chi tiết trong `D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md`, mục `7. Bổ Sung Kiểm Tra Workspace Nộp Bài`.
+
 ### 7.4. SME Approve Final
 
 API:
@@ -1070,49 +1112,9 @@ Expected:
 - Revision submit dùng `submission_type = REVISION`.
 - Project quay lại `SKETCH_REVIEW` hoặc `FINAL_REVIEW` theo milestone cần revise.
 
-### 7.6. Revision Limit Và Admin Review
+### 7.6. Revision Không Giới Hạn
 
-Điều kiện:
-
-- Project có `maxRevisionRounds = 0` hoặc đã đạt limit.
-
-API:
-
-- SME gọi `POST /api/v1/projects/{projectId}/submissions/{submissionId}/revision-requests`.
-
-Expected:
-
-- Khi vượt/đạt limit, project chuyển `ADMIN_REVIEW`.
-- SME không tạo thêm revision round mới.
-
-Admin force complete:
-
-```json
-{
-  "reason": "Admin resolved after revision limit."
-}
-```
-
-API:
-
-- `POST /api/v1/projects/{projectId}/admin/force-complete`
-
-Expected:
-
-- Chỉ Admin gọi được.
-- Project phải đang `ADMIN_REVIEW`.
-- Project chuyển `COMPLETED`.
-- Tạo review action `ADMIN_FORCE_COMPLETE` và audit log.
-
-Admin cancel:
-
-- `POST /api/v1/projects/{projectId}/admin/cancel`
-
-Expected:
-
-- Project chuyển `CANCELLED`.
-- Có cancellation reason.
-- Tạo review action `ADMIN_CANCEL` và audit log.
+SME có thể yêu cầu chỉnh sửa nhiều lần khi cần. Hệ thống vẫn tăng `revision_round` để audit nhưng không chặn theo số lần chỉnh sửa và không chuyển `ADMIN_REVIEW` do hết lượt.
 
 ### 7.7. SME Report Invalid File
 
@@ -1350,14 +1352,14 @@ Expected failed:
 | Project budget `0` hoặc âm | Bị chặn |
 | Sketch deadline sau Final deadline | Bị chặn |
 | Final deadline sau Total deadline | Bị chặn |
-| Basic plan publish project thứ 3 đang `OPEN` | Bị chặn |
+| Basic plan publish project thứ 6 đang `OPEN` | Bị chặn |
 | Basic plan budget trên `5,000,000 VND` | Bị chặn |
 | Student apply trùng project | Bị chặn |
 | Offer `WAITING_ACCEPTANCE` quá 48 giờ | Chuyển `EXPIRED`, project release nếu không còn active offer |
 | SME tạo payment khi offer chưa accepted | Bị chặn |
 | Offer accepted quá 72 giờ chưa paid | Offer `EXPIRED`, pending payment `EXPIRED`, escrow `CANCELLED` |
 | Webhook success đến sau payment `FAILED`/`CANCELLED`/`EXPIRED` | Không start project |
-| Client tự gọi success page payment | Không đổi payment/escrow/project nếu không có webhook |
+| Client tự gọi success page payment | Không đổi payment/escrow/project nếu PayOS chưa xác nhận qua webhook hoặc reconcile trusted |
 | Student submit Sketch khi escrow chưa `FUNDED` | Bị chặn |
 | Student submit Final trước Sketch approved | Bị chặn |
 | SME không owner review submission | Bị chặn |
@@ -1419,11 +1421,38 @@ from review_actions
 order by created_at desc;
 ```
 
+## 11.1. Core Stabilization Regression
+
+### Offer Và Application Expiry
+
+- Offer `WAITING_ACCEPTANCE` hết hạn phải chuyển `EXPIRED`.
+- Application liên kết phải trở về `SUBMITTED`, không giữ trạng thái `SELECTED`.
+- Nếu không còn offer active, project trở về `OPEN` hoặc `PRIVATE_INVITED`.
+
+### Checkout Payment Expiry
+
+- Payment `PENDING` có checkout quá hạn phải chuyển `EXPIRED` độc lập với cửa sổ thanh toán offer 72 giờ.
+- Offer chuyển `PAYMENT_FAILED`; SME được tạo checkout mới nếu `payment_due_at` vẫn còn hạn.
+- Nếu checkout cũ hết hạn nhưng checkout retry mới vẫn còn hạn, offer phải giữ `PENDING_PAYMENT`.
+- Khi cửa sổ 72 giờ hết hạn, offer chuyển `EXPIRED`, escrow pending chuyển `CANCELLED`.
+
+### Submission Upload Hardening
+
+- Chỉ nhận `.jpg`, `.png`, `.pdf`, tối đa 20 MB mỗi file.
+- File giả đuôi bị backend từ chối nếu signature nội dung không khớp extension.
+- File local upload thành công nhưng chưa gắn submission được worker dọn sau 24 giờ.
+
+### PayOS Return UX
+
+- Return page chỉ đọc trạng thái backend, poll mỗi 2 giây tối đa 60 giây.
+- Khi payment còn `PENDING`, backend reconcile server-to-server với PayOS tối đa mỗi 5 giây; query string client không được dùng làm bằng chứng thanh toán.
+- Khi timeout, trang hiển thị cảnh báo, nút `Kiểm tra lại`, và CTA về workspace hoặc danh sách offer.
+
 ## 11. Known Gaps Và Skip Notes
 
 - PayOS payment success thật cần credentials thật và webhook callback hợp lệ; nếu không có, dùng `PAYMENT_PROVIDER=Mock` để smoke success/failure webhook local.
 - SMTP thật cần provider hợp lệ; nếu không có, account email OTP không nhận được trong inbox.
 - Google login cần Google OAuth client ID và frontend rebuild.
-- Frontend Phase 3B execution hiện chủ yếu là shell route; test submission/review/admin execution qua Swagger/API.
+- Frontend Phase 3B execution đã có workspace Student/SME; Admin review nâng cao vẫn có thể test qua Swagger/API.
 - Phase 4 refund/cancellation split rules chưa hoàn thành: không kỳ vọng các tỷ lệ refund 100/0, 60/40, 20/80, 70/30 trong guide này.
 - Portfolio, Ratings, Paid Packages, AI Matching, notification đầy đủ chưa thuộc completed feature set trong guide này.

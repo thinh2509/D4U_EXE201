@@ -102,7 +102,7 @@ An Admin operates the platform. Admins can review Student verification, manage c
 ### 4.1. Open Project
 
 1. SME creates a draft project.
-2. SME enters brief, category, budget, deadlines, revision limit, attachments, and privacy options.
+2. SME enters brief, category, budget, deadlines, attachments, and privacy options.
 3. System validates subscription limits.
 4. SME publishes the project.
 5. Student submits an application.
@@ -139,7 +139,7 @@ An Admin operates the platform. Admins can review Student verification, manage c
 ### 4.5. Revision
 
 1. SME creates revision request for a submission.
-2. Revision round must not exceed project max revision rounds.
+2. Revision round is stored for audit history without limiting how many revisions SME can request.
 3. Student submits revised files before due date.
 4. SME reviews again.
 5. Unresolved cases can become disputes.
@@ -215,7 +215,7 @@ An Admin operates the platform. Admins can review Student verification, manage c
 
 ### 5.8. Project Management
 
-- SME can create project with title, brief, purpose, category, type, budget, deadlines, and revision limit.
+- SME can create project with title, brief, purpose, category, type, budget, and deadlines.
 - System validates budget and deadlines.
 - SME can set confidentiality and Student portfolio permission.
 - Project supports attachments.
@@ -354,7 +354,7 @@ An Admin operates the platform. Admins can review Student verification, manage c
 - BR-009: Project starts only when escrow is funded and Student accepts offer.
 - BR-010: Student submits only to assigned project.
 - BR-011: Final should follow approved Sketch.
-- BR-012: Revision round cannot exceed max revision rounds.
+- BR-012: Revision round is auditable and does not cap SME revision requests.
 - BR-013: Final original file is not downloadable before valid release.
 - BR-014: Provider transaction id is unique per provider.
 - BR-015: Wallet balance cannot be negative.

@@ -30,6 +30,16 @@ public sealed class PaymentsController(IPaymentService paymentService) : Control
         return Ok(response);
     }
 
+    [HttpGet("payments/{paymentId:guid}/return-status")]
+    [AllowAnonymous]
+    public async Task<ActionResult<PaymentReturnStatusResponse>> GetReturnStatus(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        var response = await paymentService.GetReturnStatusAsync(paymentId, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpGet("projects/{projectId:guid}/escrow")]
     [Authorize]
     public async Task<ActionResult<EscrowResponse>> GetProjectEscrow(

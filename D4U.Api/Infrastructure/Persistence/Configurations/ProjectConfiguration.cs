@@ -25,7 +25,7 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         entity.Property(project => project.Brief).HasColumnName("brief").IsRequired();
         entity.Property(project => project.UsagePurpose).HasColumnName("usage_purpose");
         entity.Property(project => project.ProjectType).HasColumnName("project_type").HasConversion<string>().HasMaxLength(30).IsRequired();
-        entity.Property(project => project.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(40).HasDefaultValue(ProjectStatus.DRAFT).IsRequired();
+        entity.Property(project => project.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(40).HasDefaultValue(ProjectStatus.DRAFT).IsRequired().IsConcurrencyToken();
         entity.Property(project => project.BudgetAmount).HasColumnName("budget_amount").HasPrecision(12, 2).IsRequired();
         entity.Property(project => project.Currency).HasColumnName("currency").HasMaxLength(3).HasDefaultValue("VND").IsFixedLength().IsRequired();
         entity.Property(project => project.TotalDeadlineAt).HasColumnName("total_deadline_at").IsRequired();

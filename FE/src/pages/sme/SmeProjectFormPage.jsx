@@ -21,7 +21,6 @@ function toPayload(values) {
     totalDeadlineAt: normalizeDateInput(values.totalDeadlineAt),
     sketchDeadlineAt: normalizeDateInput(values.sketchDeadlineAt),
     finalDeadlineAt: normalizeDateInput(values.finalDeadlineAt),
-    maxRevisionRounds: Number(values.maxRevisionRounds),
     isConfidential: false,
     allowStudentPortfolio: true
   };
@@ -211,9 +210,6 @@ export function SmeProjectFormPage({ mode }) {
             </div>
             <Form.Item name="totalDeadlineAt" label="Deadline tổng" rules={[{ required: true }]}>
               <Input size="large" type="datetime-local" />
-            </Form.Item>
-            <Form.Item name="maxRevisionRounds" label="Số vòng chỉnh sửa tối đa" rules={[{ required: true, message: 'Vui lòng nhập số vòng chỉnh sửa.' }]}>
-              <InputNumber className="full-width" size="large" min={0} max={10} />
             </Form.Item>
             <Space wrap>
               <Button type="primary" size="large" htmlType="submit" loading={saving}>{mode === 'edit' ? 'Cập nhật' : 'Tạo draft'}</Button>

@@ -235,7 +235,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
                 project.TotalDeadlineAt,
                 project.SketchDeadlineAt,
                 project.FinalDeadlineAt,
-                project.MaxRevisionRounds,
                 project.CurrentRevisionRound,
                 project.IsConfidential,
                 project.AllowStudentPortfolio,
@@ -254,10 +253,19 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
     {
         var user = await RequireUserAsync(userId, cancellationToken);
         var project = await RequireProjectAsync(projectId, cancellationToken);
+        StudentProfile? studentProfile = null;
+
+        if (user.Role == UserRole.STUDENT)
+        {
+            studentProfile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+                profile => profile.UserId == userId,
+                cancellationToken);
+        }
 
         if (project.Status != ProjectStatus.OPEN)
         {
             var isOwnerSme = false;
+            var isRelatedStudent = false;
 
             if (user.Role == UserRole.SME)
             {
@@ -268,7 +276,18 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
                 isOwnerSme = smeProfile?.Id == project.SmeProfileId;
             }
 
-            if (!isOwnerSme && user.Role != UserRole.ADMIN)
+            if (studentProfile is not null)
+            {
+                isRelatedStudent =
+                    await unitOfWork.Repository<ProjectApplication>().AnyAsync(
+                        value => value.ProjectId == projectId && value.StudentProfileId == studentProfile.Id,
+                        cancellationToken) ||
+                    await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+                        value => value.ProjectId == projectId && value.StudentProfileId == studentProfile.Id,
+                        cancellationToken);
+            }
+
+            if (!isOwnerSme && !isRelatedStudent && user.Role != UserRole.ADMIN)
             {
                 throw new UnauthorizedAccessException("This project is not available.");
             }
@@ -279,10 +298,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         if (user.Role == UserRole.STUDENT)
         {
-            var studentProfile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
-                profile => profile.UserId == userId,
-                cancellationToken);
-
             if (studentProfile is not null)
             {
                 application = await unitOfWork.Repository<ProjectApplication>().FirstOrDefaultAsync(
@@ -620,7 +635,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             StudentProfileId = studentProfile.Id,
             ApplicationId = request.ApplicationId,
             Status = OfferStatus.WAITING_ACCEPTANCE,
-            OfferedAmount = request.OfferedAmount,
+            OfferedAmount = application?.ProposedPrice ?? request.OfferedAmount,
             ExpiresAt = now.AddHours(48),
             CreatedAt = now
         };
@@ -668,6 +683,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         if (offer.ExpiresAt.HasValue && offer.ExpiresAt.Value <= now)
         {
             OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
+            await ReleaseApplicationIfSelectedAsync(offer, now, cancellationToken);
             await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, userId, "Offer acceptance window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Offer acceptance window has expired.");
@@ -758,7 +774,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         if (project.Status == ProjectStatus.REVISION_REQUESTED)
         {
-            var previousSubmission = await GetLatestRevisionRequestedSubmissionAsync(project.Id, cancellationToken)
+            var previousSubmission = await GetLatestResubmissionRequiredSubmissionAsync(project.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Revision request was not found for this project.");
 
             if (previousSubmission.MilestoneType != milestoneType)
@@ -907,15 +923,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         var now = DateTimeOffset.UtcNow;
         var previousProjectStatus = project.Status;
 
-        if (project.CurrentRevisionRound >= project.MaxRevisionRounds)
-        {
-            project.Status = ProjectStatus.ADMIN_REVIEW;
-            project.UpdatedAt = now;
-            await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.ADMIN_REVIEW, userId, "Revision limit reached.", cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-            return await ToSubmissionResponseAsync(submission, cancellationToken);
-        }
-
         project.CurrentRevisionRound += 1;
         project.Status = ProjectStatus.REVISION_REQUESTED;
         project.UpdatedAt = now;
@@ -957,6 +964,9 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         EnsureSubmissionCanBeReviewed(project, submission);
 
         var now = DateTimeOffset.UtcNow;
+        var previousProjectStatus = project.Status;
+        project.Status = ProjectStatus.REVISION_REQUESTED;
+        project.UpdatedAt = now;
         submission.Status = SubmissionStatus.INVALID_REPORTED;
 
         await unitOfWork.Repository<ReviewAction>().AddAsync(
@@ -975,6 +985,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             },
             cancellationToken);
 
+        await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME reported invalid file.", cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await ToSubmissionResponseAsync(submission, cancellationToken);
@@ -1185,6 +1196,27 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         await AddStatusHistoryAsync(project.Id, previousStatus, project.Status, actorUserId, reason, cancellationToken);
     }
 
+    private async Task ReleaseApplicationIfSelectedAsync(
+        ProjectOffer offer,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!offer.ApplicationId.HasValue)
+        {
+            return;
+        }
+
+        var application = await unitOfWork.Repository<ProjectApplication>().GetByIdAsync(
+            offer.ApplicationId.Value,
+            cancellationToken);
+
+        if (application is not null && application.Status == "SELECTED")
+        {
+            application.Status = "SUBMITTED";
+            application.UpdatedAt = now;
+        }
+    }
+
     private async Task EnsureFundedEscrowAsync(
         Guid projectId,
         Guid studentProfileId,
@@ -1274,7 +1306,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             throw new InvalidOperationException("Deleted files cannot be submitted.");
         }
 
-        if (file.OwnerUserId.HasValue && file.OwnerUserId.Value != userId)
+        if (file.OwnerUserId != userId)
         {
             throw new UnauthorizedAccessException("Submission file belongs to another user.");
         }
@@ -1309,12 +1341,14 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             cancellationToken);
     }
 
-    private async Task<ProjectSubmission?> GetLatestRevisionRequestedSubmissionAsync(
+    private async Task<ProjectSubmission?> GetLatestResubmissionRequiredSubmissionAsync(
         Guid projectId,
         CancellationToken cancellationToken)
     {
         return await unitOfWork.Repository<ProjectSubmission>().Query()
-            .Where(value => value.ProjectId == projectId && value.Status == SubmissionStatus.REVISION_REQUESTED)
+            .Where(value => value.ProjectId == projectId &&
+                (value.Status == SubmissionStatus.REVISION_REQUESTED ||
+                 value.Status == SubmissionStatus.INVALID_REPORTED))
             .OrderByDescending(value => value.SubmittedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -1632,7 +1666,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         project.TotalDeadlineAt = request.TotalDeadlineAt;
         project.SketchDeadlineAt = request.SketchDeadlineAt;
         project.FinalDeadlineAt = request.FinalDeadlineAt;
-        project.MaxRevisionRounds = request.MaxRevisionRounds;
         project.IsConfidential = request.IsConfidential ?? false;
         project.AllowStudentPortfolio = request.AllowStudentPortfolio ?? true;
     }
@@ -1658,7 +1691,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
             project.TotalDeadlineAt,
             project.SketchDeadlineAt,
             project.FinalDeadlineAt,
-            project.MaxRevisionRounds,
             project.CurrentRevisionRound,
             project.IsConfidential,
             project.AllowStudentPortfolio,

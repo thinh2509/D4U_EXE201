@@ -1,5 +1,5 @@
 import { SolutionOutlined } from '@ant-design/icons';
-import { App, Alert, Button, Card, Form, InputNumber, Modal, Space, Table } from 'antd';
+import { App, Alert, Button, Card, Descriptions, Modal, Space, Table } from 'antd';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
@@ -34,20 +34,20 @@ export function SmeProjectApplicationsPage() {
     loadRows();
   }, [projectId]);
 
-  const createOffer = async (values) => {
+  const createOffer = async () => {
     setOffering(true);
     try {
       await projectApi.createOffer(projectId, {
         studentProfileId: selected.studentProfileId,
         applicationId: selected.id,
-        offeredAmount: Number(values.offeredAmount),
-        expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : null
+        offeredAmount: selected.proposedPrice,
+        expiresAt: null
       });
-      message.success('Đã tạo offer. Vui lòng chờ sinh viên chấp nhận trước khi thanh toán escrow.');
+      message.success('Đã gửi offer. Student có 48 giờ để chấp nhận hoặc từ chối.');
       setSelected(null);
       await loadRows();
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Không thể tạo offer.'));
+      message.error(getApiErrorMessage(requestError, 'Không thể gửi offer.'));
     } finally {
       setOffering(false);
     }
@@ -65,14 +65,13 @@ export function SmeProjectApplicationsPage() {
       )
     },
     { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: (value) => formatCurrency(value) },
-    { title: 'Thời gian', dataIndex: 'estimatedDurationDays', render: (value) => value ? `${value} ngày` : 'Chưa có' },
     { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
     { title: 'Ngày gửi', dataIndex: 'submittedAt', render: formatDate },
     {
       title: 'Hành động',
       render: (_, row) => (
         <Button type="primary" ghost disabled={row.status !== 'SUBMITTED'} onClick={() => setSelected(row)}>
-          {row.status === 'SUBMITTED' ? 'Tạo offer' : 'Đã xử lý'}
+          {row.status === 'SUBMITTED' ? 'Chọn và gửi offer' : 'Đã xử lý'}
         </Button>
       )
     }
@@ -85,7 +84,7 @@ export function SmeProjectApplicationsPage() {
       <PageHeader
         icon={<SolutionOutlined />}
         title="Ứng tuyển"
-        description="Xem ứng tuyển, chọn sinh viên phù hợp và tạo offer. Sinh viên cần chấp nhận trước khi SME thanh toán escrow qua PayOS."
+        description="Xem đề xuất, chọn Student phù hợp và gửi offer. Giá offer lấy từ application đã chọn."
         extra={<Button onClick={loadRows}>Làm mới</Button>}
       />
       <Card className="table-card">
@@ -94,31 +93,29 @@ export function SmeProjectApplicationsPage() {
           loading={loading}
           columns={columns}
           dataSource={rows}
-          scroll={{ x: 920 }}
+          scroll={{ x: 820 }}
           expandable={{ expandedRowRender: (row) => <p className="expanded-copy">{row.coverLetter}</p> }}
           pagination={{ pageSize: 8 }}
           locale={{ emptyText: 'Chưa có ứng tuyển nào.' }}
         />
       </Card>
-      <Modal title="Tạo offer" open={Boolean(selected)} footer={null} onCancel={() => setSelected(null)}>
-        <Form layout="vertical" onFinish={createOffer} requiredMark={false}>
-          <Alert
-            type="info"
-            showIcon
-            className="form-alert"
-            message="Sau khi tạo offer, sinh viên sẽ thấy offer để chấp nhận hoặc từ chối. Link PayOS chỉ được tạo sau khi sinh viên chấp nhận."
-          />
-          <Form.Item name="offeredAmount" label="Số tiền offer" rules={[{ required: true }]}>
-            <InputNumber className="full-width" size="large" min={1} addonAfter="VND" />
-          </Form.Item>
-          <Form.Item name="expiresAt" label="Hạn phản hồi">
-            <input className="native-input" type="datetime-local" />
-          </Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={offering}>Tạo offer</Button>
-            <Button onClick={() => setSelected(null)}>Đóng</Button>
-          </Space>
-        </Form>
+      <Modal title="Xác nhận gửi offer" open={Boolean(selected)} footer={null} onCancel={() => setSelected(null)}>
+        <Alert
+          type="info"
+          showIcon
+          className="form-alert"
+          message="Student có 48 giờ để chấp nhận hoặc từ chối. Sau khi Student chấp nhận, SME mới thanh toán escrow qua PayOS."
+        />
+        <Descriptions column={1} bordered size="small">
+          <Descriptions.Item label="Student">{selected?.studentFullName}</Descriptions.Item>
+          <Descriptions.Item label="Giá offer">{formatCurrency(selected?.proposedPrice)}</Descriptions.Item>
+          <Descriptions.Item label="Giải pháp hoặc xác nhận">{selected?.coverLetter}</Descriptions.Item>
+          <Descriptions.Item label="Hạn phản hồi">48 giờ kể từ khi gửi offer</Descriptions.Item>
+        </Descriptions>
+        <Space className="workspace-primary-action">
+          <Button type="primary" loading={offering} onClick={createOffer}>Gửi offer</Button>
+          <Button onClick={() => setSelected(null)}>Hủy</Button>
+        </Space>
       </Modal>
     </>
   );

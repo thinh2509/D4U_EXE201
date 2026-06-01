@@ -87,6 +87,40 @@ public sealed class PayOsPaymentProvider(
         return PayOsSignature.IsValidWebhook(request, options.ChecksumKey);
     }
 
+    public async Task<PaymentProviderStatusResponse?> GetPaymentStatusAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default)
+    {
+        var options = paymentOptions.Value.PayOS;
+        EnsureConfigured(options);
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/v2/payment-requests/{orderCode}");
+        httpRequest.Headers.Add("x-client-id", options.ClientId);
+        httpRequest.Headers.Add("x-api-key", options.ApiKey);
+
+        using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
+        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"PayOS status lookup failed: {raw}");
+        }
+
+        var parsed = JsonSerializer.Deserialize<PayOsGetPaymentResponse>(raw, JsonOptions)
+            ?? throw new InvalidOperationException("PayOS status lookup returned an invalid response.");
+
+        if (!string.Equals(parsed.Code, "00", StringComparison.OrdinalIgnoreCase) || parsed.Data is null)
+        {
+            throw new InvalidOperationException($"PayOS status lookup failed: {parsed.Desc}");
+        }
+
+        return new PaymentProviderStatusResponse(
+            parsed.Data.Status,
+            parsed.Data.Amount,
+            parsed.Data.Id,
+            raw);
+    }
+
     private static void EnsureConfigured(PayOsOptions options)
     {
         if (string.IsNullOrWhiteSpace(options.ClientId) ||
@@ -130,5 +164,20 @@ public sealed class PayOsCreatePaymentData
     public string? QrCode { get; set; }
     public string? PaymentLinkId { get; set; }
     public string? Status { get; set; }
+}
+
+public sealed class PayOsGetPaymentResponse
+{
+    public string Code { get; set; } = string.Empty;
+    public string Desc { get; set; } = string.Empty;
+    public PayOsGetPaymentData? Data { get; set; }
+}
+
+public sealed class PayOsGetPaymentData
+{
+    public string? Id { get; set; }
+    public long OrderCode { get; set; }
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = string.Empty;
 }
 

@@ -1,6 +1,6 @@
 # D4U Frontend
 
-Frontend React cho D4U MVP, dùng cho Phase 1 và Phase 2.
+Frontend React cho D4U MVP.
 
 ## Tech Stack
 
@@ -38,10 +38,12 @@ Frontend gọi backend qua proxy:
 /api -> http://localhost:8080
 ```
 
-## UX/UI Prompt
+## Tài Liệu Test
 
-Prompt thiết kế UX/UI Phase 1 và Phase 2 nằm tại:
+Hướng dẫn test E2E và PayOS live smoke:
 
 ```text
-FE/UX_UI_PROMPT_PHASE1_PHASE2_VI.md
+../D4U_COMPLETED_FEATURE_E2E_TEST_GUIDE_VI.md
+../D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md
+../PAYOS_LIVE_SMOKE_RUNBOOK_VI.md
 ```

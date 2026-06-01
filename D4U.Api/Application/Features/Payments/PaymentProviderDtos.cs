@@ -17,6 +17,12 @@ public sealed record PaymentProviderCreateResponse(
     string? QrCode,
     string RawResponseJson);
 
+public sealed record PaymentProviderStatusResponse(
+    string Status,
+    decimal Amount,
+    string? ProviderTransactionId,
+    string RawResponseJson);
+
 public sealed class PayOsWebhookRequest
 {
     public string Code { get; set; } = string.Empty;

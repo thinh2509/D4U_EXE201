@@ -1,6 +1,7 @@
 namespace D4U.Api.Infrastructure.Http;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
@@ -17,6 +18,10 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         catch (InvalidOperationException exception)
         {
             await WriteProblemAsync(context, StatusCodes.Status400BadRequest, "Bad Request", exception.Message);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await WriteProblemAsync(context, StatusCodes.Status409Conflict, "Conflict", "The project changed while the request was being processed. Refresh and try again.");
         }
         catch (Exception exception)
         {

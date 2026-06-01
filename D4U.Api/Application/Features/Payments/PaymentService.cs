@@ -11,11 +11,13 @@ using Microsoft.Extensions.Options;
 public sealed class PaymentService(
     IUnitOfWork unitOfWork,
     IPaymentProvider paymentProvider,
-    IOptions<PaymentOptions> paymentOptions) : IPaymentService
+    IOptions<PaymentOptions> paymentOptions,
+    ILogger<PaymentService> logger) : IPaymentService
 {
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
     private static readonly TimeSpan PaymentLifetime = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan ProviderReconciliationInterval = TimeSpan.FromSeconds(5);
 
     public async Task<PaymentResponse> CreateOfferPaymentAsync(
         Guid userId,
@@ -49,6 +51,7 @@ public sealed class PaymentService(
         if (offer.PaymentDueAt.HasValue && offer.PaymentDueAt.Value <= now)
         {
             OfferStateMachine.TransitionTo(offer, OfferStatus.EXPIRED, now);
+            await ReleaseApplicationIfSelectedAsync(offer, now, cancellationToken);
             await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, "Offer payment window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             throw new InvalidOperationException("Offer payment window has expired.");
@@ -149,6 +152,31 @@ public sealed class PaymentService(
         return ToEscrowResponse(escrow);
     }
 
+    public async Task<PaymentReturnStatusResponse> GetReturnStatusAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken = default)
+    {
+        var payment = await unitOfWork.Repository<Payment>().GetByIdAsync(paymentId, cancellationToken)
+            ?? throw new InvalidOperationException("Payment was not found.");
+
+        if (!payment.EscrowId.HasValue)
+        {
+            throw new InvalidOperationException("Payment is not linked to escrow.");
+        }
+
+        var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken)
+            ?? throw new InvalidOperationException("Escrow was not found.");
+
+        await ReconcilePendingPaymentAsync(payment, cancellationToken);
+
+        return new PaymentReturnStatusResponse(
+            payment.Id,
+            escrow.ProjectId,
+            payment.Status,
+            payment.ExpiresAt,
+            DateTimeOffset.UtcNow);
+    }
+
     public async Task ProcessPayOsWebhookAsync(
         PayOsWebhookRequest request,
         CancellationToken cancellationToken = default)
@@ -213,14 +241,120 @@ public sealed class PaymentService(
             return;
         }
 
-        if (payment.EscrowId is null)
+        var providerTransactionId = string.IsNullOrWhiteSpace(request.Data.PaymentLinkId)
+            ? request.Data.Reference
+            : request.Data.PaymentLinkId;
+        await MarkPaymentSucceededAsync(payment, request.Data.Amount, providerTransactionId, cancellationToken);
+    }
+
+    private async Task ReconcilePendingPaymentAsync(
+        Payment payment,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (payment.Status != PaymentStatus.PENDING ||
+            !payment.ProviderOrderCode.HasValue ||
+            payment.UpdatedAt > now.Subtract(ProviderReconciliationInterval))
+        {
+            return;
+        }
+
+        PaymentProviderStatusResponse? providerStatus;
+        try
+        {
+            providerStatus = await paymentProvider.GetPaymentStatusAsync(
+                payment.ProviderOrderCode.Value,
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Could not reconcile payment {PaymentId} with provider {Provider}.",
+                payment.Id,
+                payment.Provider);
+            return;
+        }
+
+        payment.UpdatedAt = now;
+
+        if (providerStatus is null)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        if (string.Equals(providerStatus.Status, "PAID", StringComparison.OrdinalIgnoreCase))
+        {
+            await MarkPaymentSucceededAsync(
+                payment,
+                providerStatus.Amount,
+                providerStatus.ProviderTransactionId,
+                cancellationToken);
+            return;
+        }
+
+        if (string.Equals(providerStatus.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+        {
+            payment.Status = PaymentStatus.CANCELLED;
+            await MarkOfferPaymentFailedAsync(payment, now, cancellationToken);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task MarkOfferPaymentFailedAsync(
+        Payment payment,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!payment.EscrowId.HasValue)
+        {
+            return;
+        }
+
+        var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken);
+        if (escrow is null)
+        {
+            return;
+        }
+
+        var offer = await unitOfWork.Repository<ProjectOffer>().FirstOrDefaultAsync(
+            value => value.ProjectId == escrow.ProjectId &&
+                value.StudentProfileId == escrow.StudentProfileId &&
+                value.Status == OfferStatus.PENDING_PAYMENT,
+            cancellationToken);
+
+        if (offer is not null)
+        {
+            OfferStateMachine.TransitionTo(offer, OfferStatus.PAYMENT_FAILED, now);
+        }
+    }
+
+    private async Task MarkPaymentSucceededAsync(
+        Payment payment,
+        decimal paidAmount,
+        string? providerTransactionId,
+        CancellationToken cancellationToken)
+    {
+        if (payment.Status == PaymentStatus.SUCCESS)
+        {
+            return;
+        }
+
+        if (payment.Status is PaymentStatus.FAILED or PaymentStatus.CANCELLED or PaymentStatus.EXPIRED)
+        {
+            throw new InvalidOperationException("Inactive payment cannot start a project.");
+        }
+
+        if (!payment.EscrowId.HasValue)
         {
             throw new InvalidOperationException("Payment is not linked to escrow.");
         }
 
-        if (decimal.Truncate(request.Data.Amount) != decimal.Truncate(payment.Amount))
+        if (decimal.Truncate(paidAmount) != decimal.Truncate(payment.Amount))
         {
-            throw new InvalidOperationException("PayOS webhook amount does not match payment amount.");
+            throw new InvalidOperationException("PayOS payment amount does not match payment amount.");
         }
 
         var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken)
@@ -228,40 +362,44 @@ public sealed class PaymentService(
         var offer = await unitOfWork.Repository<ProjectOffer>().FirstOrDefaultAsync(
             value => value.ProjectId == escrow.ProjectId &&
                 value.StudentProfileId == escrow.StudentProfileId &&
-                value.Status == OfferStatus.PENDING_PAYMENT,
+                (value.Status == OfferStatus.PENDING_PAYMENT || value.Status == OfferStatus.ACTIVE),
             cancellationToken) ?? throw new InvalidOperationException("Accepted offer was not found for this payment.");
         var project = await RequireProjectAsync(escrow.ProjectId, cancellationToken);
 
         var now = DateTimeOffset.UtcNow;
         payment.Status = PaymentStatus.SUCCESS;
-        payment.ProviderTransactionId = string.IsNullOrWhiteSpace(request.Data.PaymentLinkId)
-            ? request.Data.Reference
-            : request.Data.PaymentLinkId;
+        payment.ProviderTransactionId = providerTransactionId;
         payment.PaidAt = now;
         payment.UpdatedAt = now;
 
         escrow.Status = EscrowStatus.FUNDED;
-        escrow.FundedAt = now;
+        escrow.FundedAt ??= now;
         escrow.UpdatedAt = now;
 
-        OfferStateMachine.TransitionTo(offer, OfferStatus.ACTIVE, now);
+        if (offer.Status == OfferStatus.PENDING_PAYMENT)
+        {
+            OfferStateMachine.TransitionTo(offer, OfferStatus.ACTIVE, now);
+        }
 
-        var previousStatus = project.Status;
-        project.Status = ProjectStatus.IN_PROGRESS;
-        project.UpdatedAt = now;
+        if (project.Status != ProjectStatus.IN_PROGRESS)
+        {
+            var previousStatus = project.Status;
+            project.Status = ProjectStatus.IN_PROGRESS;
+            project.UpdatedAt = now;
 
-        await unitOfWork.Repository<AuditLog>().AddAsync(
-            new AuditLog
-            {
-                Id = Guid.NewGuid(),
-                Action = "PROJECT_STATUS_CHANGED",
-                EntityType = nameof(Project),
-                EntityId = project.Id,
-                BeforeJson = $$"""{"status":"{{previousStatus}}"}""",
-                AfterJson = $$"""{"status":"{{ProjectStatus.IN_PROGRESS}}","reason":"Escrow payment succeeded and project started."}""",
-                CreatedAt = now
-            },
-            cancellationToken);
+            await unitOfWork.Repository<AuditLog>().AddAsync(
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    Action = "PROJECT_STATUS_CHANGED",
+                    EntityType = nameof(Project),
+                    EntityId = project.Id,
+                    BeforeJson = $$"""{"status":"{{previousStatus}}"}""",
+                    AfterJson = $$"""{"status":"{{ProjectStatus.IN_PROGRESS}}","reason":"Escrow payment succeeded and project started."}""",
+                    CreatedAt = now
+                },
+                cancellationToken);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
@@ -391,6 +529,27 @@ public sealed class PaymentService(
                 CreatedAt = now
             },
             cancellationToken);
+    }
+
+    private async Task ReleaseApplicationIfSelectedAsync(
+        ProjectOffer offer,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!offer.ApplicationId.HasValue)
+        {
+            return;
+        }
+
+        var application = await unitOfWork.Repository<ProjectApplication>().GetByIdAsync(
+            offer.ApplicationId.Value,
+            cancellationToken);
+
+        if (application is not null && application.Status == "SELECTED")
+        {
+            application.Status = "SUBMITTED";
+            application.UpdatedAt = now;
+        }
     }
 
     private async Task<SubscriptionPlan> EnsureActiveSubscriptionPlanAsync(

@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 [ApiController]
 [Route("api/v1/projects")]
 [Authorize]
-public sealed class ProjectsController(IProjectService projectService) : ControllerBase
+public sealed class ProjectsController(
+    IProjectService projectService,
+    IProjectWorkspaceService projectWorkspaceService) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ProjectResponse>>> ListOpen(CancellationToken cancellationToken)
@@ -32,6 +34,28 @@ public sealed class ProjectsController(IProjectService projectService) : Control
         CancellationToken cancellationToken)
     {
         var response = await projectService.GetProjectAsync(GetRequiredUserId(), projectId, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("{projectId:guid}/workspace")]
+    public async Task<ActionResult<ProjectWorkspaceResponse>> GetWorkspace(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectWorkspaceService.GetAsync(GetRequiredUserId(), projectId, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("{projectId:guid}/submissions")]
+    public async Task<ActionResult<IReadOnlyList<WorkspaceSubmissionResponse>>> ListSubmissions(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectWorkspaceService.ListSubmissionsAsync(
+            GetRequiredUserId(),
+            projectId,
+            cancellationToken);
+
         return Ok(response);
     }
 
