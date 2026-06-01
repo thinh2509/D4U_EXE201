@@ -1,405 +1,276 @@
-import { Button, Typography, Row, Col, Card, Space, Layout } from 'antd';
-import { 
-  ArrowRightOutlined, 
-  UploadOutlined, 
-  TeamOutlined, 
+import {
+  ArrowRightOutlined,
+  BankOutlined,
   CheckCircleOutlined,
-  StarFilled,
-  BgColorsOutlined,
-  NotificationOutlined,
-  FileImageOutlined,
-  MobileOutlined,
-  TwitterOutlined,
-  FacebookFilled,
-  InstagramOutlined,
-  LinkedinFilled
+  FileDoneOutlined,
+  MailOutlined,
+  MenuOutlined,
+  SafetyCertificateOutlined,
+  SearchOutlined,
+  SolutionOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
+import { Button, Drawer } from 'antd';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.jsx';
-import { roleHome } from '../../components/RouteGuards.jsx';
 import { D4ULogo } from '../../components/D4ULogo.jsx';
+import { roleHome } from '../../components/RouteGuards.jsx';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 
-const { Title, Paragraph, Text } = Typography;
-const { Header, Content, Footer } = Layout;
-
-const POPULAR_SERVICES = [
-  {
-    icon: BgColorsOutlined,
-    title: 'Logo Design',
-    description: 'Thiết kế logo chuyên nghiệp, độc đáo cho thương hiệu của bạn',
-    gradient: 'linear-gradient(to bottom right, #02577A, #02A9F7)'
-  },
-  {
-    icon: NotificationOutlined,
-    title: 'Social Media Design',
-    description: 'Thiết kế content hấp dẫn cho các nền tảng mạng xã hội',
-    gradient: 'linear-gradient(to bottom right, #02A9F7, #0284C7)'
-  },
-  {
-    icon: FileImageOutlined,
-    title: 'Poster Design',
-    description: 'Poster, flyer và banner ấn tượng cho sự kiện của bạn',
-    gradient: 'linear-gradient(to bottom right, #0EA5E9, #02A9F7)'
-  },
-  {
-    icon: MobileOutlined,
-    title: 'UI/UX Design',
-    description: 'Thiết kế giao diện app và website thân thiện người dùng',
-    gradient: 'linear-gradient(to bottom right, #02577A, #0891B2)'
-  }
+const PROOF_ITEMS = [
+  { icon: SafetyCertificateOutlined, title: 'Student xác thực', copy: 'Hồ sơ sinh viên được kiểm tra trước khi tham gia dự án.' },
+  { icon: WalletOutlined, title: 'Escrow PayOS', copy: 'Doanh nghiệp thanh toán escrow trước khi dự án bắt đầu.' },
+  { icon: FileDoneOutlined, title: 'Sketch & Final rõ ràng', copy: 'Hai mốc duyệt bài giúp phản hồi và bàn giao minh bạch.' },
 ];
 
-const HOW_IT_WORKS_STEPS = [
+const ROLE_ITEMS = [
   {
-    step: 1,
-    icon: UploadOutlined,
-    title: 'Đăng dự án thiết kế',
-    description: 'Mô tả chi tiết dự án và ngân sách của bạn'
+    icon: BankOutlined,
+    eyebrow: 'Dành cho doanh nghiệp',
+    title: 'Tìm đúng tài năng cho từng brief',
+    copy: 'Đăng yêu cầu thiết kế, xem proposal, gửi offer và theo dõi tiến độ trong một workspace thống nhất.',
+    action: 'Đăng dự án thiết kế',
+    points: ['Tạo brief và deadline rõ ràng', 'Chọn proposal phù hợp', 'Thanh toán escrow qua PayOS', 'Duyệt Sketch và Final'],
   },
   {
-    step: 2,
-    icon: TeamOutlined,
-    title: 'Designer gửi proposal',
-    description: 'Nhận đề xuất từ designer phù hợp'
+    icon: SolutionOutlined,
+    eyebrow: 'Dành cho sinh viên',
+    title: 'Biến kỹ năng thành dự án thực tế',
+    copy: 'Tìm cơ hội phù hợp, gửi giải pháp, làm việc theo milestone và nhận thu nhập qua ví D4U.',
+    action: 'Tìm dự án phù hợp',
+    points: ['Khám phá dự án đang mở', 'Ứng tuyển hoặc đề xuất giá', 'Nộp Sketch và Final', 'Nhận tiền sau khi hoàn thành'],
+  },
+];
+
+const PROCESS_ITEMS = [
+  ['01', 'SME đăng dự án', 'Brief, ngân sách và deadline được công bố rõ ràng.'],
+  ['02', 'Student gửi proposal', 'Sinh viên xác nhận điều khoản hoặc đề xuất giải pháp khác.'],
+  ['03', 'Hai bên xác nhận offer', 'SME chọn proposal và Student quyết định nhận dự án.'],
+  ['04', 'SME thanh toán escrow', 'PayOS xác nhận giao dịch trước khi bắt đầu thực hiện.'],
+  ['05', 'Student nộp Sketch & Final', 'Bài nộp và phản hồi được lưu theo từng milestone.'],
+  ['06', 'Hoàn thành và nhận tiền', 'Escrow được release vào ví Student sau khi Final được duyệt.'],
+];
+
+const TRUST_ITEMS = [
+  {
+    icon: SafetyCertificateOutlined,
+    title: 'Verification trước khi hợp tác',
+    copy: 'Student hoàn thiện hồ sơ xác thực EDU hoặc tài liệu trước khi gửi ứng tuyển.',
   },
   {
-    step: 3,
+    icon: WalletOutlined,
+    title: 'Escrow tạo sự an tâm',
+    copy: 'Project chỉ chuyển sang thực hiện sau khi backend xác nhận escrow đã được thanh toán.',
+  },
+  {
     icon: CheckCircleOutlined,
-    title: 'Chọn designer & nhận sản phẩm',
-    description: 'Làm việc trực tiếp và nhận thiết kế hoàn chỉnh'
-  }
+    title: 'Review theo milestone',
+    copy: 'Sketch, revision và Final có trạng thái, deadline review và lịch sử phản hồi rõ ràng.',
+  },
 ];
 
-const FEATURED_DESIGNERS = [
-  {
-    name: 'Nguyễn Minh Anh',
-    specialty: 'UI/UX Designer',
-    rating: 4.9,
-    reviews: 127,
-    avatar: 'https://images.unsplash.com/photo-1675388545634-83d816322c83?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBhc2lhbiUyMGRlc2lnbmVyJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzcyOTAyNjYxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-  },
-  {
-    name: 'Trần Văn Hùng',
-    specialty: 'Graphic Designer',
-    rating: 4.8,
-    reviews: 98,
-    avatar: 'https://images.unsplash.com/photo-1761522002071-67755dc6c820?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWxlJTIwZGVzaWduZXIlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzI5MDI2NjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  },
-  {
-    name: 'Lê Thu Hà',
-    specialty: 'Brand Designer',
-    rating: 5.0,
-    reviews: 156,
-    avatar: 'https://images.unsplash.com/photo-1764737740462-2a310c7b2c39?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGRlc2lnbmVyJTIwY3JlYXRpdmUlMjB3b3Jrc3BhY2V8ZW58MXx8fHwxNzcyOTAyNjYyfDA&ixlib=rb-4.1.0&q=80&w=1080',
-  },
-  {
-    name: 'Phạm Đức Minh',
-    specialty: 'Illustrator',
-    rating: 4.7,
-    reviews: 83,
-    avatar: 'https://images.unsplash.com/photo-1758519289361-2615778e0e5d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMGhhcHB5JTIwY2xpZW50fGVufDF8fHx8MTc3MjkwMjY2NHww&ixlib=rb-4.1.0&q=80&w=1080',
-  }
+const NAV_ITEMS = [
+  ['Hai vai trò', '#roles'],
+  ['Quy trình', '#process'],
+  ['Tin cậy', '#trust'],
 ];
+
+const CONTACT_EMAIL = 'contact@d4u.vn';
 
 export function LandingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const destination = user ? roleHome(user.role) : '/register';
 
-  const handleCTA = () => {
-    if (user) {
-      navigate(roleHome(user.role));
-    } else {
-      navigate('/register');
-    }
-  };
+  const goToDestination = () => navigate(destination);
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   return (
-    <Layout style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', fontFamily: '"Inter", sans-serif' }}>
-      {/* Navigation */}
-      <Header style={{ 
-        backgroundColor: 'rgba(255, 255, 255, 0.8)', 
-        backdropFilter: 'blur(16px)',
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        padding: '0 48px', 
-        borderBottom: '1px solid #E2E8F0', 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 50,
-        height: '80px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-          <D4ULogo />
-          <Space size="large" style={{ display: 'none', '@media (min-width: 768px)': { display: 'flex' } }}>
-            <Link to="/" style={{ color: '#1E293B', fontWeight: 500, fontSize: '15px' }}>Trang chủ</Link>
-            <Link to="#" style={{ color: '#64748B', fontWeight: 500, fontSize: '15px' }}>Tìm Designer</Link>
-            <Link to="#" style={{ color: '#64748B', fontWeight: 500, fontSize: '15px' }}>Dự án</Link>
-            <Link to="#" style={{ color: '#64748B', fontWeight: 500, fontSize: '15px' }}>Về chúng tôi</Link>
-          </Space>
+    <div className="landing-page">
+      <header className="landing-header">
+        <div className="landing-header-inner">
+          <Link className="landing-brand" to="/" aria-label="D4U trang chủ">
+            <D4ULogo />
+          </Link>
+          <nav className="landing-nav" aria-label="Điều hướng homepage">
+            {NAV_ITEMS.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
+          </nav>
+          <div className="landing-header-actions">
+            {user ? (
+              <Button type="primary" onClick={goToDestination}>Vào dashboard</Button>
+            ) : (
+              <>
+                <Button onClick={() => navigate('/login')}>Đăng nhập</Button>
+                <Button type="primary" onClick={() => navigate('/register')}>Bắt đầu</Button>
+              </>
+            )}
+          </div>
+          <Button
+            className="landing-mobile-menu"
+            aria-label="Mở menu"
+            icon={<MenuOutlined />}
+            onClick={() => setMobileNavOpen(true)}
+          />
         </div>
-        <Space size="middle">
+      </header>
+
+      <Drawer
+        className="landing-mobile-drawer"
+        title={<D4ULogo />}
+        placement="right"
+        width={288}
+        open={mobileNavOpen}
+        onClose={closeMobileNav}
+      >
+        <nav className="landing-mobile-nav" aria-label="Điều hướng homepage mobile">
+          {NAV_ITEMS.map(([label, href]) => <a key={href} href={href} onClick={closeMobileNav}>{label}</a>)}
           {user ? (
-            <Button type="primary" onClick={() => navigate(roleHome(user.role))} style={{ height: '44px', borderRadius: '12px', padding: '0 24px', fontWeight: 600, background: 'linear-gradient(to right, #02577A, #02A9F7)', border: 'none' }}>
-              Đi tới Dashboard
-            </Button>
+            <Button type="primary" block onClick={goToDestination}>Vào dashboard</Button>
           ) : (
             <>
-              <Button onClick={() => navigate('/login')} style={{ height: '44px', borderRadius: '12px', padding: '0 24px', fontWeight: 600, color: '#02A9F7', borderColor: '#02A9F7' }}>
-                Đăng nhập
-              </Button>
-              <Button type="primary" onClick={() => navigate('/register')} style={{ height: '44px', borderRadius: '12px', padding: '0 24px', fontWeight: 600, background: 'linear-gradient(to right, #02577A, #02A9F7)', border: 'none', boxShadow: '0 4px 14px 0 rgba(2, 169, 247, 0.39)' }}>
-                Đăng dự án
-              </Button>
+              <Button block onClick={() => navigate('/login')}>Đăng nhập</Button>
+              <Button type="primary" block onClick={() => navigate('/register')}>Bắt đầu</Button>
             </>
           )}
-        </Space>
-      </Header>
-      
-      <Content>
-        {/* Hero Section */}
-        <section style={{ backgroundColor: '#FFFFFF', padding: '96px 48px 128px' }}>
-          <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-            <Row gutter={[64, 64]} align="middle">
-              <Col xs={24} lg={12}>
-                <Title style={{ fontSize: '72px', fontWeight: 800, color: '#1E293B', lineHeight: 1.2, margin: '0 0 32px 0', letterSpacing: '-0.02em' }}>
-                  <div style={{ display: 'block', marginBottom: '8px' }}>Thuê Designer</div>
-                  <div style={{ display: 'block', marginBottom: '8px' }}>
-                    <span style={{ 
-                      background: 'linear-gradient(to right, #02577A, #0284C7, #02A9F7)', 
-                      WebkitBackgroundClip: 'text', 
-                      color: 'transparent' 
-                    }}>Tài Năng</span>
-                  </div>
-                  <div style={{ display: 'block' }}>Cho Dự Án Của Bạn</div>
-                </Title>
-                <Paragraph style={{ fontSize: '20px', color: '#64748B', marginBottom: '40px', lineHeight: 1.6, maxWidth: '560px' }}>
-                  Kết nối với sinh viên thiết kế sáng tạo từ các trường đại học hàng đầu. 
-                  Chất lượng cao, giá cả hợp lý, quy trình đơn giản.
-                </Paragraph>
-                <Space size="middle">
-                  <Button type="primary" onClick={handleCTA} style={{ height: '56px', borderRadius: '12px', padding: '0 32px', fontSize: '16px', fontWeight: 600, background: 'linear-gradient(to right, #02577A, #02A9F7)', border: 'none', boxShadow: '0 10px 25px -5px rgba(2, 169, 247, 0.4)' }}>
-                    Đăng dự án ngay <ArrowRightOutlined style={{ marginLeft: '8px' }} />
-                  </Button>
-                  <Button onClick={handleCTA} style={{ height: '56px', borderRadius: '12px', padding: '0 32px', fontSize: '16px', fontWeight: 600, color: '#1E293B', borderColor: '#CBD5E1' }}>
-                    Tìm Designer
-                  </Button>
-                </Space>
-              </Col>
-              <Col xs={24} lg={12}>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'relative', zIndex: 2 }}>
-                    <img src="/brand/hero-laptops.png" alt="D4U Dashboards" style={{ width: '100%', height: 'auto', maxHeight: '550px', objectFit: 'contain', display: 'block' }} />
-                  </div>
-                  <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '200px', height: '200px', background: 'linear-gradient(to bottom right, #02577A, #02A9F7)', borderRadius: '50%', opacity: 0.15, filter: 'blur(40px)', zIndex: 1 }} />
+        </nav>
+      </Drawer>
+
+      <main>
+        <section className="landing-hero">
+          <div className="landing-container landing-hero-inner">
+            <p className="landing-eyebrow">Marketplace thiết kế cho thế hệ mới</p>
+            <h1>D4U - Design For You</h1>
+            <p className="landing-hero-copy">
+              Nơi doanh nghiệp gặp sinh viên thiết kế tài năng, cùng làm việc qua offer,
+              escrow PayOS và milestone rõ ràng.
+            </p>
+            <div className="landing-hero-actions">
+              <Button type="primary" size="large" onClick={goToDestination}>
+                Đăng dự án thiết kế <ArrowRightOutlined />
+              </Button>
+              <Button size="large" onClick={goToDestination}>
+                Tìm dự án phù hợp <SearchOutlined />
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-proof" aria-label="Điểm tin cậy D4U">
+          <div className="landing-container landing-proof-grid">
+            {PROOF_ITEMS.map(({ icon: Icon, title, copy }) => (
+              <article className="landing-proof-item" key={title}>
+                <Icon />
+                <div>
+                  <h2>{title}</h2>
+                  <p>{copy}</p>
                 </div>
-              </Col>
-            </Row>
+              </article>
+            ))}
           </div>
         </section>
 
-        {/* Popular Services Section */}
-        <section style={{ backgroundColor: '#F8FAFC', padding: '128px 48px' }}>
-          <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-              <Title level={2} style={{ fontSize: '48px', fontWeight: 800, color: '#1E293B', marginBottom: '24px' }}>
-                Dịch vụ <span style={{ background: 'linear-gradient(to right, #02577A, #02A9F7)', WebkitBackgroundClip: 'text', color: 'transparent' }}>phổ biến</span>
-              </Title>
-              <Paragraph style={{ fontSize: '20px', color: '#64748B' }}>
-                Khám phá các dịch vụ thiết kế được yêu thích nhất
-              </Paragraph>
+        <section className="landing-section" id="roles">
+          <div className="landing-container">
+            <div className="landing-section-heading">
+              <p className="landing-eyebrow">Một nền tảng, hai phía cộng tác</p>
+              <h2>Quy trình rõ cho cả doanh nghiệp và sinh viên</h2>
+              <p>D4U giữ mọi bước quan trọng trong cùng một luồng, từ brief đầu tiên đến bàn giao cuối.</p>
             </div>
-            
-            <Row gutter={[32, 32]}>
-              {POPULAR_SERVICES.map((service, index) => (
-                <Col xs={24} sm={12} lg={6} key={index}>
-                  <Card bordered={true} style={{ height: '100%', borderRadius: '24px', borderColor: '#E2E8F0', padding: '8px' }} bodyStyle={{ padding: '24px' }} hoverable>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: service.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                      <service.icon style={{ fontSize: '32px', color: '#FFFFFF' }} />
-                    </div>
-                    <Title level={3} style={{ fontSize: '24px', fontWeight: 700, color: '#1E293B', marginBottom: '12px' }}>
-                      {service.title}
-                    </Title>
-                    <Paragraph style={{ color: '#64748B', lineHeight: 1.6, margin: 0, fontSize: '15px' }}>
-                      {service.description}
-                    </Paragraph>
-                  </Card>
-                </Col>
+            <div className="landing-role-grid">
+              {ROLE_ITEMS.map(({ icon: Icon, eyebrow, title, copy, action, points }) => (
+                <article className="landing-role-card" key={eyebrow}>
+                  <div className="landing-icon-tile"><Icon /></div>
+                  <p className="landing-eyebrow">{eyebrow}</p>
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                  <ul>
+                    {points.map((point) => <li key={point}><CheckCircleOutlined /> {point}</li>)}
+                  </ul>
+                  <Button className="landing-role-action" onClick={goToDestination}>{action} <ArrowRightOutlined /></Button>
+                </article>
               ))}
-            </Row>
+            </div>
           </div>
         </section>
 
-        {/* How it works Section */}
-        <section style={{ backgroundColor: '#FFFFFF', padding: '128px 48px' }}>
-          <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-              <Title level={2} style={{ fontSize: '48px', fontWeight: 800, color: '#1E293B', marginBottom: '24px' }}>
-                D4U hoạt động <span style={{ background: 'linear-gradient(to right, #02577A, #02A9F7)', WebkitBackgroundClip: 'text', color: 'transparent' }}>như thế nào?</span>
-              </Title>
-              <Paragraph style={{ fontSize: '20px', color: '#64748B' }}>
-                Ba bước đơn giản để bắt đầu dự án thiết kế của bạn
-              </Paragraph>
+        <section className="landing-section landing-section-soft" id="process">
+          <div className="landing-container">
+            <div className="landing-section-heading">
+              <p className="landing-eyebrow">Quy trình tương tác thực tế</p>
+              <h2>Từng bước đều có phản hồi từ hai phía</h2>
+              <p>Không có khoảng trống mơ hồ giữa ứng tuyển, thanh toán và bàn giao thiết kế.</p>
             </div>
-            
-            <Row gutter={[48, 48]} justify="center">
-              {HOW_IT_WORKS_STEPS.map((step, index) => (
-                <Col xs={24} md={8} key={index}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'inline-block', position: 'relative', marginBottom: '32px' }}>
-                      <div style={{ width: '112px', height: '112px', borderRadius: '24px', background: 'linear-gradient(to bottom right, #02577A, #02A9F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 20px 25px -5px rgba(2, 169, 247, 0.3)' }}>
-                        <step.icon style={{ fontSize: '56px', color: '#FFFFFF' }} />
-                      </div>
-                      <div style={{ position: 'absolute', top: '-12px', right: '-12px', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#FFFFFF', border: '4px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                        <span style={{ fontSize: '20px', fontWeight: 700, background: 'linear-gradient(to right, #02577A, #02A9F7)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
-                          {step.step}
-                        </span>
-                      </div>
-                    </div>
-                    <Title level={3} style={{ fontSize: '24px', fontWeight: 700, color: '#1E293B', marginBottom: '16px' }}>
-                      {step.title}
-                    </Title>
-                    <Paragraph style={{ fontSize: '18px', color: '#64748B', lineHeight: 1.6 }}>
-                      {step.description}
-                    </Paragraph>
+            <div className="landing-process-grid">
+              {PROCESS_ITEMS.map(([step, title, copy]) => (
+                <article className="landing-process-item" key={step}>
+                  <span>{step}</span>
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-section" id="trust">
+          <div className="landing-container landing-trust-layout">
+            <div className="landing-section-heading landing-trust-heading">
+              <p className="landing-eyebrow">Tin cậy ngay trong sản phẩm</p>
+              <h2>Không chỉ kết nối, D4U còn giữ luồng làm việc minh bạch</h2>
+              <p>Những điểm bảo vệ cốt lõi xuất hiện đúng lúc hai bên cần đưa ra quyết định.</p>
+            </div>
+            <div className="landing-trust-list">
+              {TRUST_ITEMS.map(({ icon: Icon, title, copy }) => (
+                <article className="landing-trust-item" key={title}>
+                  <div className="landing-icon-tile landing-icon-tile-small"><Icon /></div>
+                  <div>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
                   </div>
-                </Col>
+                </article>
               ))}
-            </Row>
-          </div>
-        </section>
-
-        {/* Featured Designers */}
-        <section style={{ backgroundColor: '#F8FAFC', padding: '128px 48px' }}>
-          <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-              <Title level={2} style={{ fontSize: '48px', fontWeight: 800, color: '#1E293B', marginBottom: '24px' }}>
-                Designer <span style={{ background: 'linear-gradient(to right, #02577A, #02A9F7)', WebkitBackgroundClip: 'text', color: 'transparent' }}>nổi bật</span>
-              </Title>
-              <Paragraph style={{ fontSize: '20px', color: '#64748B' }}>
-                Những tài năng hàng đầu với portfolio ấn tượng
-              </Paragraph>
             </div>
-            
-            <Row gutter={[32, 32]}>
-              {FEATURED_DESIGNERS.map((designer, index) => (
-                <Col xs={24} sm={12} lg={6} key={index}>
-                  <Card 
-                    bordered={true} 
-                    style={{ height: '100%', borderRadius: '24px', overflow: 'hidden', borderColor: '#E2E8F0' }} 
-                    bodyStyle={{ padding: 0 }}
-                    hoverable
-                  >
-                    <div style={{ height: '320px', overflow: 'hidden', background: 'linear-gradient(to bottom right, #ECFEFF, #F0F9FF)' }}>
-                      <img src={designer.avatar} alt={designer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                    <div style={{ padding: '24px' }}>
-                      <Title level={3} style={{ fontSize: '20px', fontWeight: 700, color: '#1E293B', marginBottom: '8px' }}>{designer.name}</Title>
-                      <Paragraph style={{ color: '#64748B', marginBottom: '16px' }}>{designer.specialty}</Paragraph>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <StarFilled style={{ fontSize: '20px', color: '#F59E0B' }} />
-                          <span style={{ fontWeight: 600, color: '#1E293B', fontSize: '18px' }}>{designer.rating}</span>
-                          <span style={{ color: '#64748B' }}>({designer.reviews})</span>
-                        </div>
-                        <Button type="text" style={{ color: '#02A9F7', fontWeight: 600, padding: 0 }}>
-                          Xem hồ sơ
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section style={{ background: 'linear-gradient(to bottom right, #02577A, #0284C7, #02A9F7)', padding: '128px 48px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'relative', maxWidth: '1440px', margin: '0 auto', textAlign: 'center', zIndex: 2 }}>
-            <Title level={2} style={{ fontSize: '60px', fontWeight: 800, color: '#FFFFFF', marginBottom: '32px', lineHeight: 1.2 }}>
-              Sẵn sàng bắt đầu<br />dự án thiết kế của bạn?
-            </Title>
-            <Paragraph style={{ fontSize: '24px', color: '#ECFEFF', marginBottom: '48px', maxWidth: '672px', margin: '0 auto 48px', lineHeight: 1.6 }}>
-              Hàng nghìn designer tài năng đang chờ đợi để biến ý tưởng của bạn thành hiện thực
-            </Paragraph>
-            <Button onClick={handleCTA} style={{ height: '64px', borderRadius: '12px', padding: '0 48px', fontSize: '18px', fontWeight: 700, color: '#02577A', backgroundColor: '#FFFFFF', border: 'none', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-              Đăng dự án miễn phí <ArrowRightOutlined style={{ marginLeft: '8px' }} />
+        <section className="landing-cta">
+          <div className="landing-container landing-cta-inner">
+            <div>
+              <p className="landing-eyebrow">Bắt đầu với D4U</p>
+              <h2>Sẵn sàng cho dự án thiết kế tiếp theo?</h2>
+              <p>Tạo tài khoản theo vai trò và đi thẳng vào workflow phù hợp với bạn.</p>
+            </div>
+            <Button type="primary" size="large" onClick={goToDestination}>
+              {user ? 'Vào dashboard' : 'Tạo tài khoản'} <ArrowRightOutlined />
             </Button>
           </div>
         </section>
-      </Content>
+      </main>
 
-      {/* Footer */}
-      <Footer style={{ background: 'linear-gradient(to bottom right, #02577A, #013F5A, #272425)', padding: '80px 48px 40px', color: '#94A3B8' }}>
-        <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-          <Row gutter={[48, 48]} style={{ marginBottom: '64px' }}>
-            <Col xs={24} md={10}>
-              <div style={{ marginBottom: '24px', backgroundColor: '#FFFFFF', padding: '12px 24px', borderRadius: '16px', display: 'inline-block' }}>
-                <D4ULogo />
-              </div>
-              <Paragraph style={{ color: '#94A3B8', fontSize: '16px', lineHeight: 1.6, maxWidth: '448px', marginBottom: '32px' }}>
-                Nền tảng kết nối hàng đầu giữa sinh viên thiết kế tài năng và các doanh nghiệp. Tạo cơ hội, xây dựng tương lai.
-              </Paragraph>
-              <Space size="middle">
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <TwitterOutlined style={{ fontSize: '20px', color: '#94A3B8' }} />
-                </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <FacebookFilled style={{ fontSize: '20px', color: '#94A3B8' }} />
-                </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <InstagramOutlined style={{ fontSize: '20px', color: '#94A3B8' }} />
-                </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <LinkedinFilled style={{ fontSize: '20px', color: '#94A3B8' }} />
-                </div>
-              </Space>
-            </Col>
-            <Col xs={24} md={14}>
-              <Row gutter={[32, 32]}>
-                <Col xs={12} sm={8}>
-                  <Title level={4} style={{ color: '#FFFFFF', fontSize: '16px', marginBottom: '24px' }}>Sản phẩm</Title>
-                  <Space direction="vertical" size="middle">
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Tìm Designer</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Đăng dự án</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Dịch vụ</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Bảng giá</Text>
-                  </Space>
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Title level={4} style={{ color: '#FFFFFF', fontSize: '16px', marginBottom: '24px' }}>Về chúng tôi</Title>
-                  <Space direction="vertical" size="middle">
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Giới thiệu</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Blog</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Liên hệ</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Cơ hội nghề nghiệp</Text>
-                  </Space>
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Title level={4} style={{ color: '#FFFFFF', fontSize: '16px', marginBottom: '24px' }}>Hỗ trợ</Title>
-                  <Space direction="vertical" size="middle">
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Trung tâm trợ giúp</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Điều khoản sử dụng</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Chính sách bảo mật</Text>
-                    <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>FAQs</Text>
-                  </Space>
-                </Col>
-              </Row>
-            </Col>
-          </Row>
-          
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <Text style={{ color: '#94A3B8' }}>© 2026 D4U - Design For You. All rights reserved.</Text>
-            <Space size="large">
-              <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Quyền riêng tư</Text>
-              <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Điều khoản</Text>
-              <Text style={{ color: '#94A3B8', cursor: 'pointer' }}>Cookies</Text>
-            </Space>
+      <footer className="landing-footer">
+        <div className="landing-container">
+          <div className="landing-footer-inner">
+            <div className="landing-footer-brand">
+              <D4ULogo />
+              <p>Nền tảng kết nối doanh nghiệp và sinh viên thiết kế qua quy trình rõ ràng, tin cậy.</p>
+            </div>
+            <div className="landing-footer-contact">
+              <h2>Liên hệ</h2>
+              <a href={`mailto:${CONTACT_EMAIL}`}><MailOutlined /> {CONTACT_EMAIL}</a>
+              <p>Gửi email để được hỗ trợ về tài khoản, dự án và thanh toán escrow.</p>
+            </div>
+            <nav className="landing-footer-nav" aria-label="Điều hướng footer">
+              <h2>Khám phá D4U</h2>
+              {NAV_ITEMS.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
+            </nav>
+          </div>
+          <div className="landing-footer-bottom">
+            <span>© 2026 D4U - Design For You.</span>
+            <span>Marketplace thiết kế dành cho doanh nghiệp và sinh viên.</span>
           </div>
         </div>
-      </Footer>
-    </Layout>
+      </footer>
+    </div>
   );
 }

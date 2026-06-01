@@ -1521,3 +1521,601 @@ a {
     min-height: auto;
   }
 }
+
+/* Landing page */
+html {
+  scroll-behavior: smooth;
+}
+
+.landing-page {
+  color: var(--ink);
+  background: #ffffff;
+}
+
+.landing-container {
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  height: 72px;
+  border-bottom: 1px solid #d7e5eb;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+}
+
+.landing-header-inner {
+  display: flex;
+  align-items: center;
+  width: min(1280px, calc(100% - 48px));
+  height: 100%;
+  margin: 0 auto;
+  gap: 28px;
+}
+
+.landing-brand {
+  display: inline-flex;
+  align-items: center;
+  margin-right: auto;
+}
+
+.landing-brand .d4u-logo,
+.landing-footer .d4u-logo {
+  width: 166px;
+}
+
+.landing-nav,
+.landing-header-actions,
+.landing-hero-actions,
+.landing-cta-inner {
+  display: flex;
+  align-items: center;
+}
+
+.landing-nav {
+  gap: 24px;
+}
+
+.landing-nav a,
+.landing-mobile-nav a {
+  color: #35526a;
+  font-weight: 700;
+}
+
+.landing-nav a:hover,
+.landing-mobile-nav a:hover {
+  color: var(--primary);
+}
+
+.landing-header-actions {
+  gap: 10px;
+}
+
+.landing-mobile-menu {
+  display: none;
+}
+
+.landing-mobile-drawer .d4u-logo {
+  width: 154px;
+}
+
+.landing-mobile-nav {
+  display: grid;
+  gap: 14px;
+}
+
+.landing-mobile-nav a {
+  padding: 8px 0;
+}
+
+.landing-page .ant-btn-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: none;
+}
+
+.landing-page .ant-btn-primary:hover {
+  border-color: var(--primary-700) !important;
+  background: var(--primary-700) !important;
+}
+
+.landing-hero {
+  min-height: 660px;
+  border-bottom: 1px solid #d7e5eb;
+  background-color: #f4fbfd;
+  background-image: url('/brand/hero-laptops.png');
+  background-repeat: no-repeat;
+  background-position: right 2vw center;
+  background-size: min(790px, 60vw) auto;
+}
+
+.landing-hero-inner {
+  display: flex;
+  min-height: 660px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 84px 0 116px;
+}
+
+.landing-eyebrow {
+  margin: 0 0 12px;
+  color: var(--primary-700);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.landing-hero h1 {
+  max-width: 620px;
+  margin: 0;
+  color: #102a43;
+  font-size: clamp(48px, 6vw, 76px);
+  line-height: 1.03;
+}
+
+.landing-hero-copy {
+  max-width: 590px;
+  margin: 22px 0 0;
+  color: #35526a;
+  font-size: 20px;
+  line-height: 1.65;
+}
+
+.landing-hero-actions {
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.landing-proof {
+  border-bottom: 1px solid #d7e5eb;
+  background: #ffffff;
+}
+
+.landing-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.landing-proof-item {
+  display: flex;
+  align-items: flex-start;
+  min-height: 138px;
+  padding: 28px;
+  gap: 16px;
+  border-right: 1px solid #d7e5eb;
+}
+
+.landing-proof-item:first-child {
+  border-left: 1px solid #d7e5eb;
+}
+
+.landing-proof-item > .anticon {
+  color: var(--primary);
+  font-size: 26px;
+}
+
+.landing-proof-item h2,
+.landing-role-card h3,
+.landing-process-item h3,
+.landing-trust-item h3 {
+  margin: 0;
+  color: #102a43;
+}
+
+.landing-proof-item h2 {
+  font-size: 18px;
+}
+
+.landing-proof-item p,
+.landing-role-card p,
+.landing-process-item p,
+.landing-trust-item p {
+  margin: 7px 0 0;
+  color: #526d82;
+  line-height: 1.65;
+}
+
+.landing-section {
+  padding: 88px 0;
+  scroll-margin-top: 72px;
+}
+
+.landing-section-soft {
+  border-top: 1px solid #d7e5eb;
+  border-bottom: 1px solid #d7e5eb;
+  background: #f4f9fb;
+}
+
+.landing-section-heading {
+  max-width: 720px;
+  margin-bottom: 34px;
+}
+
+.landing-section-heading h2,
+.landing-cta h2 {
+  margin: 0;
+  color: #102a43;
+  font-size: clamp(31px, 4vw, 44px);
+  line-height: 1.16;
+}
+
+.landing-section-heading > p:last-child,
+.landing-cta p {
+  margin: 14px 0 0;
+  color: #526d82;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.landing-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.landing-role-card {
+  padding: 30px;
+  border: 1px solid #cfe0e7;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.landing-role-card h3 {
+  max-width: 560px;
+  font-size: 27px;
+  line-height: 1.25;
+}
+
+.landing-icon-tile {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 20px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--primary-700);
+  background: #def5fa;
+  font-size: 23px;
+}
+
+.landing-icon-tile-small {
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 20px;
+}
+
+.landing-role-card ul {
+  display: grid;
+  margin: 22px 0 24px;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.landing-role-card li {
+  color: #35526a;
+}
+
+.landing-role-card li .anticon {
+  margin-right: 7px;
+  color: #079a91;
+}
+
+.landing-role-action {
+  border-color: var(--primary);
+  color: var(--primary-700);
+  font-weight: 700;
+}
+
+.landing-role-action:hover {
+  border-color: var(--primary-700) !important;
+  color: var(--primary-700) !important;
+  background: #e7f7fa !important;
+}
+
+.landing-process-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid #bdd4dd;
+  border-left: 1px solid #bdd4dd;
+}
+
+.landing-process-item {
+  min-height: 188px;
+  padding: 24px;
+  border-right: 1px solid #bdd4dd;
+  border-bottom: 1px solid #bdd4dd;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.landing-process-item span {
+  display: block;
+  margin-bottom: 24px;
+  color: var(--primary);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.landing-process-item h3,
+.landing-trust-item h3 {
+  font-size: 19px;
+}
+
+.landing-trust-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 62px;
+}
+
+.landing-trust-heading {
+  margin: 0;
+}
+
+.landing-trust-list {
+  display: grid;
+  gap: 20px;
+}
+
+.landing-trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.landing-cta {
+  padding: 64px 0;
+  background: #e7f7fa;
+}
+
+.landing-cta-inner {
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.landing-cta-inner > div {
+  max-width: 780px;
+}
+
+.landing-footer {
+  padding: 44px 0 22px;
+  border-top: 1px solid #d7e5eb;
+  background: #ffffff;
+}
+
+.landing-footer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.85fr) minmax(150px, 0.45fr);
+  align-items: start;
+  gap: 46px;
+}
+
+.landing-footer p,
+.landing-footer span {
+  margin: 0;
+  color: #617b8d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.landing-footer-brand p {
+  max-width: 490px;
+  margin-top: 16px;
+}
+
+.landing-footer h2 {
+  margin: 0 0 14px;
+  color: #102a43;
+  font-size: 16px;
+}
+
+.landing-footer-contact a,
+.landing-footer-nav a {
+  color: var(--primary-700);
+  font-weight: 700;
+}
+
+.landing-footer-contact a:hover,
+.landing-footer-nav a:hover {
+  color: var(--primary);
+}
+
+.landing-footer-contact p {
+  max-width: 330px;
+  margin-top: 10px;
+}
+
+.landing-footer-nav {
+  display: grid;
+  gap: 9px;
+}
+
+.landing-footer-nav h2 {
+  margin-bottom: 5px;
+}
+
+.landing-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 34px;
+  padding-top: 18px;
+  gap: 20px;
+  border-top: 1px solid #d7e5eb;
+}
+
+@media (max-width: 992px) {
+  .landing-nav,
+  .landing-header-actions {
+    display: none;
+  }
+
+  .landing-mobile-menu {
+    display: inline-flex;
+  }
+
+  .landing-header-inner {
+    justify-content: space-between;
+  }
+
+  .landing-hero,
+  .landing-hero-inner {
+    min-height: 620px;
+  }
+
+  .landing-hero {
+    background-position: right -130px center;
+    background-size: 730px auto;
+  }
+
+  .landing-hero-copy {
+    max-width: 520px;
+  }
+
+  .landing-process-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-trust-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-container,
+  .landing-header-inner {
+    width: min(100% - 32px, 1280px);
+  }
+
+  .landing-header {
+    height: 64px;
+  }
+
+  .landing-brand .d4u-logo {
+    width: 144px;
+  }
+
+  .landing-hero,
+  .landing-hero-inner {
+    min-height: 730px;
+  }
+
+  .landing-hero {
+    background-position: center bottom 18px;
+    background-size: min(460px, 92vw) auto;
+  }
+
+  .landing-hero-inner {
+    justify-content: flex-start;
+    padding: 54px 0 300px;
+  }
+
+  .landing-hero h1 {
+    max-width: 100%;
+    font-size: 42px;
+  }
+
+  .landing-hero-copy {
+    margin-top: 16px;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+
+  .landing-hero-actions {
+    display: grid;
+    width: 100%;
+    margin-top: 22px;
+  }
+
+  .landing-hero-actions .ant-btn {
+    width: 100%;
+  }
+
+  .landing-proof-grid,
+  .landing-role-grid,
+  .landing-process-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-proof-item,
+  .landing-proof-item:first-child {
+    min-height: auto;
+    padding: 20px 0;
+    border-right: 0;
+    border-bottom: 1px solid #d7e5eb;
+    border-left: 0;
+  }
+
+  .landing-proof-item:last-child {
+    border-bottom: 0;
+  }
+
+  .landing-section {
+    padding: 58px 0;
+    scroll-margin-top: 64px;
+  }
+
+  .landing-section-heading {
+    margin-bottom: 24px;
+  }
+
+  .landing-section-heading h2,
+  .landing-cta h2 {
+    font-size: 31px;
+  }
+
+  .landing-section-heading > p:last-child,
+  .landing-cta p {
+    font-size: 16px;
+  }
+
+  .landing-role-card {
+    padding: 22px;
+  }
+
+  .landing-role-card h3 {
+    font-size: 23px;
+  }
+
+  .landing-process-item {
+    min-height: auto;
+    padding: 20px;
+  }
+
+  .landing-process-item span {
+    margin-bottom: 14px;
+  }
+
+  .landing-cta {
+    padding: 48px 0;
+  }
+
+  .landing-cta-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .landing-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .landing-footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 520px) {
+  .landing-hero h1 {
+    font-size: 39px;
+  }
+}
