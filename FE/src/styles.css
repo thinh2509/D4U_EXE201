@@ -2154,3 +2154,316 @@ html {
     font-size: 39px;
   }
 }
+
+/* Execution workspace */
+.workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  align-items: start;
+  gap: 20px;
+}
+
+.workspace-main,
+.workspace-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.workspace-sidebar {
+  position: sticky;
+  top: 88px;
+}
+
+.workspace-panel {
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.workspace-progress-card {
+  margin-bottom: 20px;
+}
+
+.workspace-progress-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.workspace-progress-step {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding-right: 10px;
+}
+
+.workspace-progress-step:not(:last-child)::after {
+  position: absolute;
+  top: 16px;
+  right: 3px;
+  left: 37px;
+  height: 2px;
+  content: "";
+  background: var(--border);
+}
+
+.workspace-progress-step.is-complete:not(:last-child)::after {
+  background: var(--success);
+}
+
+.workspace-progress-dot {
+  z-index: 1;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.workspace-progress-step.is-complete .workspace-progress-dot {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.workspace-progress-step div {
+  z-index: 1;
+  min-width: 0;
+  padding-right: 6px;
+  background: var(--surface);
+}
+
+.workspace-progress-step strong,
+.workspace-progress-step small {
+  display: block;
+}
+
+.workspace-progress-step strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.workspace-progress-step small,
+.workspace-field-help {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workspace-focus-card {
+  border-color: rgba(18, 174, 234, 0.42);
+}
+
+.workspace-focus-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.workspace-focus-header h2 {
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+.workspace-deadline-highlight {
+  padding: 13px;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.workspace-deadline-highlight > span,
+.workspace-deadline-list > div > span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-deadline-list {
+  display: grid;
+  gap: 13px;
+  margin-top: 16px;
+}
+
+.workspace-deadline-list > div {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.workspace-deadline-list > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.workspace-deadline-value {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  text-align: right;
+}
+
+.workspace-deadline-highlight .workspace-deadline-value {
+  justify-items: start;
+  margin-top: 5px;
+  text-align: left;
+}
+
+.workspace-deadline-value strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.workspace-deadline-value span {
+  color: var(--primary-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workspace-deadline-value .is-overdue {
+  color: var(--danger);
+}
+
+.workspace-activity-list {
+  display: grid;
+}
+
+.workspace-activity-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 11px;
+  padding-bottom: 20px;
+}
+
+.workspace-activity-item:not(:last-child) {
+  margin-left: 15px;
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
+.workspace-activity-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  margin-left: -34px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--primary);
+  background: var(--surface);
+}
+
+.workspace-activity-icon.is-success {
+  color: var(--success);
+}
+
+.workspace-activity-icon.is-error {
+  color: var(--danger);
+}
+
+.workspace-activity-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace-activity-heading strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.workspace-activity-heading time,
+.workspace-activity-item p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workspace-activity-item p {
+  margin: 5px 0 7px;
+  line-height: 1.6;
+}
+
+.workspace-file-list,
+.workspace-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.workspace-file-list {
+  margin: 14px 0 18px;
+}
+
+.workspace-review-meta {
+  margin-top: 12px;
+}
+
+.workspace-draft-item > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.workspace-draft-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-draft-item span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 992px) {
+  .workspace-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-sidebar {
+    position: static;
+    order: -1;
+  }
+
+  .workspace-progress-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .workspace-progress-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-focus-header,
+  .workspace-activity-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .workspace-focus-header .workspace-deadline-value {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .workspace-review-actions {
+    display: grid;
+  }
+
+  .workspace-review-actions .ant-btn,
+  .workspace-action-form > .ant-btn {
+    width: 100%;
+  }
+}
