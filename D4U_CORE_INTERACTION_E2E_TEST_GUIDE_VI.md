@@ -170,13 +170,12 @@ Kết quả cần thấy: project chuyển sang `OPEN`.
 4. Tìm project theo tiêu đề vừa nhập.
 5. Bấm mở project.
 
-Kết quả cần thấy: trang detail hiển thị đúng brief, budget và số vòng chỉnh sửa SME đã cấu hình.
+Kết quả cần thấy: trang detail hiển thị đúng brief, budget và deadline SME đã cấu hình.
 
 **Bước 5 - Student gửi ứng tuyển**
 
-1. Bấm `Gửi ứng tuyển`.
-2. Kiểm tra modal `Xác nhận ứng tuyển` hiển thị ngân sách, Sketch deadline, Final deadline và Total deadline.
-3. Để test quick apply, bấm `Xác nhận ứng tuyển`.
+1. Kiểm tra sidebar hiển thị budget, Sketch deadline, Final deadline và Total deadline.
+2. Bấm `Gửi ứng tuyển` để test quick apply theo điều khoản project.
 
 Kết quả cần thấy:
 
@@ -188,7 +187,7 @@ Kết quả cần thấy:
 
 Để test nhánh custom proposal trên một project khác:
 
-1. Trong modal `Xác nhận ứng tuyển`, bấm `Đề xuất khác`.
+1. Tại sidebar project detail, bấm `Đề xuất khác`.
 2. Nhập `Giá đề xuất mới` và `Giải pháp đề xuất` tối thiểu 20 ký tự.
 3. Bấm `Tiếp tục`, kiểm tra modal xác nhận cuối rồi bấm `Gửi ứng tuyển`.
 

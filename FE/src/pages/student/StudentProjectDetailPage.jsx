@@ -1,5 +1,5 @@
 import { CalendarOutlined, SendOutlined, WalletOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space } from 'antd';
+import { App, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
@@ -18,7 +18,6 @@ export function StudentProjectDetailPage() {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
-  const [applyOpen, setApplyOpen] = useState(false);
   const [customProposalOpen, setCustomProposalOpen] = useState(false);
   const [customConfirmationOpen, setCustomConfirmationOpen] = useState(false);
   const [customProposal, setCustomProposal] = useState(null);
@@ -45,7 +44,6 @@ export function StudentProjectDetailPage() {
     try {
       await projectApi.submitApplication(projectId, payload);
       message.success('Đã gửi ứng tuyển.');
-      setApplyOpen(false);
       setCustomProposalOpen(false);
       setCustomConfirmationOpen(false);
       setCustomProposal(null);
@@ -78,7 +76,6 @@ export function StudentProjectDetailPage() {
   };
 
   const closeApplyFlow = () => {
-    setApplyOpen(false);
     setCustomProposalOpen(false);
     setCustomConfirmationOpen(false);
     setCustomProposal(null);
@@ -97,7 +94,7 @@ export function StudentProjectDetailPage() {
       <PageHeader
         title={project.title}
         description={project.designCategoryName}
-        extra={<Button type="primary" icon={<SendOutlined />} disabled={!canApply} onClick={() => setApplyOpen(true)}>{applyButtonLabel}</Button>}
+        extra={<Button type="primary" icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={submitQuickApplication}>{applyButtonLabel}</Button>}
       />
 
       <div className="project-detail-layout">
@@ -139,33 +136,16 @@ export function StudentProjectDetailPage() {
                 <div><span>Final</span><strong>{formatDate(project.finalDeadlineAt)}</strong></div>
               </div>
 
-              <Button type="primary" size="large" block icon={<SendOutlined />} disabled={!canApply} onClick={() => setApplyOpen(true)}>
+              <Button type="primary" size="large" block icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={submitQuickApplication}>
                 {applyButtonLabel}
+              </Button>
+              <Button size="large" block disabled={!canApply || applying} onClick={() => setCustomProposalOpen(true)}>
+                Đề xuất khác
               </Button>
             </Space>
           </Card>
         </aside>
       </div>
-
-      <Modal title="Xác nhận ứng tuyển" open={applyOpen} footer={null} onCancel={closeApplyFlow}>
-        <Alert
-          type="info"
-          showIcon
-          className="form-alert"
-          message="Bạn có thể xác nhận nhanh theo điều khoản dự án hoặc gửi một đề xuất khác."
-        />
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</Descriptions.Item>
-          <Descriptions.Item label="Sketch deadline">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
-          <Descriptions.Item label="Final deadline">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
-          <Descriptions.Item label="Total deadline">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
-        </Descriptions>
-        <Space wrap className="workspace-primary-action">
-          <Button type="primary" loading={applying} onClick={submitQuickApplication}>Xác nhận ứng tuyển</Button>
-          <Button onClick={() => { setApplyOpen(false); setCustomProposalOpen(true); }}>Đề xuất khác</Button>
-          <Button onClick={closeApplyFlow}>Hủy</Button>
-        </Space>
-      </Modal>
 
       <Modal title="Đề xuất khác" open={customProposalOpen} footer={null} onCancel={closeApplyFlow}>
         <Form form={customProposalForm} layout="vertical" requiredMark={false}>
