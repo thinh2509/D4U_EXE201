@@ -54,9 +54,16 @@ export function StudentApplicationsPage() {
     {
       title: 'Hành động',
       render: (_, row) => (
-        <Button type="primary" ghost onClick={() => navigate(`/student/projects/${row.projectId}`)}>
-          Xem dự án
-        </Button>
+        <Space wrap>
+          <Button type="primary" ghost onClick={() => navigate(`/student/projects/${row.projectId}`)}>
+            Xem dự án
+          </Button>
+          {row.offerStatus === 'WAITING_ACCEPTANCE' ? (
+            <Button type="primary" onClick={() => navigate('/student/offers')}>
+              Xử lý offer
+            </Button>
+          ) : null}
+        </Space>
       )
     }
   ];

@@ -253,10 +253,19 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
     {
         var user = await RequireUserAsync(userId, cancellationToken);
         var project = await RequireProjectAsync(projectId, cancellationToken);
+        StudentProfile? studentProfile = null;
+
+        if (user.Role == UserRole.STUDENT)
+        {
+            studentProfile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+                profile => profile.UserId == userId,
+                cancellationToken);
+        }
 
         if (project.Status != ProjectStatus.OPEN)
         {
             var isOwnerSme = false;
+            var isRelatedStudent = false;
 
             if (user.Role == UserRole.SME)
             {
@@ -267,7 +276,18 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
                 isOwnerSme = smeProfile?.Id == project.SmeProfileId;
             }
 
-            if (!isOwnerSme && user.Role != UserRole.ADMIN)
+            if (studentProfile is not null)
+            {
+                isRelatedStudent =
+                    await unitOfWork.Repository<ProjectApplication>().AnyAsync(
+                        value => value.ProjectId == projectId && value.StudentProfileId == studentProfile.Id,
+                        cancellationToken) ||
+                    await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+                        value => value.ProjectId == projectId && value.StudentProfileId == studentProfile.Id,
+                        cancellationToken);
+            }
+
+            if (!isOwnerSme && !isRelatedStudent && user.Role != UserRole.ADMIN)
             {
                 throw new UnauthorizedAccessException("This project is not available.");
             }
@@ -278,10 +298,6 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         if (user.Role == UserRole.STUDENT)
         {
-            var studentProfile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
-                profile => profile.UserId == userId,
-                cancellationToken);
-
             if (studentProfile is not null)
             {
                 application = await unitOfWork.Repository<ProjectApplication>().FirstOrDefaultAsync(
