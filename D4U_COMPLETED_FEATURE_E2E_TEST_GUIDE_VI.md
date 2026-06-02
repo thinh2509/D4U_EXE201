@@ -1201,6 +1201,12 @@ API retry/idempotency:
 
 - `POST /api/v1/projects/{projectId}/escrow/release` với Admin token.
 
+Luồng mặc định:
+
+- SME approve Final hoặc Final auto-approve sẽ thử release escrow ngay.
+- Nếu release tức thời lỗi tạm thời, escrow giữ `RELEASE_PENDING`; hosted worker retry idempotent.
+- Platform fee dùng rate đã đóng băng trên escrow lúc funding. Rate mới chỉ áp dụng cho escrow tạo sau migration: Basic `5%`, Pro `3%`, Premium `2%`.
+
 Expected:
 
 - Escrow chuyển `RELEASED`, set `released_at`.
@@ -1246,6 +1252,7 @@ Expected:
 
 - Student thấy available, pending, locked balance, currency và status.
 - Ledger hiển thị `DISBURSEMENT_CREDIT`, `WITHDRAWAL_DEBIT`, `WITHDRAWAL_FAILED_REVERSAL`.
+- Có thể mở rộng dòng `DISBURSEMENT_CREDIT` để xem gross amount, platform fee và net amount.
 - Non-Student bị chặn bởi role authorization.
 
 ### 8.3. Payment Method Và Withdrawal Request
@@ -1284,6 +1291,7 @@ Expected:
 - Student `can_withdraw = false` bị chặn.
 - Không đủ available balance bị chặn.
 - Pending withdrawal move `available_balance` sang `locked_balance`.
+- Mỗi wallet chỉ có tối đa một withdrawal `PENDING` hoặc `PROCESSING`.
 - Fee cố định `5,000 VND`, `net_amount = amount - 5,000`.
 
 SQL check:
@@ -1310,12 +1318,25 @@ API:
 - `GET /api/v1/admin/withdrawal-requests`
 - `POST /api/v1/admin/withdrawal-requests/{withdrawalRequestId}/process`
 
-Complete request:
+Nhận xử lý:
+
+```json
+{
+  "decision": "PROCESSING",
+  "failureReason": null,
+  "bankTransactionReference": null,
+  "transferredAt": null
+}
+```
+
+Sau khi chuyển khoản ngoài hệ thống, complete request:
 
 ```json
 {
   "decision": "COMPLETED",
-  "failureReason": null
+  "failureReason": null,
+  "bankTransactionReference": "BANK-20260602-0001",
+  "transferredAt": "2026-06-02T15:30:00Z"
 }
 ```
 
@@ -1324,20 +1345,23 @@ Failed request:
 ```json
 {
   "decision": "FAILED",
-  "failureReason": "Bank transfer was rejected."
+  "failureReason": "Bank transfer was rejected.",
+  "bankTransactionReference": null,
+  "transferredAt": null
 }
 ```
 
 Expected completed:
 
-- Withdrawal chuyển `COMPLETED`.
+- Withdrawal đi qua `PENDING -> PROCESSING -> COMPLETED`.
+- Lưu `processing_started_at`, `processed_by_user_id`, `bank_transaction_reference`, `transferred_at`.
 - Wallet locked balance giảm theo amount.
 - Tạo `wallet_transactions` type `WITHDRAWAL_DEBIT`.
 - Có audit log `WITHDRAWAL_PROCESSED`.
 
 Expected failed:
 
-- Withdrawal chuyển `FAILED`, lưu failure reason.
+- Withdrawal đi qua `PENDING -> PROCESSING -> FAILED`, lưu failure reason.
 - Wallet locked balance giảm, available balance tăng lại theo amount.
 - Tạo `wallet_transactions` type `WITHDRAWAL_FAILED_REVERSAL`.
 - Có audit log `WITHDRAWAL_PROCESSED`.

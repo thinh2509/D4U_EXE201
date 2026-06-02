@@ -23,7 +23,10 @@ public sealed record WalletTransactionResponse(
     string? ReferenceType,
     Guid? ReferenceId,
     string? Description,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    decimal? GrossAmount,
+    decimal? FeeAmount,
+    decimal? NetAmount);
 
 public sealed record PaymentMethodResponse(
     Guid Id,
@@ -51,7 +54,11 @@ public sealed record WithdrawalRequestResponse(
     DateTimeOffset RequestedAt,
     DateTimeOffset? ProcessedAt,
     string? MaskedAccountNumber,
-    string? AccountHolderName);
+    string? AccountHolderName,
+    DateTimeOffset? ProcessingStartedAt,
+    DateTimeOffset? TransferredAt,
+    string? BankTransactionReference,
+    Guid? ProcessedByUserId);
 
 public sealed record CreateWithdrawalRequest(
     Guid PaymentMethodId,
@@ -59,7 +66,9 @@ public sealed record CreateWithdrawalRequest(
 
 public sealed record ProcessWithdrawalRequest(
     string Decision,
-    string? FailureReason);
+    string? FailureReason,
+    string? BankTransactionReference,
+    DateTimeOffset? TransferredAt);
 
 public sealed record DisbursementResponse(
     Guid Id,

@@ -158,9 +158,9 @@ MVP subscription plans:
 
 | Plan | Monthly price | Platform fee | Active open projects | Max budget |
 | --- | ---: | ---: | ---: | ---: |
-| BASIC | 0 VND | 10% | 5 | 5,000,000 VND |
-| PRO | 199,000 VND | 7% | 10 | 20,000,000 VND |
-| PREMIUM | 499,000 VND | 5% | Unlimited | Unlimited |
+| BASIC | 0 VND | 5% | 5 | 5,000,000 VND |
+| PRO | 199,000 VND | 3% | 10 | 20,000,000 VND |
+| PREMIUM | 499,000 VND | 2% | Unlimited | Unlimited |
 
 Subscription rules:
 

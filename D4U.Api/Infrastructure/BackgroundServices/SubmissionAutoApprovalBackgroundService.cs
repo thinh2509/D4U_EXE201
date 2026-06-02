@@ -1,5 +1,6 @@
 namespace D4U.Api.Infrastructure.BackgroundServices;
 
+using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
@@ -39,6 +40,7 @@ public sealed class SubmissionAutoApprovalBackgroundService(
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
         var now = DateTimeOffset.UtcNow;
+        var completedProjectIds = new HashSet<Guid>();
 
         var dueSubmissions = await dbContext.ProjectSubmissions
             .Where(submission =>
@@ -73,6 +75,7 @@ public sealed class SubmissionAutoApprovalBackgroundService(
 
             if (submission.MilestoneType == SubmissionStage.FINAL)
             {
+                completedProjectIds.Add(project.Id);
                 var escrow = await dbContext.Escrows.FirstOrDefaultAsync(
                     value => value.ProjectId == project.Id && value.Status == EscrowStatus.FUNDED,
                     cancellationToken);
@@ -114,6 +117,27 @@ public sealed class SubmissionAutoApprovalBackgroundService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (completedProjectIds.Count == 0)
+        {
+            return;
+        }
+
+        var moneyMovementService = scope.ServiceProvider.GetRequiredService<IMoneyMovementService>();
+        foreach (var projectId in completedProjectIds)
+        {
+            try
+            {
+                await moneyMovementService.ReleaseProjectEscrowAsync(projectId, null, cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(
+                    exception,
+                    "Immediate escrow release failed after auto-approving project {ProjectId}. The background service will retry.",
+                    projectId);
+            }
+        }
     }
 
     private static bool CanAutoApprove(Project project, ProjectSubmission submission)

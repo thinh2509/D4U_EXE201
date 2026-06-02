@@ -395,8 +395,11 @@ export function StudentWalletPage() {
     { title: 'Phi', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
     { title: 'Nhan thuc te', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
     { title: 'Tai khoan', dataIndex: 'maskedAccountNumber' },
-    { title: 'Ngay yeu cau', dataIndex: 'requestedAt', render: formatDate }
+    { title: 'Ngay yeu cau', dataIndex: 'requestedAt', render: formatDate },
+    { title: 'Bat dau xu ly', dataIndex: 'processingStartedAt', render: formatDate },
+    { title: 'Ma giao dich NH', dataIndex: 'bankTransactionReference' }
   ];
+  const hasActiveWithdrawal = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
 
   return (
     <>
@@ -458,6 +461,14 @@ export function StudentWalletPage() {
         </Col>
         <Col xs={24} lg={12}>
           <Card title="Tao yeu cau rut tien">
+            {hasActiveWithdrawal && (
+              <Alert
+                type="warning"
+                showIcon
+                className="form-alert"
+                message="Ban dang co mot yeu cau rut tien cho xu ly. Hay cho Admin/Finance hoan tat truoc khi tao yeu cau moi."
+              />
+            )}
             <Form form={withdrawalForm} layout="vertical" onFinish={createWithdrawal}>
               <Form.Item name="paymentMethodId" label="Tai khoan nhan" rules={[{ required: true, message: 'Chon tai khoan nhan.' }]}>
                 <select className="native-select">
@@ -470,7 +481,7 @@ export function StudentWalletPage() {
               <Form.Item name="amount" label="So tien rut" rules={[{ required: true, message: 'Nhap so tien rut.' }]}>
                 <InputNumber min={50000} step={50000} style={{ width: '100%' }} />
               </Form.Item>
-              <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={paymentMethods.length === 0}>
+              <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={paymentMethods.length === 0 || hasActiveWithdrawal}>
                 Gui yeu cau
               </Button>
             </Form>
@@ -482,7 +493,23 @@ export function StudentWalletPage() {
         <Table rowKey="id" loading={loading} columns={withdrawalColumns} dataSource={withdrawals} scroll={{ x: 900 }} />
       </Card>
       <Card className="table-card" title="Ledger">
-        <Table rowKey="id" loading={loading} columns={transactionColumns} dataSource={transactions} scroll={{ x: 980 }} />
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={transactionColumns}
+          dataSource={transactions}
+          scroll={{ x: 980 }}
+          expandable={{
+            rowExpandable: (row) => row.grossAmount != null,
+            expandedRowRender: (row) => (
+              <Space wrap size="large">
+                <span>Gross: <strong>{formatCurrency(row.grossAmount, wallet?.currency)}</strong></span>
+                <span>Phi nen tang: <strong>{formatCurrency(row.feeAmount, wallet?.currency)}</strong></span>
+                <span>Student nhan: <strong>{formatCurrency(row.netAmount, wallet?.currency)}</strong></span>
+              </Space>
+            )
+          }}
+        />
       </Card>
     </>
   );

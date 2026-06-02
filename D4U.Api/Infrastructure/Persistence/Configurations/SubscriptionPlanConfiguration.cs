@@ -30,7 +30,7 @@ public sealed class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Sub
                 Code = "BASIC",
                 Name = "Basic",
                 MonthlyPrice = 0m,
-                PlatformFeeRate = 0.10m,
+                PlatformFeeRate = 0.05m,
                 MaxActiveOpenProjects = 5,
                 MaxProjectBudget = 5_000_000m,
                 IsActive = true
@@ -41,7 +41,7 @@ public sealed class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Sub
                 Code = "PRO",
                 Name = "Pro",
                 MonthlyPrice = 199_000m,
-                PlatformFeeRate = 0.07m,
+                PlatformFeeRate = 0.03m,
                 MaxActiveOpenProjects = 10,
                 MaxProjectBudget = 20_000_000m,
                 IsActive = true
@@ -52,7 +52,7 @@ public sealed class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Sub
                 Code = "PREMIUM",
                 Name = "Premium",
                 MonthlyPrice = 499_000m,
-                PlatformFeeRate = 0.05m,
+                PlatformFeeRate = 0.02m,
                 MaxActiveOpenProjects = null,
                 MaxProjectBudget = null,
                 IsActive = true

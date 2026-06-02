@@ -13,6 +13,7 @@ public sealed class MoneyMovementService(
     private const decimal MinimumWithdrawalAmount = 50000m;
     private const decimal WithdrawalFeeAmount = 5000m;
     private const string WithdrawalPending = "PENDING";
+    private const string WithdrawalProcessing = "PROCESSING";
     private const string WithdrawalCompleted = "COMPLETED";
     private const string WithdrawalFailed = "FAILED";
 
@@ -101,6 +102,7 @@ public sealed class MoneyMovementService(
 
         var now = DateTimeOffset.UtcNow;
         var wallet = await EnsureWalletAsync(studentProfile, escrow.Currency, now, cancellationToken);
+        wallet = await LockWalletAsync(wallet, cancellationToken);
         var previousAvailableBalance = wallet.AvailableBalance;
         var platformFeeAmount = escrow.PlatformFeeAmount ?? decimal.Round(escrow.Amount * escrow.PlatformFeeRate, 2);
         var netAmount = escrow.Amount - platformFeeAmount;
@@ -166,6 +168,17 @@ public sealed class MoneyMovementService(
             now,
             cancellationToken);
 
+        await AddNotificationAsync(
+            studentProfile.UserId,
+            actorUserId,
+            "ESCROW_RELEASED",
+            "Tiền dự án đã được cộng vào ví",
+            $"Bạn đã nhận {netAmount:N0} {escrow.Currency} sau khi trừ phí nền tảng {platformFeeAmount:N0} {escrow.Currency}.",
+            nameof(Disbursement),
+            disbursement.Id,
+            now,
+            cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ToDisbursementResponse(disbursement);
     }
@@ -185,12 +198,31 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         var wallet = await RequireWalletForStudentAsync(userId, cancellationToken);
-        return await unitOfWork.Repository<WalletTransaction>().Query()
+        var transactions = await unitOfWork.Repository<WalletTransaction>().Query()
             .Where(transaction => transaction.WalletId == wallet.Id)
             .OrderByDescending(transaction => transaction.CreatedAt)
             .Take(100)
-            .Select(transaction => ToWalletTransactionResponse(transaction))
             .ToListAsync(cancellationToken);
+
+        var disbursementIds = transactions
+            .Where(transaction => transaction.ReferenceType == nameof(Disbursement) && transaction.ReferenceId.HasValue)
+            .Select(transaction => transaction.ReferenceId!.Value)
+            .Distinct()
+            .ToList();
+        var disbursements = await unitOfWork.Repository<Disbursement>().Query()
+            .Where(disbursement => disbursementIds.Contains(disbursement.Id))
+            .ToDictionaryAsync(disbursement => disbursement.Id, cancellationToken);
+
+        return transactions
+            .Select(transaction =>
+            {
+                var disbursement = transaction.ReferenceId.HasValue &&
+                    disbursements.TryGetValue(transaction.ReferenceId.Value, out var value)
+                        ? value
+                        : null;
+                return ToWalletTransactionResponse(transaction, disbursement);
+            })
+            .ToList();
     }
 
     public async Task<PaymentMethodResponse> CreatePaymentMethodAsync(
@@ -260,8 +292,10 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         var studentProfile = await RequireStudentProfileAsync(userId, cancellationToken);
-        var wallet = await RequireWalletForStudentAsync(userId, cancellationToken);
+        var existingWallet = await RequireWalletForStudentAsync(userId, cancellationToken);
         var paymentMethod = await RequirePaymentMethodAsync(userId, request.PaymentMethodId, cancellationToken);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var wallet = await LockWalletAsync(existingWallet, cancellationToken);
 
         if (wallet.Status != WalletStatus.ACTIVE)
         {
@@ -281,6 +315,17 @@ public sealed class MoneyMovementService(
         if (wallet.AvailableBalance < request.Amount)
         {
             throw new InvalidOperationException("Wallet available balance is not enough for this withdrawal.");
+        }
+
+        var hasActiveWithdrawal = await unitOfWork.Repository<WithdrawalRequest>().Query()
+            .AnyAsync(
+                value => value.WalletId == wallet.Id &&
+                    (value.Status == WithdrawalPending || value.Status == WithdrawalProcessing),
+                cancellationToken);
+
+        if (hasActiveWithdrawal)
+        {
+            throw new InvalidOperationException("Only one pending or processing withdrawal request is allowed.");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -314,8 +359,17 @@ public sealed class MoneyMovementService(
             now,
             cancellationToken);
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return ToWithdrawalResponse(withdrawal, paymentMethod);
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return ToWithdrawalResponse(withdrawal, paymentMethod);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<WithdrawalRequestResponse>> ListMyWithdrawalRequestsAsync(
@@ -348,15 +402,15 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         await RequireAdminAsync(adminUserId, cancellationToken);
-        var withdrawal = await unitOfWork.Repository<WithdrawalRequest>().GetByIdAsync(withdrawalRequestId, cancellationToken)
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var withdrawal = await dbContext.WithdrawalRequests
+            .FromSqlInterpolated($"""SELECT * FROM public.withdrawal_requests WHERE id = {withdrawalRequestId} FOR UPDATE""")
+            .SingleOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("Withdrawal request was not found.");
 
-        if (withdrawal.Status != WithdrawalPending)
-        {
-            throw new InvalidOperationException("Only pending withdrawal requests can be processed.");
-        }
-
-        var wallet = await unitOfWork.Repository<Wallet>().GetByIdAsync(withdrawal.WalletId, cancellationToken)
+        var wallet = await dbContext.Wallets
+            .FromSqlInterpolated($"""SELECT * FROM public.wallets WHERE id = {withdrawal.WalletId} FOR UPDATE""")
+            .SingleOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("Wallet was not found.");
         var paymentMethod = await unitOfWork.Repository<PaymentMethod>().GetByIdAsync(withdrawal.PaymentMethodId, cancellationToken)
             ?? throw new InvalidOperationException("Payment method was not found.");
@@ -371,8 +425,34 @@ public sealed class MoneyMovementService(
         var previousAvailableBalance = wallet.AvailableBalance;
         var previousLockedBalance = wallet.LockedBalance;
 
-        if (decision == WithdrawalCompleted)
+        if (decision == WithdrawalProcessing)
         {
+            if (withdrawal.Status != WithdrawalPending)
+            {
+                throw new InvalidOperationException("Only pending withdrawal requests can start processing.");
+            }
+
+            withdrawal.Status = WithdrawalProcessing;
+            withdrawal.ProcessingStartedAt = now;
+            withdrawal.ProcessedByUserId = adminUserId;
+        }
+        else if (decision == WithdrawalCompleted)
+        {
+            if (withdrawal.Status != WithdrawalProcessing)
+            {
+                throw new InvalidOperationException("Only processing withdrawal requests can be completed.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.BankTransactionReference) || !request.TransferredAt.HasValue)
+            {
+                throw new InvalidOperationException("Bank transaction reference and transfer time are required when withdrawal completes.");
+            }
+
+            if (request.TransferredAt.Value > now.AddMinutes(5))
+            {
+                throw new InvalidOperationException("Transfer time cannot be in the future.");
+            }
+
             if (wallet.LockedBalance < withdrawal.Amount)
             {
                 throw new InvalidOperationException("Wallet locked balance is not enough for this withdrawal.");
@@ -382,6 +462,9 @@ public sealed class MoneyMovementService(
             wallet.UpdatedAt = now;
             withdrawal.Status = WithdrawalCompleted;
             withdrawal.ProcessedAt = now;
+            withdrawal.ProcessedByUserId ??= adminUserId;
+            withdrawal.BankTransactionReference = request.BankTransactionReference.Trim();
+            withdrawal.TransferredAt = request.TransferredAt;
 
             await unitOfWork.Repository<WalletTransaction>().AddAsync(
                 new WalletTransaction
@@ -397,9 +480,25 @@ public sealed class MoneyMovementService(
                     CreatedAt = now
                 },
                 cancellationToken);
+
+            await AddNotificationAsync(
+                withdrawal.RequestedByUserId,
+                adminUserId,
+                "WITHDRAWAL_COMPLETED",
+                "Yêu cầu rút tiền đã hoàn tất",
+                $"D4U đã xác nhận chuyển {withdrawal.NetAmount:N0} VND tới tài khoản ngân hàng của bạn.",
+                nameof(WithdrawalRequest),
+                withdrawal.Id,
+                now,
+                cancellationToken);
         }
         else if (decision == WithdrawalFailed)
         {
+            if (withdrawal.Status != WithdrawalProcessing)
+            {
+                throw new InvalidOperationException("Only processing withdrawal requests can fail.");
+            }
+
             if (string.IsNullOrWhiteSpace(request.FailureReason))
             {
                 throw new InvalidOperationException("Failure reason is required when withdrawal fails.");
@@ -416,6 +515,7 @@ public sealed class MoneyMovementService(
             withdrawal.Status = WithdrawalFailed;
             withdrawal.FailureReason = request.FailureReason.Trim();
             withdrawal.ProcessedAt = now;
+            withdrawal.ProcessedByUserId ??= adminUserId;
 
             await unitOfWork.Repository<WalletTransaction>().AddAsync(
                 new WalletTransaction
@@ -431,10 +531,21 @@ public sealed class MoneyMovementService(
                     CreatedAt = now
                 },
                 cancellationToken);
+
+            await AddNotificationAsync(
+                withdrawal.RequestedByUserId,
+                adminUserId,
+                "WITHDRAWAL_FAILED",
+                "Yêu cầu rút tiền chưa thành công",
+                $"Số tiền {withdrawal.Amount:N0} VND đã được trả lại số dư khả dụng. Lý do: {withdrawal.FailureReason}",
+                nameof(WithdrawalRequest),
+                withdrawal.Id,
+                now,
+                cancellationToken);
         }
         else
         {
-            throw new InvalidOperationException("Withdrawal decision must be COMPLETED or FAILED.");
+            throw new InvalidOperationException("Withdrawal decision must be PROCESSING, COMPLETED, or FAILED.");
         }
 
         await AddAuditLogAsync(
@@ -442,13 +553,22 @@ public sealed class MoneyMovementService(
             "WITHDRAWAL_PROCESSED",
             nameof(WithdrawalRequest),
             withdrawal.Id,
-            $$"""{"status":"{{WithdrawalPending}}","availableBalance":{{previousAvailableBalance}},"lockedBalance":{{previousLockedBalance}}}""",
+            $$"""{"status":"{{decision switch { WithdrawalProcessing => WithdrawalPending, _ => WithdrawalProcessing }}}","availableBalance":{{previousAvailableBalance}},"lockedBalance":{{previousLockedBalance}}}""",
             $$"""{"status":"{{withdrawal.Status}}","availableBalance":{{wallet.AvailableBalance}},"lockedBalance":{{wallet.LockedBalance}}}""",
             now,
             cancellationToken);
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return ToWithdrawalResponse(withdrawal, paymentMethod);
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return ToWithdrawalResponse(withdrawal, paymentMethod);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private async Task<StudentProfile> RequireStudentProfileAsync(Guid userId, CancellationToken cancellationToken)
@@ -520,6 +640,20 @@ public sealed class MoneyMovementService(
         return wallet;
     }
 
+    private async Task<Wallet> LockWalletAsync(
+        Wallet wallet,
+        CancellationToken cancellationToken)
+    {
+        if (dbContext.Entry(wallet).State == EntityState.Added)
+        {
+            return wallet;
+        }
+
+        return await dbContext.Wallets
+            .FromSqlInterpolated($"""SELECT * FROM public.wallets WHERE id = {wallet.Id} FOR UPDATE""")
+            .SingleAsync(cancellationToken);
+    }
+
     private async Task<PaymentMethod> RequirePaymentMethodAsync(
         Guid userId,
         Guid paymentMethodId,
@@ -580,6 +714,34 @@ public sealed class MoneyMovementService(
             cancellationToken);
     }
 
+    private async Task AddNotificationAsync(
+        Guid recipientUserId,
+        Guid? actorUserId,
+        string type,
+        string title,
+        string body,
+        string referenceType,
+        Guid referenceId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await unitOfWork.Repository<Notification>().AddAsync(
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = recipientUserId,
+                ActorUserId = actorUserId,
+                Type = type,
+                Title = title,
+                Body = body,
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                Status = NotificationStatus.UNREAD,
+                CreatedAt = now
+            },
+            cancellationToken);
+    }
+
     private static WalletResponse ToWalletResponse(Wallet wallet)
     {
         return new WalletResponse(
@@ -595,7 +757,9 @@ public sealed class MoneyMovementService(
             wallet.UpdatedAt);
     }
 
-    private static WalletTransactionResponse ToWalletTransactionResponse(WalletTransaction transaction)
+    private static WalletTransactionResponse ToWalletTransactionResponse(
+        WalletTransaction transaction,
+        Disbursement? disbursement)
     {
         return new WalletTransactionResponse(
             transaction.Id,
@@ -606,7 +770,10 @@ public sealed class MoneyMovementService(
             transaction.ReferenceType,
             transaction.ReferenceId,
             transaction.Description,
-            transaction.CreatedAt);
+            transaction.CreatedAt,
+            disbursement?.GrossAmount,
+            disbursement?.PlatformFeeAmount,
+            disbursement?.NetAmount);
     }
 
     private static PaymentMethodResponse ToPaymentMethodResponse(PaymentMethod method)
@@ -637,7 +804,11 @@ public sealed class MoneyMovementService(
             request.RequestedAt,
             request.ProcessedAt,
             paymentMethod.MaskedAccountNumber,
-            paymentMethod.AccountHolderName);
+            paymentMethod.AccountHolderName,
+            request.ProcessingStartedAt,
+            request.TransferredAt,
+            request.BankTransactionReference,
+            request.ProcessedByUserId);
     }
 
     private static DisbursementResponse ToDisbursementResponse(Disbursement disbursement)

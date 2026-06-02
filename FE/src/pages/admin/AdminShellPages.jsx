@@ -79,9 +79,17 @@ export function AdminWithdrawalsPage() {
     try {
       await walletApi.processWithdrawal(actingRow.id, {
         decision,
-        failureReason: values.failureReason
+        failureReason: values.failureReason,
+        bankTransactionReference: values.bankTransactionReference,
+        transferredAt: values.transferredAt ? new Date(values.transferredAt).toISOString() : null
       });
-      message.success(decision === 'COMPLETED' ? 'Da xac nhan withdrawal.' : 'Da danh dau withdrawal failed.');
+      message.success(
+        decision === 'PROCESSING'
+          ? 'Da nhan xu ly withdrawal.'
+          : decision === 'COMPLETED'
+            ? 'Da xac nhan withdrawal.'
+            : 'Da danh dau withdrawal failed.'
+      );
       closeDecision();
       await loadRows();
     } catch (requestError) {
@@ -106,17 +114,28 @@ export function AdminWithdrawalsPage() {
     { title: 'Phi', dataIndex: 'feeAmount', render: (value) => formatCurrency(value) },
     { title: 'Chuyen thuc te', dataIndex: 'netAmount', render: (value) => formatCurrency(value) },
     { title: 'Ngay yeu cau', dataIndex: 'requestedAt', render: formatDate },
+    { title: 'Bat dau xu ly', dataIndex: 'processingStartedAt', render: formatDate },
+    { title: 'Ma GD ngan hang', dataIndex: 'bankTransactionReference' },
     { title: 'Xu ly luc', dataIndex: 'processedAt', render: formatDate },
     {
       title: 'Hanh dong',
       render: (_, row) => (
         <Space wrap>
-          <Button type="primary" disabled={row.status !== 'PENDING'} onClick={() => openDecision(row, 'COMPLETED')}>
-            Xac nhan
-          </Button>
-          <Button danger disabled={row.status !== 'PENDING'} onClick={() => openDecision(row, 'FAILED')}>
-            That bai
-          </Button>
+          {row.status === 'PENDING' && (
+            <Button type="primary" onClick={() => openDecision(row, 'PROCESSING')}>
+              Nhan xu ly
+            </Button>
+          )}
+          {row.status === 'PROCESSING' && (
+            <>
+              <Button type="primary" onClick={() => openDecision(row, 'COMPLETED')}>
+                Da chuyen khoan
+              </Button>
+              <Button danger onClick={() => openDecision(row, 'FAILED')}>
+                That bai
+              </Button>
+            </>
+          )}
         </Space>
       )
     }
@@ -141,7 +160,13 @@ export function AdminWithdrawalsPage() {
         />
       </Card>
       <Modal
-        title={decision === 'COMPLETED' ? 'Xac nhan da chuyen khoan' : 'Danh dau withdrawal that bai'}
+        title={
+          decision === 'PROCESSING'
+            ? 'Nhan xu ly withdrawal'
+            : decision === 'COMPLETED'
+              ? 'Xac nhan da chuyen khoan'
+              : 'Danh dau withdrawal that bai'
+        }
         open={Boolean(actingRow)}
         onCancel={closeDecision}
         okText="Luu"
@@ -155,6 +180,24 @@ export function AdminWithdrawalsPage() {
             <Form.Item name="failureReason" label="Ly do that bai" rules={[{ required: true, message: 'Nhap ly do that bai.' }]}>
               <Input.TextArea rows={3} maxLength={500} />
             </Form.Item>
+          )}
+          {decision === 'COMPLETED' && (
+            <>
+              <Form.Item
+                name="bankTransactionReference"
+                label="Ma giao dich ngan hang"
+                rules={[{ required: true, message: 'Nhap ma giao dich ngan hang.' }]}
+              >
+                <Input maxLength={120} />
+              </Form.Item>
+              <Form.Item
+                name="transferredAt"
+                label="Thoi gian chuyen khoan"
+                rules={[{ required: true, message: 'Nhap thoi gian chuyen khoan.' }]}
+              >
+                <Input type="datetime-local" />
+              </Form.Item>
+            </>
           )}
         </Form>
       </Modal>

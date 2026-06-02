@@ -220,8 +220,8 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [ ] Create in-app notification for review action.
 - [ ] Create in-app notification for revision request.
 - [ ] Create in-app notification for invalid file report.
-- [ ] Create in-app notification for escrow released.
-- [ ] Create in-app notification for withdrawal request status changes.
+- [x] Create in-app notification for escrow released.
+- [x] Create in-app notification for withdrawal request status changes.
 - [ ] Create in-app notification for rating received.
 - [ ] Mark notification as read.
 - [ ] Record audit log for admin verification decisions.
@@ -230,8 +230,8 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [ ] Use audit logs as the primary source for project status transition history in the optimized MVP model.
 - [ ] Record audit log for payment webhook success/failed.
 - [ ] Record audit log for escrow funded/released/refunded.
-- [ ] Record audit log for wallet balance changes.
-- [ ] Record audit log for withdrawal processing.
+- [x] Record audit log for wallet balance changes.
+- [x] Record audit log for withdrawal processing.
 - [ ] Record audit log for user suspended/banned.
 
 ## Phase 6 - Paid Feature Access and AI Matching

@@ -402,13 +402,13 @@ Kết quả cần thấy ngay:
 
 - Final chuyển sang `APPROVED`.
 - Project chuyển sang `COMPLETED`.
-- Escrow chuyển sang `RELEASE_PENDING`.
+- Hệ thống thử release escrow ngay trong luồng hoàn tất.
 
-**Bước 19 - Chờ worker release escrow**
+**Bước 19 - Kiểm tra escrow release**
 
-1. Chờ tối đa khoảng một phút.
-2. Tại workspace SME hoặc Student, bấm `Làm mới`.
-3. Kiểm tra escrow.
+1. Tại workspace SME hoặc Student, bấm `Làm mới`.
+2. Kiểm tra escrow.
+3. Nếu vẫn là `RELEASE_PENDING`, chờ tối đa khoảng một phút để hosted worker retry rồi bấm `Làm mới` lại.
 
 Kết quả cần thấy:
 
@@ -428,6 +428,7 @@ Kết quả cần thấy:
 - Available balance tăng đúng `netAmount`.
 - Ledger có transaction `DISBURSEMENT_CREDIT`.
 - `netAmount = grossAmount - platformFeeAmount`.
+- Có thể mở rộng dòng ledger để xem gross amount, platform fee và net amount.
 
 #### Chặng 6: Withdrawal Manual Smoke
 
@@ -457,17 +458,20 @@ Kết quả cần thấy:
 - Withdrawal có status `PENDING`.
 - Available balance giảm.
 - Locked balance tăng cùng amount.
+- Không thể tạo withdrawal thứ hai khi request hiện tại còn `PENDING` hoặc `PROCESSING`.
 
 **Bước 23 - Admin xử lý thủ công**
 
 1. Tại cửa sổ C, đăng nhập Admin.
 2. Mở `<public-origin>/admin/withdrawals`.
 3. Tìm withdrawal vừa tạo.
-4. Sau khi chuyển khoản ngoài hệ thống, chọn hoàn tất.
+4. Bấm `Nhận xử lý`, kiểm tra withdrawal chuyển sang `PROCESSING`.
+5. Chuyển khoản ngoài hệ thống.
+6. Bấm `Đã chuyển khoản`, nhập mã giao dịch ngân hàng và thời gian chuyển.
 
 Kết quả cần thấy:
 
-- Withdrawal chuyển sang `COMPLETED`.
+- Withdrawal chuyển `PENDING -> PROCESSING -> COMPLETED`.
 - Locked balance giảm.
 - Ledger có `WITHDRAWAL_DEBIT`.
 

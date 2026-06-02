@@ -2,11 +2,15 @@ namespace D4U.Api.Application.Features.Projects;
 
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Files;
+using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
+public sealed class ProjectService(
+    IUnitOfWork unitOfWork,
+    IMoneyMovementService moneyMovementService,
+    ILogger<ProjectService> logger) : IProjectService
 {
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
@@ -898,6 +902,11 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (submission.MilestoneType == SubmissionStage.FINAL)
+        {
+            await TryReleaseProjectEscrowAsync(project.Id, userId, cancellationToken);
+        }
+
         return await ToSubmissionResponseAsync(submission, cancellationToken);
     }
 
@@ -1015,6 +1024,7 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         await AddAdminReviewActionAsync(project, latestSubmission, userId, ReviewActionType.ADMIN_FORCE_COMPLETE, request.Reason, now, cancellationToken);
         await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.COMPLETED, userId, request.Reason ?? "Admin force completed project.", cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await TryReleaseProjectEscrowAsync(project.Id, userId, cancellationToken);
 
         return ToProjectResponse(project, category);
     }
@@ -1252,6 +1262,24 @@ public sealed class ProjectService(IUnitOfWork unitOfWork) : IProjectService
         {
             escrow.Status = EscrowStatus.RELEASE_PENDING;
             escrow.UpdatedAt = now;
+        }
+    }
+
+    private async Task TryReleaseProjectEscrowAsync(
+        Guid projectId,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await moneyMovementService.ReleaseProjectEscrowAsync(projectId, actorUserId, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Immediate escrow release failed for completed project {ProjectId}. The background service will retry.",
+                projectId);
         }
     }
 

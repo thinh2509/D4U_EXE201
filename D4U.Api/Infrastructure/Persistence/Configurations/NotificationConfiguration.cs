@@ -12,6 +12,9 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         entity.ToTable("notifications");
         entity.HasKey(notification => notification.Id);
         entity.HasIndex(notification => new { notification.RecipientUserId, notification.Status, notification.CreatedAt });
+        entity.HasIndex(notification => new { notification.RecipientUserId, notification.Type, notification.ReferenceType, notification.ReferenceId })
+            .IsUnique()
+            .HasFilter("reference_type IS NOT NULL AND reference_id IS NOT NULL");
 
         entity.Property(notification => notification.Id).HasColumnName("id");
         entity.Property(notification => notification.RecipientUserId).HasColumnName("recipient_user_id").IsRequired();
