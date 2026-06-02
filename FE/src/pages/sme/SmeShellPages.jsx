@@ -1,7 +1,7 @@
 import { BulbOutlined, CreditCardOutlined, FileDoneOutlined, MessageOutlined, StarOutlined, TeamOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Space, Table } from 'antd';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
@@ -91,6 +91,7 @@ export function SmeApplicationsPage() {
 }
 
 export function SmeOffersPage() {
+  const [searchParams] = useSearchParams();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reopening, setReopening] = useState(null);
@@ -183,6 +184,14 @@ export function SmeOffersPage() {
         className="form-alert"
         message="Chỉ mở thanh toán escrow khi sinh viên đã chấp nhận offer. Project chỉ bắt đầu sau khi PayOS webhook xác nhận thanh toán thành công."
       />
+      {searchParams.get('paymentReturnError') ? (
+        <Alert
+          type="warning"
+          showIcon
+          className="form-alert"
+          message="Không thể xác định workspace từ link PayOS cũ. Hãy mở workspace của offer để kiểm tra trạng thái thanh toán."
+        />
+      ) : null}
       <Card className="table-card">
         <Table
           rowKey="offerId"

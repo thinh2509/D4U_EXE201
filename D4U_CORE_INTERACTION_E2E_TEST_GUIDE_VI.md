@@ -711,7 +711,21 @@ Không ghi Client ID, API Key hoặc Checksum Key vào biên bản.
 
 ## 7. Bổ Sung Kiểm Tra Workspace Nộp Bài
 
-Áp dụng cho route chung `/projects/{projectId}/execution`. Student và SME mở cùng URL nhưng thấy giao diện theo vai trò của mình. Workspace tự poll backend mỗi 5 giây; nút `Làm mới` vẫn dùng được khi cần kiểm tra ngay.
+Áp dụng cho route chung `/projects/{projectId}/execution`. Student và SME mở cùng URL nhưng thấy giao diện theo vai trò của mình. Workspace tự poll backend mỗi 5 giây; nút `Làm mới` vẫn dùng được khi cần kiểm tra ngay. Countdown deadline tự cập nhật mỗi phút và hiển thị theo giờ Việt Nam.
+
+### 7.0. Kiểm Tra Bố Cục Và Deadline
+
+1. Mở workspace bằng SME rồi mở lại cùng URL bằng Student.
+2. Kiểm tra progress bar có thứ tự `Offer -> Escrow -> Sketch -> Revision -> Final -> Hoàn thành`.
+3. Kiểm tra sidebar `Mốc thời gian` hiển thị đầy đủ Sketch, Final và Toàn dự án.
+4. Khi có submission chờ review, kiểm tra deadline nổi bật chuyển thành `Hạn SME duyệt bài`.
+5. Khi SME yêu cầu chỉnh sửa hoặc báo file lỗi, kiểm tra deadline nổi bật chuyển thành `Hạn Student nộp lại`.
+
+Kết quả cần thấy:
+
+- Mỗi deadline hiển thị cả ngày, giờ và countdown `Còn ...` hoặc `Quá hạn ...`.
+- Student và SME thấy cùng dữ liệu deadline nhưng khối action phù hợp với vai trò.
+- Dòng thời gian tương tác gộp hiển thị offer, escrow, submission, feedback, approval và release theo thứ tự mới nhất trước.
 
 ### 7.1. Student Chọn File Và Xác Nhận Nộp
 
@@ -719,7 +733,7 @@ Không ghi Client ID, API Key hoặc Checksum Key vào biên bản.
 2. Bấm `Chọn file`, chọn nhiều file `.jpg`, `.png` hoặc `.pdf`, mỗi file tối đa 20 MB.
 3. Kiểm tra draft list hiển thị tên, định dạng, dung lượng và nút xóa từng file.
 4. Xóa một file khỏi draft list. File bị xóa không được upload.
-5. Bấm `Nộp bài`.
+5. Bấm `Xác nhận nộp bài`.
 6. Kiểm tra modal xác nhận hiển thị đúng milestone, mô tả và danh sách file còn lại.
 7. Bấm `Xác nhận nộp`.
 
@@ -735,21 +749,21 @@ Kết quả cần thấy:
 
 1. SME giữ workspace đang mở sau khi Student nộp bài.
 2. Chờ tối đa 5 giây hoặc bấm `Làm mới`.
-3. Tại panel `Bản đang chờ duyệt`, kiểm tra milestone, vòng sửa, mô tả, thời gian nộp, hạn duyệt và file download.
+3. Tại panel `Bản đang chờ duyệt`, kiểm tra milestone, vòng audit, mô tả, thời gian nộp, hạn duyệt, countdown và file download.
 4. Download file bằng nút trong panel.
 5. Chọn một trong ba action: `Duyệt`, `Yêu cầu chỉnh sửa`, `Báo file lỗi`.
 
 Kết quả cần thấy:
 
 - Panel luôn hiển thị submission `SUBMITTED` hoặc `VALID` mới nhất.
-- Bảng `Lịch sử nộp bài` và `Lịch sử phản hồi` sắp xếp mới nhất trước.
+- `Dòng thời gian tương tác` gộp bài nộp và phản hồi, sắp xếp mới nhất trước.
 - Polling không xóa draft file hoặc nội dung mô tả Student đang nhập.
 
 ### 7.3. Nhánh Báo File Lỗi Và Upload Lại
 
 1. SME bấm `Báo file lỗi`, chọn `CANNOT_OPEN`, nhập mô tả và hạn upload lại.
 2. Student chờ tối đa 5 giây hoặc bấm `Làm mới`.
-3. Kiểm tra Student thấy next action `Nộp bản chỉnh sửa`, lý do file lỗi và deadline trong `Lịch sử phản hồi`.
+3. Kiểm tra Student thấy next action `Nộp bản chỉnh sửa`, lý do file lỗi và deadline trong `Dòng thời gian tương tác`.
 4. Student chọn file mới và xác nhận nộp lại.
 5. SME chờ tối đa 5 giây, kiểm tra panel đang chờ duyệt hiển thị bản mới nhất rồi download và duyệt.
 

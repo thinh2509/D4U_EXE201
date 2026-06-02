@@ -20,6 +20,10 @@ public sealed record ProjectWorkspaceResponse(
     decimal BudgetAmount,
     string Currency,
     DateTimeOffset TotalDeadlineAt,
+    DateTimeOffset SketchDeadlineAt,
+    DateTimeOffset FinalDeadlineAt,
+    DateTimeOffset? AcceptedAt,
+    DateTimeOffset? CompletedAt,
     int CurrentRevisionRound,
     WorkspaceOfferResponse? Offer,
     WorkspacePaymentResponse? Payment,
@@ -33,7 +37,11 @@ public sealed record WorkspaceOfferResponse(
     decimal OfferedAmount,
     DateTimeOffset? ExpiresAt,
     DateTimeOffset? PaymentDueAt,
-    string StudentFullName);
+    string StudentFullName,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? AcceptedAt,
+    DateTimeOffset? RejectedAt,
+    DateTimeOffset? ExpiredAt);
 
 public sealed record WorkspacePaymentResponse(
     Guid Id,
@@ -42,7 +50,9 @@ public sealed record WorkspacePaymentResponse(
     string? CheckoutUrl,
     string? QrCode,
     DateTimeOffset? ExpiresAt,
-    DateTimeOffset? PaidAt);
+    DateTimeOffset? PaidAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
 
 public sealed record WorkspaceEscrowResponse(
     Guid Id,
@@ -50,7 +60,8 @@ public sealed record WorkspaceEscrowResponse(
     decimal Amount,
     decimal? PlatformFeeAmount,
     DateTimeOffset? FundedAt,
-    DateTimeOffset? ReleasedAt);
+    DateTimeOffset? ReleasedAt,
+    DateTimeOffset CreatedAt);
 
 public sealed record WorkspaceSubmissionResponse(
     Guid Id,

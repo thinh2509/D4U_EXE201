@@ -61,6 +61,10 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
             access.Project.BudgetAmount,
             access.Project.Currency,
             access.Project.TotalDeadlineAt,
+            access.Project.SketchDeadlineAt,
+            access.Project.FinalDeadlineAt,
+            access.Project.AcceptedAt,
+            access.Project.CompletedAt,
             access.Project.CurrentRevisionRound,
             offer is null
                 ? null
@@ -70,7 +74,11 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
                     offer.OfferedAmount,
                     offer.ExpiresAt,
                     offer.PaymentDueAt,
-                    studentFullName ?? "Student"),
+                    studentFullName ?? "Student",
+                    offer.CreatedAt,
+                    offer.AcceptedAt,
+                    offer.RejectedAt,
+                    offer.ExpiredAt),
             payment is null
                 ? null
                 : new WorkspacePaymentResponse(
@@ -80,7 +88,9 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
                     access.User.Role == UserRole.SME ? payment.CheckoutUrl : null,
                     access.User.Role == UserRole.SME ? payment.QrCode : null,
                     payment.ExpiresAt,
-                    payment.PaidAt),
+                    payment.PaidAt,
+                    payment.CreatedAt,
+                    payment.UpdatedAt),
             escrow is null
                 ? null
                 : new WorkspaceEscrowResponse(
@@ -89,7 +99,8 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
                     escrow.Amount,
                     escrow.PlatformFeeAmount,
                     escrow.FundedAt,
-                    escrow.ReleasedAt),
+                    escrow.ReleasedAt,
+                    escrow.CreatedAt),
             submissions,
             reviewActions);
     }

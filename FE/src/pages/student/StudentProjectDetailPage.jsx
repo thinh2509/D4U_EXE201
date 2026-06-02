@@ -18,6 +18,7 @@ export function StudentProjectDetailPage() {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
+  const [quickConfirmationOpen, setQuickConfirmationOpen] = useState(false);
   const [customProposalOpen, setCustomProposalOpen] = useState(false);
   const [customConfirmationOpen, setCustomConfirmationOpen] = useState(false);
   const [customProposal, setCustomProposal] = useState(null);
@@ -44,6 +45,7 @@ export function StudentProjectDetailPage() {
     try {
       await projectApi.submitApplication(projectId, payload);
       message.success('Đã gửi ứng tuyển.');
+      setQuickConfirmationOpen(false);
       setCustomProposalOpen(false);
       setCustomConfirmationOpen(false);
       setCustomProposal(null);
@@ -76,6 +78,7 @@ export function StudentProjectDetailPage() {
   };
 
   const closeApplyFlow = () => {
+    setQuickConfirmationOpen(false);
     setCustomProposalOpen(false);
     setCustomConfirmationOpen(false);
     setCustomProposal(null);
@@ -88,13 +91,17 @@ export function StudentProjectDetailPage() {
   const hasApplied = Boolean(project.hasApplied);
   const canApply = project.status === 'OPEN' && !hasApplied;
   const applyButtonLabel = hasApplied ? 'Đã ứng tuyển' : 'Gửi ứng tuyển';
+  const openCustomProposal = () => {
+    setQuickConfirmationOpen(false);
+    setCustomProposalOpen(true);
+  };
 
   return (
     <>
       <PageHeader
         title={project.title}
         description={project.designCategoryName}
-        extra={<Button type="primary" icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={submitQuickApplication}>{applyButtonLabel}</Button>}
+        extra={<Button type="primary" icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={() => setQuickConfirmationOpen(true)}>{applyButtonLabel}</Button>}
       />
 
       <div className="project-detail-layout">
@@ -136,16 +143,40 @@ export function StudentProjectDetailPage() {
                 <div><span>Final</span><strong>{formatDate(project.finalDeadlineAt)}</strong></div>
               </div>
 
-              <Button type="primary" size="large" block icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={submitQuickApplication}>
+              <Button type="primary" size="large" block icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={() => setQuickConfirmationOpen(true)}>
                 {applyButtonLabel}
               </Button>
-              <Button size="large" block disabled={!canApply || applying} onClick={() => setCustomProposalOpen(true)}>
+              <Button size="large" block disabled={!canApply || applying} onClick={openCustomProposal}>
                 Đề xuất khác
               </Button>
             </Space>
           </Card>
         </aside>
       </div>
+
+      <Modal
+        title="Xác nhận ứng tuyển"
+        open={quickConfirmationOpen}
+        confirmLoading={applying}
+        okText="Xác nhận gửi ứng tuyển"
+        cancelText="Hủy"
+        onOk={submitQuickApplication}
+        onCancel={() => setQuickConfirmationOpen(false)}
+        footer={(_, { OkBtn, CancelBtn }) => (
+          <>
+            <CancelBtn />
+            <Button onClick={openCustomProposal}>Đề xuất khác</Button>
+            <OkBtn />
+          </>
+        )}
+      >
+        <Descriptions column={1} bordered size="small">
+          <Descriptions.Item label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</Descriptions.Item>
+          <Descriptions.Item label="Hạn Sketch">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
+          <Descriptions.Item label="Hạn Final">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
+          <Descriptions.Item label="Deadline cuối">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
+        </Descriptions>
+      </Modal>
 
       <Modal title="Đề xuất khác" open={customProposalOpen} footer={null} onCancel={closeApplyFlow}>
         <Form form={customProposalForm} layout="vertical" requiredMark={false}>

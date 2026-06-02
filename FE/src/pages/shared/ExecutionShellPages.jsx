@@ -1,44 +1,31 @@
 import {
-  CheckOutlined,
-  CreditCardOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
   FileDoneOutlined,
   ReloadOutlined,
   StarOutlined,
-  UploadOutlined,
-  WarningOutlined
 } from '@ant-design/icons';
-import { Alert, App, Button, Card, Descriptions, Form, Input, Modal, Select, Space, Steps, Table, Tag, Upload } from 'antd';
+import { App, Button, Form, Input, Modal, Select, Upload } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
-import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { fileApi } from '../../services/fileApi.js';
 import { paymentApi } from '../../services/paymentApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatCurrency, formatDate, formatFileSize, getFileExtension } from '../../utils/format.js';
+import { formatFileSize, getFileExtension } from '../../utils/format.js';
 import { FeatureShellPage } from './MvpShellPage.jsx';
+import {
+  SmeReviewWorkspace,
+  SubmissionMilestoneBoard,
+  StudentSubmissionWorkspace,
+  WorkspaceDeadlinePanel,
+  WorkspaceProgressTimeline,
+  WorkspaceSummaryPanel
+} from './WorkspaceUi.jsx';
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const allowedExtensions = new Set(['jpg', 'png', 'pdf']);
 const reviewableStatuses = new Set(['SUBMITTED', 'VALID']);
-
-const nextActionLabels = {
-  WAIT_STUDENT_APPLICATION: 'Chờ Student ứng tuyển',
-  CREATE_OFFER: 'Tạo offer cho Student',
-  WAIT_STUDENT_ACCEPT: 'Chờ Student chấp nhận offer',
-  PAY_ESCROW: 'Thanh toán escrow qua PayOS',
-  SUBMIT_SKETCH: 'Nộp Sketch',
-  REVIEW_SKETCH: 'Duyệt Sketch',
-  SUBMIT_FINAL: 'Nộp Final',
-  REVIEW_FINAL: 'Duyệt Final',
-  SUBMIT_REVISION: 'Nộp bản chỉnh sửa',
-  ADMIN_REVIEW: 'Chờ Admin xử lý',
-  COMPLETED: 'Dự án đã hoàn thành'
-};
 
 const invalidReasons = [
   'EMPTY_FILE',
@@ -53,41 +40,17 @@ function newestFirst(items = [], dateField = 'submittedAt') {
   return [...items].sort((left, right) => new Date(right[dateField]) - new Date(left[dateField]));
 }
 
-function getTimelineCurrent(workspace) {
-  if (workspace.projectStatus === 'COMPLETED') return 4;
-  if (workspace.projectStatus === 'FINAL_REVIEW') return 3;
-  if (workspace.projectStatus === 'SKETCH_REVIEW' || workspace.projectStatus === 'REVISION_REQUESTED') return 2;
-  if (workspace.escrow?.status === 'FUNDED') return 2;
-  if (workspace.offer) return 1;
-  return 0;
-}
-
 function getSubmissionMilestone(workspace, submissions) {
   if (workspace.nextAction === 'SUBMIT_SKETCH') return 'SKETCH';
   if (workspace.nextAction === 'SUBMIT_FINAL') return 'FINAL';
   return submissions.find((item) => ['REVISION_REQUESTED', 'INVALID_REPORTED'].includes(item.status))?.milestoneType;
 }
 
-function WorkspaceTimeline({ workspace }) {
-  return (
-    <Card className="table-card">
-      <Steps
-        current={getTimelineCurrent(workspace)}
-        items={[
-          { title: 'Offer' },
-          { title: 'PayOS escrow' },
-          { title: 'Sketch' },
-          { title: workspace.currentRevisionRound ? `Revision ${workspace.currentRevisionRound}` : 'Final' },
-          { title: 'Hoàn thành' }
-        ]}
-      />
-    </Card>
-  );
-}
-
 export function ProjectExecutionPage() {
   const { message } = App.useApp();
   const { projectId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [submissionForm] = Form.useForm();
   const [reviewForm] = Form.useForm();
   const [workspace, setWorkspace] = useState(null);
@@ -97,6 +60,7 @@ export function ProjectExecutionPage() {
   const [draftFiles, setDraftFiles] = useState([]);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [reviewMode, setReviewMode] = useState(null);
+  const [now, setNow] = useState(Date.now());
 
   const loadWorkspace = async ({ silent = false } = {}) => {
     if (!silent) {
@@ -119,6 +83,11 @@ export function ProjectExecutionPage() {
     return () => window.clearInterval(pollingId);
   }, [projectId]);
 
+  useEffect(() => {
+    const countdownId = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(countdownId);
+  }, []);
+
   const submissions = useMemo(() => newestFirst(workspace?.submissions), [workspace]);
   const reviewActions = useMemo(() => newestFirst(workspace?.reviewActions, 'createdAt'), [workspace]);
   const latestSubmission = useMemo(
@@ -129,6 +98,8 @@ export function ProjectExecutionPage() {
     () => workspace ? getSubmissionMilestone(workspace, submissions) : null,
     [workspace, submissions]
   );
+  const latestReviewAction = reviewActions[0];
+  const isPaymentReturn = searchParams.get('paymentReturn') === '1';
 
   const canSubmit = workspace
     && ['SUBMIT_SKETCH', 'SUBMIT_FINAL', 'SUBMIT_REVISION'].includes(workspace.nextAction)
@@ -139,6 +110,41 @@ export function ProjectExecutionPage() {
     && workspace.nextActionRole === 'SME'
     && workspace.viewerRole === 'SME'
     && latestSubmission;
+
+  useEffect(() => {
+    if (!isPaymentReturn || workspace?.viewerRole !== 'SME') return;
+
+    const toastKey = 'payos-workspace-return';
+    const paymentSucceeded = workspace.payment?.status === 'SUCCESS'
+      || ['FUNDED', 'RELEASE_PENDING', 'RELEASED'].includes(workspace.escrow?.status);
+    const paymentFailed = ['FAILED', 'CANCELLED', 'EXPIRED'].includes(workspace.payment?.status);
+
+    if (paymentSucceeded) {
+      message.success({
+        key: toastKey,
+        content: 'Thanh toán thành công. Escrow đã được ghi nhận và dự án đã bắt đầu.',
+        duration: 4
+      });
+      navigate(`/projects/${projectId}/execution`, { replace: true });
+      return;
+    }
+
+    if (paymentFailed) {
+      message.warning({
+        key: toastKey,
+        content: 'Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS từ workspace.',
+        duration: 4
+      });
+      navigate(`/projects/${projectId}/execution`, { replace: true });
+      return;
+    }
+
+    message.loading({
+      key: toastKey,
+      content: 'Đang xác nhận thanh toán PayOS...',
+      duration: 0
+    });
+  }, [isPaymentReturn, message, navigate, projectId, workspace?.escrow?.status, workspace?.payment?.status, workspace?.viewerRole]);
 
   const addDraftFile = (file) => {
     const extension = getFileExtension(file.name);
@@ -270,32 +276,6 @@ export function ProjectExecutionPage() {
   if (loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadWorkspace} />;
 
-  const submissionColumns = [
-    { title: 'Milestone', dataIndex: 'milestoneType' },
-    { title: 'Loại', dataIndex: 'submissionType' },
-    { title: 'Vòng sửa', dataIndex: 'revisionRound' },
-    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Nộp lúc', dataIndex: 'submittedAt', render: formatDate },
-    {
-      title: 'File',
-      render: (_, row) => (
-        <Space direction="vertical" size={2}>
-          {row.files.map((file) => (
-            <Button key={file.id} type="link" icon={<DownloadOutlined />} onClick={() => downloadSubmissionFile(file)}>
-              {file.originalFilename}
-            </Button>
-          ))}
-        </Space>
-      )
-    }
-  ];
-  const reviewColumns = [
-    { title: 'Phản hồi', dataIndex: 'action' },
-    { title: 'Nội dung', render: (_, row) => row.requestedChanges || row.comment || row.invalidFileReason || 'Không có' },
-    { title: 'Hạn xử lý', render: (_, row) => formatDate(row.dueAt || row.reuploadDueAt) },
-    { title: 'Tạo lúc', dataIndex: 'createdAt', render: formatDate }
-  ];
-
   return (
     <>
       <PageHeader
@@ -305,106 +285,49 @@ export function ProjectExecutionPage() {
         extra={<Button icon={<ReloadOutlined />} onClick={() => loadWorkspace()}>Làm mới</Button>}
       />
 
-      <WorkspaceTimeline workspace={workspace} />
+      <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-      <div className="project-detail-layout">
-        <div className="project-detail-main">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div className="grid gap-4">
           {workspace.viewerRole === 'STUDENT' ? (
-            <Card title="Việc cần làm tiếp theo">
-              <Alert
-                type={canSubmit ? 'info' : 'success'}
-                showIcon
-                message={nextActionLabels[workspace.nextAction] || workspace.nextAction}
-                description={canSubmit ? `Milestone: ${milestoneType}` : latestSubmission ? `Đang chờ SME duyệt trước ${formatDate(latestSubmission.reviewDueAt)}.` : 'Workspace sẽ tự cập nhật sau mỗi 5 giây.'}
-              />
-              {canSubmit ? (
-                <Form form={submissionForm} layout="vertical" className="workspace-action-form">
-                  <Form.Item label="Mô tả bản nộp" name="description">
-                    <Input.TextArea rows={3} placeholder="Ghi chú ngắn để SME hiểu nội dung bản nộp" />
-                  </Form.Item>
-                  <Upload beforeUpload={addDraftFile} fileList={[]} accept=".jpg,.png,.pdf" multiple>
-                    <Button icon={<UploadOutlined />}>Chọn file</Button>
-                  </Upload>
-                  <div className="workspace-draft-list">
-                    {draftFiles.map((file) => (
-                      <div className="workspace-draft-item" key={file.uid}>
-                        <div>
-                          <strong>{file.name}</strong>
-                          <div className="muted-text">{getFileExtension(file.name).toUpperCase()} · {formatFileSize(file.size)}</div>
-                        </div>
-                        <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Xóa ${file.name}`} onClick={() => setDraftFiles((current) => current.filter((item) => item.uid !== file.uid))} />
-                      </div>
-                    ))}
-                  </div>
-                  <Button type="primary" loading={acting} onClick={openSubmitConfirmation}>Nộp bài</Button>
-                </Form>
-              ) : null}
-            </Card>
+            <StudentSubmissionWorkspace
+              workspace={workspace}
+              canSubmit={canSubmit}
+              milestoneType={milestoneType}
+              latestSubmission={latestSubmission}
+              latestReviewAction={latestReviewAction}
+              now={now}
+              form={submissionForm}
+              draftFiles={draftFiles}
+              acting={acting}
+              onAddFile={addDraftFile}
+              onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
+              onSubmit={openSubmitConfirmation}
+            />
           ) : (
-            <Card title="Bản đang chờ duyệt">
-              {workspace.nextAction === 'PAY_ESCROW' && workspace.nextActionRole === 'SME' ? (
-                <>
-                  <Alert type="info" showIcon message="Thanh toán escrow qua PayOS" description="Mở QR PayOS để funding escrow và bắt đầu dự án." />
-                  <Button className="workspace-primary-action" type="primary" icon={<CreditCardOutlined />} loading={acting} onClick={openPayment}>
-                    Thanh toán PayOS
-                  </Button>
-                </>
-              ) : canReview ? (
-                <>
-                  <Descriptions column={2} size="small">
-                    <Descriptions.Item label="Milestone"><Tag color="blue">{latestSubmission.milestoneType}</Tag></Descriptions.Item>
-                    <Descriptions.Item label="Vòng sửa">{latestSubmission.revisionRound}</Descriptions.Item>
-                    <Descriptions.Item label="Nộp lúc">{formatDate(latestSubmission.submittedAt)}</Descriptions.Item>
-                    <Descriptions.Item label="Hạn duyệt">{formatDate(latestSubmission.reviewDueAt)}</Descriptions.Item>
-                    <Descriptions.Item label="Mô tả" span={2}>{latestSubmission.description || 'Không có'}</Descriptions.Item>
-                    <Descriptions.Item label="File" span={2}>
-                      <Space direction="vertical" size={2}>
-                        {latestSubmission.files.map((file) => (
-                          <Button key={file.id} type="link" icon={<DownloadOutlined />} onClick={() => downloadSubmissionFile(file)}>
-                            {file.originalFilename}
-                          </Button>
-                        ))}
-                      </Space>
-                    </Descriptions.Item>
-                  </Descriptions>
-                  <Space wrap className="workspace-primary-action">
-                    <Button type="primary" icon={<CheckOutlined />} loading={acting} onClick={approveSubmission}>Duyệt</Button>
-                    <Button onClick={() => { reviewForm.resetFields(); setReviewMode('revision'); }}>Yêu cầu chỉnh sửa</Button>
-                    <Button danger icon={<WarningOutlined />} onClick={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}>Báo file lỗi</Button>
-                  </Space>
-                </>
-              ) : (
-                <Alert
-                  type={workspace.nextAction === 'ADMIN_REVIEW' ? 'warning' : 'info'}
-                  showIcon
-                  message={nextActionLabels[workspace.nextAction] || workspace.nextAction}
-                  description="Workspace tự cập nhật sau mỗi 5 giây."
-                />
-              )}
-            </Card>
+            <SmeReviewWorkspace
+              workspace={workspace}
+              canReview={canReview}
+              latestSubmission={latestSubmission}
+              now={now}
+              acting={acting}
+              onPayment={openPayment}
+              onDownload={downloadSubmissionFile}
+              onApprove={approveSubmission}
+              onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
+              onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
+            />
           )}
-
-          <Card title="Lịch sử nộp bài">
-            <Table rowKey="id" columns={submissionColumns} dataSource={submissions} pagination={false} scroll={{ x: 760 }} />
-          </Card>
-          <Card title="Lịch sử phản hồi">
-            <Table rowKey="id" columns={reviewColumns} dataSource={reviewActions} pagination={false} scroll={{ x: 680 }} />
-          </Card>
+          <SubmissionMilestoneBoard
+            submissions={submissions}
+            reviewActions={reviewActions}
+            onDownload={downloadSubmissionFile}
+          />
         </div>
 
-        <aside className="project-side-panel">
-          <Card title="Trạng thái dự án">
-            <Descriptions column={1} size="small">
-              <Descriptions.Item label="Project"><StatusBadge status={workspace.projectStatus} /></Descriptions.Item>
-              <Descriptions.Item label="Vai trò">{workspace.viewerRole}</Descriptions.Item>
-              <Descriptions.Item label="Ngân sách">{formatCurrency(workspace.budgetAmount, workspace.currency)}</Descriptions.Item>
-              <Descriptions.Item label="Deadline">{formatDate(workspace.totalDeadlineAt)}</Descriptions.Item>
-              <Descriptions.Item label="Số vòng feedback">{workspace.currentRevisionRound}</Descriptions.Item>
-              <Descriptions.Item label="Offer">{workspace.offer ? <StatusBadge status={workspace.offer.status} /> : 'Chưa có'}</Descriptions.Item>
-              <Descriptions.Item label="Payment">{workspace.payment ? <StatusBadge status={workspace.payment.status} /> : 'Chưa có'}</Descriptions.Item>
-              <Descriptions.Item label="Escrow">{workspace.escrow ? <StatusBadge status={workspace.escrow.status} /> : 'Chưa có'}</Descriptions.Item>
-            </Descriptions>
-          </Card>
+        <aside className="order-first grid gap-4 lg:order-none lg:sticky lg:top-[88px]">
+          <WorkspaceDeadlinePanel workspace={workspace} now={now} />
+          <WorkspaceSummaryPanel workspace={workspace} />
         </aside>
       </div>
 
@@ -418,9 +341,9 @@ export function ProjectExecutionPage() {
         onCancel={() => setConfirmSubmitOpen(false)}
       >
         <p>{submissionForm.getFieldValue('description') || 'Không có mô tả.'}</p>
-        <div className="workspace-draft-list">
+        <div className="mt-3 grid gap-2">
           {draftFiles.map((file) => (
-            <div className="workspace-draft-item" key={file.uid}>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-[#EAF3F7] bg-[#F8FBFE] px-3 py-2" key={file.uid}>
               <strong>{file.name}</strong>
               <span className="muted-text">{formatFileSize(file.size)}</span>
             </div>
@@ -445,6 +368,7 @@ export function ProjectExecutionPage() {
               </Form.Item>
               <Form.Item label="Hạn nộp lại" name="dueAt" rules={[{ required: true, message: 'Chọn hạn nộp lại.' }]}>
                 <Input type="datetime-local" />
+                <div className="mt-1 text-xs text-[#667985]">Thời gian nhập theo múi giờ Việt Nam.</div>
               </Form.Item>
             </>
           ) : (
@@ -457,6 +381,7 @@ export function ProjectExecutionPage() {
               </Form.Item>
               <Form.Item label="Hạn upload lại" name="reuploadDueAt" rules={[{ required: true, message: 'Chọn hạn upload lại.' }]}>
                 <Input type="datetime-local" />
+                <div className="mt-1 text-xs text-[#667985]">Thời gian nhập theo múi giờ Việt Nam.</div>
               </Form.Item>
             </>
           )}
