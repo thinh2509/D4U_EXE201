@@ -90,8 +90,8 @@ public sealed class PaymentService(
             UpdatedAt = now
         };
 
-        var returnUrl = AppendPaymentQuery(paymentOptions.Value.ReturnUrl, payment.Id, offer.Id);
-        var cancelUrl = AppendPaymentQuery(paymentOptions.Value.CancelUrl, payment.Id, offer.Id);
+        var returnUrl = AppendPaymentQuery(paymentOptions.Value.ReturnUrl, payment.Id, offer.Id, project.Id);
+        var cancelUrl = AppendPaymentQuery(paymentOptions.Value.CancelUrl, payment.Id, offer.Id, project.Id);
         var providerResponse = await paymentProvider.CreatePaymentAsync(
             new PaymentProviderCreateRequest(
                 payment.Id,
@@ -648,10 +648,11 @@ public sealed class PaymentService(
     private static string AppendPaymentQuery(
         string url,
         Guid paymentId,
-        Guid offerId)
+        Guid offerId,
+        Guid projectId)
     {
         var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
-        return $"{url}{separator}paymentId={paymentId}&offerId={offerId}";
+        return $"{url}{separator}paymentId={paymentId}&offerId={offerId}&projectId={projectId}";
     }
 
     private static PaymentResponse ToPaymentResponse(

@@ -5,7 +5,7 @@ import {
 } from '@ant-design/icons';
 import { App, Button, Form, Input, Modal, Select, Upload } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { fileApi } from '../../services/fileApi.js';
@@ -16,8 +16,8 @@ import { formatFileSize, getFileExtension } from '../../utils/format.js';
 import { FeatureShellPage } from './MvpShellPage.jsx';
 import {
   SmeReviewWorkspace,
+  SubmissionMilestoneBoard,
   StudentSubmissionWorkspace,
-  WorkspaceActivityTimeline,
   WorkspaceDeadlinePanel,
   WorkspaceProgressTimeline,
   WorkspaceSummaryPanel
@@ -49,6 +49,8 @@ function getSubmissionMilestone(workspace, submissions) {
 export function ProjectExecutionPage() {
   const { message } = App.useApp();
   const { projectId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [submissionForm] = Form.useForm();
   const [reviewForm] = Form.useForm();
   const [workspace, setWorkspace] = useState(null);
@@ -97,6 +99,7 @@ export function ProjectExecutionPage() {
     [workspace, submissions]
   );
   const latestReviewAction = reviewActions[0];
+  const isPaymentReturn = searchParams.get('paymentReturn') === '1';
 
   const canSubmit = workspace
     && ['SUBMIT_SKETCH', 'SUBMIT_FINAL', 'SUBMIT_REVISION'].includes(workspace.nextAction)
@@ -107,6 +110,41 @@ export function ProjectExecutionPage() {
     && workspace.nextActionRole === 'SME'
     && workspace.viewerRole === 'SME'
     && latestSubmission;
+
+  useEffect(() => {
+    if (!isPaymentReturn || workspace?.viewerRole !== 'SME') return;
+
+    const toastKey = 'payos-workspace-return';
+    const paymentSucceeded = workspace.payment?.status === 'SUCCESS'
+      || ['FUNDED', 'RELEASE_PENDING', 'RELEASED'].includes(workspace.escrow?.status);
+    const paymentFailed = ['FAILED', 'CANCELLED', 'EXPIRED'].includes(workspace.payment?.status);
+
+    if (paymentSucceeded) {
+      message.success({
+        key: toastKey,
+        content: 'Thanh toán thành công. Escrow đã được ghi nhận và dự án đã bắt đầu.',
+        duration: 4
+      });
+      navigate(`/projects/${projectId}/execution`, { replace: true });
+      return;
+    }
+
+    if (paymentFailed) {
+      message.warning({
+        key: toastKey,
+        content: 'Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS từ workspace.',
+        duration: 4
+      });
+      navigate(`/projects/${projectId}/execution`, { replace: true });
+      return;
+    }
+
+    message.loading({
+      key: toastKey,
+      content: 'Đang xác nhận thanh toán PayOS...',
+      duration: 0
+    });
+  }, [isPaymentReturn, message, navigate, projectId, workspace?.escrow?.status, workspace?.payment?.status, workspace?.viewerRole]);
 
   const addDraftFile = (file) => {
     const extension = getFileExtension(file.name);
@@ -249,8 +287,8 @@ export function ProjectExecutionPage() {
 
       <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-      <div className="workspace-layout">
-        <div className="workspace-main">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div className="grid gap-4">
           {workspace.viewerRole === 'STUDENT' ? (
             <StudentSubmissionWorkspace
               workspace={workspace}
@@ -280,11 +318,15 @@ export function ProjectExecutionPage() {
               onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
             />
           )}
-          <WorkspaceActivityTimeline workspace={workspace} now={now} />
+          <SubmissionMilestoneBoard
+            submissions={submissions}
+            reviewActions={reviewActions}
+            onDownload={downloadSubmissionFile}
+          />
         </div>
 
-        <aside className="workspace-sidebar">
-          <WorkspaceDeadlinePanel workspace={workspace} latestSubmission={latestSubmission} latestReviewAction={latestReviewAction} now={now} />
+        <aside className="order-first grid gap-4 lg:order-none lg:sticky lg:top-[88px]">
+          <WorkspaceDeadlinePanel workspace={workspace} now={now} />
           <WorkspaceSummaryPanel workspace={workspace} />
         </aside>
       </div>
@@ -299,9 +341,9 @@ export function ProjectExecutionPage() {
         onCancel={() => setConfirmSubmitOpen(false)}
       >
         <p>{submissionForm.getFieldValue('description') || 'Không có mô tả.'}</p>
-        <div className="workspace-draft-list">
+        <div className="mt-3 grid gap-2">
           {draftFiles.map((file) => (
-            <div className="workspace-draft-item" key={file.uid}>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-[#EAF3F7] bg-[#F8FBFE] px-3 py-2" key={file.uid}>
               <strong>{file.name}</strong>
               <span className="muted-text">{formatFileSize(file.size)}</span>
             </div>
@@ -326,7 +368,7 @@ export function ProjectExecutionPage() {
               </Form.Item>
               <Form.Item label="Hạn nộp lại" name="dueAt" rules={[{ required: true, message: 'Chọn hạn nộp lại.' }]}>
                 <Input type="datetime-local" />
-                <div className="workspace-field-help">Thời gian nhập theo múi giờ Việt Nam.</div>
+                <div className="mt-1 text-xs text-[#667985]">Thời gian nhập theo múi giờ Việt Nam.</div>
               </Form.Item>
             </>
           ) : (
@@ -339,7 +381,7 @@ export function ProjectExecutionPage() {
               </Form.Item>
               <Form.Item label="Hạn upload lại" name="reuploadDueAt" rules={[{ required: true, message: 'Chọn hạn upload lại.' }]}>
                 <Input type="datetime-local" />
-                <div className="workspace-field-help">Thời gian nhập theo múi giờ Việt Nam.</div>
+                <div className="mt-1 text-xs text-[#667985]">Thời gian nhập theo múi giờ Việt Nam.</div>
               </Form.Item>
             </>
           )}
