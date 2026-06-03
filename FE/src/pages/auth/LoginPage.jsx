@@ -1,4 +1,4 @@
-﻿import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import {
   GoogleOutlined,
   LockOutlined,
@@ -25,12 +25,12 @@ export function LoginPage() {
     try {
       const response = await authApi.login(values);
       login(response);
-      message.success('ÄÄƒng nháº­p thÃ nh cÃ´ng.');
+      message.success('Đăng nhập thành công.');
       navigate(roleHome(response.user.role), { replace: true });
     } catch (error) {
-      const errorMessage = getApiErrorMessage(error, 'ÄÄƒng nháº­p tháº¥t báº¡i.');
+      const errorMessage = getApiErrorMessage(error, 'Đăng nhập thất bại.');
       if (errorMessage === 'Email is not verified.') {
-        message.warning('Email chÆ°a Ä‘Æ°á»£c xÃ¡c minh. Vui lÃ²ng nháº­p mÃ£ OTP trÆ°á»›c khi Ä‘Äƒng nháº­p.');
+        message.warning('Email chưa được xác minh. Vui lòng nhập mã OTP trước khi đăng nhập.');
         navigate(`/verify-email?email=${encodeURIComponent(values.email)}`);
         return;
       }
@@ -41,7 +41,7 @@ export function LoginPage() {
   const handleGoogleSuccess = async (credentialResponse) => {
     const role = form.getFieldValue('googleRole');
     if (!role) {
-      message.error('Vui lÃ²ng chá»n vai trÃ² khi dÃ¹ng Google.');
+      message.error('Vui lòng chọn vai trò khi dùng Google.');
       return;
     }
 
@@ -51,10 +51,10 @@ export function LoginPage() {
         role
       });
       login(response);
-      message.success('ÄÄƒng nháº­p Google thÃ nh cÃ´ng.');
+      message.success('Đăng nhập Google thành công.');
       navigate(roleHome(response.user.role), { replace: true });
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'KhÃ´ng thá»ƒ Ä‘Äƒng nháº­p báº±ng Google.'));
+      message.error(getApiErrorMessage(error, 'Không thể đăng nhập bằng Google.'));
     }
   };
 
@@ -66,37 +66,37 @@ export function LoginPage() {
         <Card className="auth-card">
           <div className="auth-card-content">
             <div className="auth-heading">
-              <Text className="eyebrow">ChÃ o má»«ng trá»Ÿ láº¡i</Text>
-              <Title level={2}>ÄÄƒng nháº­p D4U</Title>
-              <Text type="secondary">Tiáº¿p tá»¥c quáº£n lÃ½ há»“ sÆ¡, xÃ¡c thá»±c, dá»± Ã¡n vÃ  marketplace thiáº¿t káº¿.</Text>
+              <Text className="eyebrow">Chào mừng trở lại</Text>
+              <Title level={2}>Đăng nhập D4U</Title>
+              <Text type="secondary">Tiếp tục quản lý hồ sơ, xác thực, dự án và marketplace thiết kế.</Text>
             </div>
 
             <Form form={form} layout="vertical" onFinish={handleLogin} requiredMark={false}>
-              <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lÃ²ng nháº­p email.' }, { type: 'email', message: 'Email khÃ´ng há»£p lá»‡.' }]}>
-                <Input size="large" prefix={<MailOutlined />} placeholder="Nháº­p email" />
+              <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lòng nhập email.' }, { type: 'email', message: 'Email không hợp lệ.' }]}>
+                <Input size="large" prefix={<MailOutlined />} placeholder="Nhập email" />
               </Form.Item>
-              <Form.Item name="password" label="Máº­t kháº©u" rules={[{ required: true, message: 'Vui lÃ²ng nháº­p máº­t kháº©u.' }]}>
-                <Input.Password size="large" prefix={<LockOutlined />} placeholder="Nháº­p máº­t kháº©u" />
+              <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu.' }]}>
+                <Input.Password size="large" prefix={<LockOutlined />} placeholder="Nhập mật khẩu" />
               </Form.Item>
-              <Button type="primary" size="large" htmlType="submit" block>ÄÄƒng nháº­p</Button>
+              <Button type="primary" size="large" htmlType="submit" block>Đăng nhập</Button>
 
-              <div className="divider-text">hoáº·c</div>
+              <div className="divider-text">hoặc</div>
 
-              <Form.Item name="googleRole" label="Vai trÃ² khi dÃ¹ng Google" rules={[{ required: true, message: 'Vui lÃ²ng chá»n vai trÃ² khi dÃ¹ng Google.' }]}>
+              <Form.Item name="googleRole" label="Vai trò khi dùng Google" rules={[{ required: true, message: 'Vui lòng chọn vai trò khi dùng Google.' }]}>
                 <Radio.Group optionType="button" buttonStyle="solid" className="role-radio">
-                  <Radio.Button value="STUDENT">Sinh viÃªn</Radio.Button>
-                  <Radio.Button value="SME">Doanh nghiá»‡p</Radio.Button>
+                  <Radio.Button value="STUDENT">Sinh viên</Radio.Button>
+                  <Radio.Button value="SME">Doanh nghiệp</Radio.Button>
                 </Radio.Group>
               </Form.Item>
 
               <div className="google-box">
                 {googleConfigured ? (
                   <>
-                    <Text strong className="google-label">Tiáº¿p tá»¥c vá»›i Google</Text>
+                    <Text strong className="google-label">Tiếp tục với Google</Text>
                     <div className="google-login-frame">
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
-                        onError={() => message.error('Google login bá»‹ há»§y hoáº·c tháº¥t báº¡i.')}
+                        onError={() => message.error('Google login bị hủy hoặc thất bại.')}
                         locale="vi"
                         shape="rectangular"
                         text="continue_with"
@@ -106,15 +106,15 @@ export function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <Button size="large" block disabled icon={<GoogleOutlined />}>Tiáº¿p tá»¥c vá»›i Google</Button>
-                    <Text type="secondary" className="google-hint">Cáº§n cáº¥u hÃ¬nh VITE_GOOGLE_CLIENT_ID Ä‘á»ƒ báº­t Ä‘Äƒng nháº­p Google tháº­t.</Text>
+                    <Button size="large" block disabled icon={<GoogleOutlined />}>Tiếp tục với Google</Button>
+                    <Text type="secondary" className="google-hint">Cần cấu hình VITE_GOOGLE_CLIENT_ID để bật đăng nhập Google thật.</Text>
                   </>
                 )}
               </div>
             </Form>
 
             <div className="auth-switch">
-              ChÆ°a cÃ³ tÃ i khoáº£n? <Link to="/register">ÄÄƒng kÃ½</Link>
+              Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
             </div>
           </div>
         </Card>

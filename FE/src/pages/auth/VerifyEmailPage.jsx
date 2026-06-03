@@ -1,4 +1,4 @@
-﻿import { MailOutlined } from '@ant-design/icons';
+import { MailOutlined } from '@ant-design/icons';
 import { App, Button, Card, Form, Input, Typography } from 'antd';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../../services/authApi.js';
@@ -17,25 +17,25 @@ export function VerifyEmailPage() {
   const requestCode = async () => {
     const email = form.getFieldValue('email');
     if (!email) {
-      message.error('Vui lÃ²ng nháº­p email Ä‘á»ƒ gá»­i láº¡i mÃ£.');
+      message.error('Vui lòng nhập email để gửi lại mã.');
       return;
     }
 
     try {
       await authApi.requestEmailVerification({ email });
-      message.success('ÄÃ£ gá»­i láº¡i mÃ£ xÃ¡c minh email.');
+      message.success('Đã gửi lại mã xác minh email.');
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'KhÃ´ng thá»ƒ gá»­i láº¡i mÃ£ xÃ¡c minh.'));
+      message.error(getApiErrorMessage(error, 'Không thể gửi lại mã xác minh.'));
     }
   };
 
   const confirmEmail = async (values) => {
     try {
       await authApi.confirmEmailVerification(values);
-      message.success('XÃ¡c minh email thÃ nh cÃ´ng. Vui lÃ²ng Ä‘Äƒng nháº­p.');
+      message.success('Xác minh email thành công. Vui lòng đăng nhập.');
       navigate('/login', { replace: true });
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'KhÃ´ng thá»ƒ xÃ¡c minh email.'));
+      message.error(getApiErrorMessage(error, 'Không thể xác minh email.'));
     }
   };
 
@@ -47,22 +47,22 @@ export function VerifyEmailPage() {
         <Card className="auth-card">
           <div className="auth-card-content">
             <div className="auth-heading">
-              <Text className="eyebrow">XÃ¡c minh email</Text>
-              <Title level={2}>Nháº­p mÃ£ OTP</Title>
-              <Text type="secondary">Kiá»ƒm tra há»™p thÆ° vÃ  nháº­p mÃ£ xÃ¡c minh Ä‘á»ƒ kÃ­ch hoáº¡t Ä‘Äƒng nháº­p.</Text>
+              <Text className="eyebrow">Xác minh email</Text>
+              <Title level={2}>Nhập mã OTP</Title>
+              <Text type="secondary">Kiểm tra hộp thư và nhập mã xác minh để kích hoạt đăng nhập.</Text>
             </div>
             <Form form={form} layout="vertical" onFinish={confirmEmail} requiredMark={false} initialValues={{ email: emailFromQuery }}>
-              <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lÃ²ng nháº­p email.' }, { type: 'email', message: 'Email khÃ´ng há»£p lá»‡.' }]}>
-                <Input size="large" prefix={<MailOutlined />} placeholder="Nháº­p email Ä‘Ã£ Ä‘Äƒng kÃ½" />
+              <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lòng nhập email.' }, { type: 'email', message: 'Email không hợp lệ.' }]}>
+                <Input size="large" prefix={<MailOutlined />} placeholder="Nhập email đã đăng ký" />
               </Form.Item>
-              <Form.Item name="code" label="MÃ£ OTP" rules={[{ required: true, message: 'Vui lÃ²ng nháº­p mÃ£ OTP.' }, { min: 4, message: 'MÃ£ OTP khÃ´ng há»£p lá»‡.' }]}>
-                <Input size="large" inputMode="numeric" placeholder="Nháº­p mÃ£ xÃ¡c minh" />
+              <Form.Item name="code" label="Mã OTP" rules={[{ required: true, message: 'Vui lòng nhập mã OTP.' }, { min: 4, message: 'Mã OTP không hợp lệ.' }]}>
+                <Input size="large" inputMode="numeric" placeholder="Nhập mã xác minh" />
               </Form.Item>
-              <Button type="primary" size="large" htmlType="submit" block>XÃ¡c minh email</Button>
-              <Button className="secondary-auth-action" size="large" block onClick={requestCode}>Gá»­i láº¡i mÃ£</Button>
+              <Button type="primary" size="large" htmlType="submit" block>Xác minh email</Button>
+              <Button className="secondary-auth-action" size="large" block onClick={requestCode}>Gửi lại mã</Button>
             </Form>
             <div className="auth-switch">
-              ÄÃ£ xÃ¡c minh? <Link to="/login">ÄÄƒng nháº­p</Link>
+              Đã xác minh? <Link to="/login">Đăng nhập</Link>
             </div>
           </div>
         </Card>
