@@ -95,13 +95,25 @@ export function SmeOffersPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reopening, setReopening] = useState(null);
+  const [checkingPayment, setCheckingPayment] = useState(null);
   const [error, setError] = useState(null);
 
   const loadRows = async () => {
     setLoading(true);
     setError(null);
     try {
-      setRows(await projectApi.listSmeOffers());
+      const offerRows = await projectApi.listSmeOffers();
+      setRows(offerRows);
+
+      const pendingPayments = offerRows.filter((row) => row.paymentId && row.paymentStatus === 'PENDING');
+      if (pendingPayments.length > 0) {
+        const statuses = await Promise.allSettled(
+          pendingPayments.map((row) => paymentApi.getReturnStatus(row.paymentId))
+        );
+        if (statuses.some((result) => result.status === 'fulfilled' && result.value.status !== 'PENDING')) {
+          setRows(await projectApi.listSmeOffers());
+        }
+      }
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Không thể tải danh sách offer.'));
     } finally {
@@ -133,6 +145,20 @@ export function SmeOffersPage() {
     }
   };
 
+  const checkPayment = async (row) => {
+    if (!row.paymentId) return;
+
+    setCheckingPayment(row.paymentId);
+    try {
+      await paymentApi.getReturnStatus(row.paymentId);
+      setRows(await projectApi.listSmeOffers());
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Không thể kiểm tra trạng thái PayOS.'));
+    } finally {
+      setCheckingPayment(null);
+    }
+  };
+
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
   const columns = [
@@ -159,12 +185,21 @@ export function SmeOffersPage() {
             Workspace & escrow
           </Button>
           <Button
-            disabled={!['ACCEPTED', 'PAYMENT_FAILED'].includes(row.offerStatus) || row.paymentStatus === 'SUCCESS'}
+            disabled={
+              row.paymentStatus === 'SUCCESS' ||
+              (row.paymentStatus === 'PENDING' && !row.checkoutUrl) ||
+              !['ACCEPTED', 'PENDING_PAYMENT', 'PAYMENT_FAILED'].includes(row.offerStatus)
+            }
             loading={reopening === row.offerId}
             onClick={() => reopenPayment(row)}
           >
-            Thanh toán PayOS
+            {row.paymentStatus === 'PENDING' && row.checkoutUrl ? 'Mở lại PayOS' : 'Thanh toán PayOS'}
           </Button>
+          {row.paymentStatus === 'PENDING' ? (
+            <Button loading={checkingPayment === row.paymentId} onClick={() => checkPayment(row)}>
+              Kiểm tra lại
+            </Button>
+          ) : null}
         </Space>
       )
     }

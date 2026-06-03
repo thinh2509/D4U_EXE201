@@ -305,12 +305,43 @@ export function StudentSubmissionWorkspace({
   );
 }
 
-export function SmeReviewWorkspace({ workspace, canReview, latestSubmission, now, acting, onPayment, onDownload, onApprove, onRevision, onInvalid }) {
+export function SmeReviewWorkspace({
+  workspace,
+  canReview,
+  latestSubmission,
+  now,
+  acting,
+  paymentReturnTimedOut,
+  checkingPayment,
+  onPayment,
+  onCheckPayment,
+  onDownload,
+  onApprove,
+  onRevision,
+  onInvalid
+}) {
   if (workspace.nextAction === 'PAY_ESCROW' && workspace.nextActionRole === 'SME') {
+    const paymentPending = workspace.payment?.status === 'PENDING';
+    const hasCheckoutUrl = Boolean(workspace.payment?.checkoutUrl);
+
     return (
       <Card className="rounded-lg border border-[#12AEEA]/50 shadow-none" title="Việc cần làm tiếp theo">
-        <Alert type="info" showIcon message="Thanh toán escrow qua PayOS" description="Escrow cần được funding trước khi Student bắt đầu nộp bài." />
-        <Button className="mt-4" type="primary" icon={<CreditCardOutlined />} loading={acting} onClick={onPayment}>Mở thanh toán PayOS</Button>
+        <Alert
+          type={paymentReturnTimedOut ? 'warning' : 'info'}
+          showIcon
+          message={paymentReturnTimedOut ? 'PayOS chưa xác nhận giao dịch' : paymentPending ? 'Đang chờ PayOS xác nhận' : 'Thanh toán escrow qua PayOS'}
+          description={paymentReturnTimedOut ? 'Bạn có thể bấm kiểm tra lại. D4U chỉ bắt đầu dự án khi backend xác nhận trạng thái thanh toán.' : 'Escrow cần được funding trước khi Student bắt đầu nộp bài.'}
+        />
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button type="primary" icon={<CreditCardOutlined />} loading={acting} onClick={onPayment}>
+            {paymentPending && hasCheckoutUrl ? 'Mở lại PayOS' : paymentPending ? 'Tạo link PayOS mới' : 'Mở thanh toán PayOS'}
+          </Button>
+          {paymentPending ? (
+            <Button loading={checkingPayment} onClick={onCheckPayment}>
+              Kiểm tra lại thanh toán
+            </Button>
+          ) : null}
+        </div>
       </Card>
     );
   }

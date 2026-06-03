@@ -26,6 +26,13 @@ export function PaymentSuccessPage() {
 
     const redirectToWorkspace = async () => {
       if (projectId) {
+        if (paymentId) {
+          try {
+            await paymentApi.getReturnStatus(paymentId);
+          } catch {
+            // Workspace will keep polling the backend/provider status after redirect.
+          }
+        }
         navigate(buildWorkspacePath(projectId, paymentId), { replace: true });
         return;
       }

@@ -61,6 +61,8 @@ export function ProjectExecutionPage() {
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [reviewMode, setReviewMode] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const [paymentReturnTimedOut, setPaymentReturnTimedOut] = useState(false);
+  const [checkingPaymentReturn, setCheckingPaymentReturn] = useState(false);
 
   const loadWorkspace = async ({ silent = false } = {}) => {
     if (!silent) {
@@ -100,6 +102,7 @@ export function ProjectExecutionPage() {
   );
   const latestReviewAction = reviewActions[0];
   const isPaymentReturn = searchParams.get('paymentReturn') === '1';
+  const paymentReturnPaymentId = searchParams.get('paymentId');
 
   const canSubmit = workspace
     && ['SUBMIT_SKETCH', 'SUBMIT_FINAL', 'SUBMIT_REVISION'].includes(workspace.nextAction)
@@ -112,39 +115,117 @@ export function ProjectExecutionPage() {
     && latestSubmission;
 
   useEffect(() => {
-    if (!isPaymentReturn || workspace?.viewerRole !== 'SME') return;
+    if (!isPaymentReturn || workspace?.viewerRole !== 'SME' || !paymentReturnPaymentId) return;
 
+    let stopped = false;
+    let attempts = 0;
+    let pollingId = null;
     const toastKey = 'payos-workspace-return';
-    const paymentSucceeded = workspace.payment?.status === 'SUCCESS'
-      || ['FUNDED', 'RELEASE_PENDING', 'RELEASED'].includes(workspace.escrow?.status);
-    const paymentFailed = ['FAILED', 'CANCELLED', 'EXPIRED'].includes(workspace.payment?.status);
+    const fundedStatuses = ['FUNDED', 'RELEASE_PENDING', 'RELEASED'];
+    const failedStatuses = ['FAILED', 'CANCELLED', 'EXPIRED'];
 
-    if (paymentSucceeded) {
-      message.success({
-        key: toastKey,
-        content: 'Thanh toán thành công. Escrow đã được ghi nhận và dự án đã bắt đầu.',
-        duration: 4
-      });
-      navigate(`/projects/${projectId}/execution`, { replace: true });
-      return;
-    }
-
-    if (paymentFailed) {
-      message.warning({
-        key: toastKey,
-        content: 'Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS từ workspace.',
-        duration: 4
-      });
-      navigate(`/projects/${projectId}/execution`, { replace: true });
-      return;
-    }
-
+    setPaymentReturnTimedOut(false);
     message.loading({
       key: toastKey,
       content: 'Đang xác nhận thanh toán PayOS...',
       duration: 0
     });
-  }, [isPaymentReturn, message, navigate, projectId, workspace?.escrow?.status, workspace?.payment?.status, workspace?.viewerRole]);
+
+    const stopPolling = () => {
+      stopped = true;
+      if (pollingId) window.clearInterval(pollingId);
+    };
+
+    const pollReturnStatus = async () => {
+      attempts += 1;
+      try {
+        const status = await paymentApi.getReturnStatus(paymentReturnPaymentId);
+        await loadWorkspace({ silent: true });
+        if (stopped) return;
+
+        const succeeded = status.status === 'SUCCESS' || fundedStatuses.includes(status.escrowStatus);
+        const failed = failedStatuses.includes(status.status);
+
+        if (succeeded) {
+          message.success({
+            key: toastKey,
+            content: 'Thanh toán thành công. Escrow đã được ghi nhận và dự án đã bắt đầu.',
+            duration: 4
+          });
+          stopPolling();
+          navigate(`/projects/${projectId}/execution`, { replace: true });
+          return;
+        }
+
+        if (failed) {
+          message.warning({
+            key: toastKey,
+            content: 'Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS từ workspace.',
+            duration: 4
+          });
+          stopPolling();
+          navigate(`/projects/${projectId}/execution`, { replace: true });
+          return;
+        }
+      } catch (requestError) {
+        if (attempts >= 30 && !stopped) {
+          message.warning({
+            key: toastKey,
+            content: getApiErrorMessage(requestError, 'PayOS chưa xác nhận giao dịch.'),
+            duration: 5
+          });
+        }
+      }
+
+      if (attempts >= 30 && !stopped) {
+        setPaymentReturnTimedOut(true);
+        message.warning({
+          key: toastKey,
+          content: 'PayOS chưa xác nhận giao dịch. Bạn có thể bấm Kiểm tra lại thanh toán.',
+          duration: 5
+        });
+        stopPolling();
+      }
+    };
+
+    pollReturnStatus();
+    pollingId = window.setInterval(pollReturnStatus, 2000);
+
+    return stopPolling;
+  }, [isPaymentReturn, message, navigate, paymentReturnPaymentId, projectId, workspace?.viewerRole]);
+
+  const checkPaymentReturnNow = async () => {
+    const paymentId = paymentReturnPaymentId || workspace?.payment?.id;
+    if (!paymentId) {
+      message.warning('Không tìm thấy mã payment để kiểm tra.');
+      return;
+    }
+
+    setCheckingPaymentReturn(true);
+    try {
+      const status = await paymentApi.getReturnStatus(paymentId);
+      await loadWorkspace({ silent: true });
+
+      if (status.status === 'SUCCESS' || ['FUNDED', 'RELEASE_PENDING', 'RELEASED'].includes(status.escrowStatus)) {
+        message.success('Thanh toán thành công. Escrow đã được ghi nhận và dự án đã bắt đầu.');
+        setPaymentReturnTimedOut(false);
+        navigate(`/projects/${projectId}/execution`, { replace: true });
+        return;
+      }
+
+      if (['FAILED', 'CANCELLED', 'EXPIRED'].includes(status.status)) {
+        message.warning('Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS từ workspace.');
+        navigate(`/projects/${projectId}/execution`, { replace: true });
+        return;
+      }
+
+      message.info('PayOS vẫn chưa xác nhận giao dịch này.');
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể kiểm tra trạng thái PayOS.'));
+    } finally {
+      setCheckingPaymentReturn(false);
+    }
+  };
 
   const addDraftFile = (file) => {
     const extension = getFileExtension(file.name);
@@ -311,7 +392,10 @@ export function ProjectExecutionPage() {
               latestSubmission={latestSubmission}
               now={now}
               acting={acting}
+              paymentReturnTimedOut={paymentReturnTimedOut}
+              checkingPayment={checkingPaymentReturn}
               onPayment={openPayment}
+              onCheckPayment={checkPaymentReturnNow}
               onDownload={downloadSubmissionFile}
               onApprove={approveSubmission}
               onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}

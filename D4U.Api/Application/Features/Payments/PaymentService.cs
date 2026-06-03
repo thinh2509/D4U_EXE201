@@ -167,14 +167,26 @@ public sealed class PaymentService(
         var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken)
             ?? throw new InvalidOperationException("Escrow was not found.");
 
-        await ReconcilePendingPaymentAsync(payment, cancellationToken);
+        await ReconcilePendingPaymentAsync(payment, cancellationToken, forceProviderCheck: true);
+
+        var project = await unitOfWork.Repository<Project>().GetByIdAsync(escrow.ProjectId, cancellationToken);
+        var offer = await unitOfWork.Repository<ProjectOffer>().Query()
+            .Where(value => value.ProjectId == escrow.ProjectId &&
+                value.StudentProfileId == escrow.StudentProfileId)
+            .OrderByDescending(value => value.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        var now = DateTimeOffset.UtcNow;
 
         return new PaymentReturnStatusResponse(
             payment.Id,
             escrow.ProjectId,
             payment.Status,
             payment.ExpiresAt,
-            DateTimeOffset.UtcNow);
+            now,
+            escrow.Status,
+            project?.Status,
+            offer?.Status,
+            CanRetryPayment(payment, now));
     }
 
     public async Task ProcessPayOsWebhookAsync(
@@ -249,12 +261,13 @@ public sealed class PaymentService(
 
     private async Task ReconcilePendingPaymentAsync(
         Payment payment,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool forceProviderCheck = false)
     {
         var now = DateTimeOffset.UtcNow;
         if (payment.Status != PaymentStatus.PENDING ||
             !payment.ProviderOrderCode.HasValue ||
-            payment.UpdatedAt > now.Subtract(ProviderReconciliationInterval))
+            (!forceProviderCheck && payment.UpdatedAt > now.Subtract(ProviderReconciliationInterval)))
         {
             return;
         }
@@ -301,6 +314,16 @@ public sealed class PaymentService(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private static bool CanRetryPayment(Payment payment, DateTimeOffset now)
+    {
+        if (payment.Status == PaymentStatus.SUCCESS)
+        {
+            return false;
+        }
+
+        return !payment.ExpiresAt.HasValue || payment.ExpiresAt > now;
     }
 
     private async Task MarkOfferPaymentFailedAsync(

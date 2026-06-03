@@ -20,7 +20,11 @@ public sealed record PaymentReturnStatusResponse(
     Guid ProjectId,
     PaymentStatus Status,
     DateTimeOffset? ExpiresAt,
-    DateTimeOffset CheckedAt);
+    DateTimeOffset CheckedAt,
+    EscrowStatus? EscrowStatus,
+    ProjectStatus? ProjectStatus,
+    OfferStatus? OfferStatus,
+    bool CanRetryPayment);
 
 public sealed record EscrowResponse(
     Guid Id,
