@@ -51,7 +51,7 @@ export function AdminWithdrawalsPage() {
     try {
       setRows(await walletApi.listAdminWithdrawalRequests());
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Khong the tai danh sach withdrawal.'));
+      setError(getApiErrorMessage(requestError, 'Không thể tải danh sách yêu cầu rút tiền.'));
     } finally {
       setLoading(false);
     }
@@ -85,24 +85,24 @@ export function AdminWithdrawalsPage() {
       });
       message.success(
         decision === 'PROCESSING'
-          ? 'Da nhan xu ly withdrawal.'
+          ? 'Đã nhận xử lý yêu cầu rút tiền.'
           : decision === 'COMPLETED'
-            ? 'Da xac nhan withdrawal.'
-            : 'Da danh dau withdrawal failed.'
+            ? 'Đã xác nhận chuyển khoản.'
+            : 'Đã đánh dấu yêu cầu rút tiền thất bại.'
       );
       closeDecision();
       await loadRows();
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Khong the xu ly withdrawal.'));
+      message.error(getApiErrorMessage(requestError, 'Không thể xử lý yêu cầu rút tiền.'));
     }
   };
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
   const columns = [
-    { title: 'Trang thai', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
     {
-      title: 'Tai khoan',
+      title: 'Tài khoản',
       render: (_, row) => (
         <div>
           <strong>{row.accountHolderName}</strong>
@@ -110,29 +110,29 @@ export function AdminWithdrawalsPage() {
         </div>
       )
     },
-    { title: 'So tien', dataIndex: 'amount', render: (value) => formatCurrency(value) },
-    { title: 'Phi', dataIndex: 'feeAmount', render: (value) => formatCurrency(value) },
-    { title: 'Chuyen thuc te', dataIndex: 'netAmount', render: (value) => formatCurrency(value) },
-    { title: 'Ngay yeu cau', dataIndex: 'requestedAt', render: formatDate },
-    { title: 'Bat dau xu ly', dataIndex: 'processingStartedAt', render: formatDate },
-    { title: 'Ma GD ngan hang', dataIndex: 'bankTransactionReference' },
-    { title: 'Xu ly luc', dataIndex: 'processedAt', render: formatDate },
+    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value) },
+    { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value) },
+    { title: 'Chuyển thực tế', dataIndex: 'netAmount', render: (value) => formatCurrency(value) },
+    { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
+    { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
+    { title: 'Mã GD ngân hàng', dataIndex: 'bankTransactionReference' },
+    { title: 'Xử lý lúc', dataIndex: 'processedAt', render: formatDate },
     {
-      title: 'Hanh dong',
+      title: 'Hành động',
       render: (_, row) => (
         <Space wrap>
           {row.status === 'PENDING' && (
             <Button type="primary" onClick={() => openDecision(row, 'PROCESSING')}>
-              Nhan xu ly
+              Nhận xử lý
             </Button>
           )}
           {row.status === 'PROCESSING' && (
             <>
               <Button type="primary" onClick={() => openDecision(row, 'COMPLETED')}>
-                Da chuyen khoan
+                Đã chuyển khoản
               </Button>
               <Button danger onClick={() => openDecision(row, 'FAILED')}>
-                That bai
+                Thất bại
               </Button>
             </>
           )}
@@ -145,9 +145,9 @@ export function AdminWithdrawalsPage() {
     <>
       <PageHeader
         icon={<WalletOutlined />}
-        title="Xu ly rut tien"
-        description="Admin/Finance cap nhat ket qua sau khi chuyen khoan thu cong ngoai he thong."
-        extra={<Button onClick={loadRows}>Lam moi</Button>}
+        title="Xử lý rút tiền"
+        description="Admin/Finance cập nhật kết quả sau khi chuyển khoản thủ công ngoài hệ thống."
+        extra={<Button onClick={loadRows}>Làm mới</Button>}
       />
       <Card className="table-card">
         <Table
@@ -162,22 +162,22 @@ export function AdminWithdrawalsPage() {
       <Modal
         title={
           decision === 'PROCESSING'
-            ? 'Nhan xu ly withdrawal'
+            ? 'Nhận xử lý yêu cầu rút tiền'
             : decision === 'COMPLETED'
-              ? 'Xac nhan da chuyen khoan'
-              : 'Danh dau withdrawal that bai'
+              ? 'Xác nhận đã chuyển khoản'
+              : 'Đánh dấu yêu cầu rút tiền thất bại'
         }
         open={Boolean(actingRow)}
         onCancel={closeDecision}
-        okText="Luu"
+        okText="Lưu"
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={submitDecision}>
           <p className="muted-text">
-            Yeu cau {actingRow ? formatCurrency(actingRow.amount) : ''}; so tien thuc chuyen {actingRow ? formatCurrency(actingRow.netAmount) : ''}.
+            Yêu cầu {actingRow ? formatCurrency(actingRow.amount) : ''}; số tiền thực chuyển {actingRow ? formatCurrency(actingRow.netAmount) : ''}.
           </p>
           {decision === 'FAILED' && (
-            <Form.Item name="failureReason" label="Ly do that bai" rules={[{ required: true, message: 'Nhap ly do that bai.' }]}>
+            <Form.Item name="failureReason" label="Lý do thất bại" rules={[{ required: true, message: 'Nhập lý do thất bại.' }]}>
               <Input.TextArea rows={3} maxLength={500} />
             </Form.Item>
           )}
@@ -185,15 +185,15 @@ export function AdminWithdrawalsPage() {
             <>
               <Form.Item
                 name="bankTransactionReference"
-                label="Ma giao dich ngan hang"
-                rules={[{ required: true, message: 'Nhap ma giao dich ngan hang.' }]}
+                label="Mã giao dịch ngân hàng"
+                rules={[{ required: true, message: 'Nhập mã giao dịch ngân hàng.' }]}
               >
                 <Input maxLength={120} />
               </Form.Item>
               <Form.Item
                 name="transferredAt"
-                label="Thoi gian chuyen khoan"
-                rules={[{ required: true, message: 'Nhap thoi gian chuyen khoan.' }]}
+                label="Thời gian chuyển khoản"
+                rules={[{ required: true, message: 'Nhập thời gian chuyển khoản.' }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>

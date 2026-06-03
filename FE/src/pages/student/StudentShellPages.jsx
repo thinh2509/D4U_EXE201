@@ -1,5 +1,5 @@
 import { FileDoneOutlined, FolderOpenOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
-import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Space, Statistic, Table } from 'antd';
+import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
@@ -310,6 +310,7 @@ export function StudentWalletPage() {
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [withdrawalForm] = Form.useForm();
+  const withdrawalAmount = Number(Form.useWatch('amount', withdrawalForm) ?? 0);
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -318,23 +319,41 @@ export function StudentWalletPage() {
   const [savingMethod, setSavingMethod] = useState(false);
   const [requestingWithdrawal, setRequestingWithdrawal] = useState(false);
   const [error, setError] = useState(null);
+  const [sectionErrors, setSectionErrors] = useState({});
 
   const loadWallet = async () => {
     setLoading(true);
     setError(null);
+    setSectionErrors({});
     try {
-      const [walletResponse, transactionRows, methodRows, withdrawalRows] = await Promise.all([
+      const [walletResult, transactionResult, methodResult, withdrawalResult] = await Promise.allSettled([
         walletApi.getMyWallet(),
         walletApi.listTransactions(),
         walletApi.listPaymentMethods(),
         walletApi.listWithdrawalRequests()
       ]);
-      setWallet(walletResponse);
-      setTransactions(transactionRows);
-      setPaymentMethods(methodRows);
-      setWithdrawals(withdrawalRows);
+
+      if (walletResult.status === 'rejected') {
+        throw walletResult.reason;
+      }
+
+      setWallet(walletResult.value);
+      setTransactions(transactionResult.status === 'fulfilled' ? transactionResult.value : []);
+      setPaymentMethods(methodResult.status === 'fulfilled' ? methodResult.value : []);
+      setWithdrawals(withdrawalResult.status === 'fulfilled' ? withdrawalResult.value : []);
+      setSectionErrors({
+        transactions: transactionResult.status === 'rejected'
+          ? getApiErrorMessage(transactionResult.reason, 'Không thể tải ledger.')
+          : null,
+        methods: methodResult.status === 'rejected'
+          ? getApiErrorMessage(methodResult.reason, 'Không thể tải tài khoản nhận tiền.')
+          : null,
+        withdrawals: withdrawalResult.status === 'rejected'
+          ? getApiErrorMessage(withdrawalResult.reason, 'Không thể tải yêu cầu rút tiền.')
+          : null
+      });
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Khong the tai vi D4U.'));
+      setError(getApiErrorMessage(requestError, 'Không thể tải ví D4U.'));
     } finally {
       setLoading(false);
     }
@@ -352,11 +371,11 @@ export function StudentWalletPage() {
         accountNumber: values.accountNumber,
         isDefault: true
       });
-      message.success('Da luu phuong thuc nhan tien.');
+      message.success('Đã lưu tài khoản nhận tiền.');
       form.resetFields();
       await loadWallet();
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Khong the luu phuong thuc nhan tien.'));
+      message.error(getApiErrorMessage(requestError, 'Không thể lưu tài khoản nhận tiền.'));
     } finally {
       setSavingMethod(false);
     }
@@ -369,11 +388,11 @@ export function StudentWalletPage() {
         paymentMethodId: values.paymentMethodId,
         amount: values.amount
       });
-      message.success('Da tao yeu cau rut tien.');
+      message.success('Đã tạo yêu cầu rút tiền.');
       withdrawalForm.resetFields();
       await loadWallet();
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Khong the tao yeu cau rut tien.'));
+      message.error(getApiErrorMessage(requestError, 'Không thể tạo yêu cầu rút tiền.'));
     } finally {
       setRequestingWithdrawal(false);
     }
@@ -382,117 +401,140 @@ export function StudentWalletPage() {
   if (error) return <ErrorState description={error} onRetry={loadWallet} />;
 
   const transactionColumns = [
-    { title: 'Loai', dataIndex: 'type', render: (value) => <StatusBadge status={value} /> },
-    { title: 'So tien', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'So du sau GD', dataIndex: 'balanceAfter', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Ghi chu', dataIndex: 'description' },
-    { title: 'Thoi gian', dataIndex: 'createdAt', render: formatDate }
+    { title: 'Loại', dataIndex: 'type', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Số dư sau GD', dataIndex: 'balanceAfter', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Ghi chú', dataIndex: 'description' },
+    { title: 'Thời gian', dataIndex: 'createdAt', render: formatDate }
   ];
 
   const withdrawalColumns = [
-    { title: 'Trang thai', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-    { title: 'So tien', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Phi', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Nhan thuc te', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Tai khoan', dataIndex: 'maskedAccountNumber' },
-    { title: 'Ngay yeu cau', dataIndex: 'requestedAt', render: formatDate },
-    { title: 'Bat dau xu ly', dataIndex: 'processingStartedAt', render: formatDate },
-    { title: 'Ma giao dich NH', dataIndex: 'bankTransactionReference' }
+    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Thực nhận', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Tài khoản', dataIndex: 'maskedAccountNumber' },
+    { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
+    { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
+    { title: 'Mã giao dịch NH', dataIndex: 'bankTransactionReference' },
+    { title: 'Lý do thất bại', dataIndex: 'failureReason' }
   ];
   const hasActiveWithdrawal = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
+  const activePaymentMethods = paymentMethods.filter((method) => method.status === 'ACTIVE');
+  const withdrawalFee = withdrawalAmount > 0 ? 5000 : 0;
+  const withdrawalNetAmount = Math.max(0, withdrawalAmount - withdrawalFee);
+  const hasEnoughBalance = wallet ? wallet.availableBalance >= withdrawalAmount : false;
+  const canRequestWithdrawal = activePaymentMethods.length > 0 &&
+    !hasActiveWithdrawal &&
+    withdrawalAmount >= 50000 &&
+    hasEnoughBalance;
 
   return (
     <>
       <PageHeader
         icon={<WalletOutlined />}
-        title="Vi D4U"
-        description="Theo doi ledger noi bo, nhan tien sau khi escrow release va tao yeu cau rut tien thu cong."
-        extra={<Button onClick={loadWallet}>Lam moi</Button>}
+        title="Ví D4U"
+        description="Theo dõi tiền nhận sau khi escrow release và tạo yêu cầu rút tiền thủ công."
+        extra={<Button onClick={loadWallet}>Làm mới</Button>}
       />
       <Alert
         type="info"
         showIcon
         className="form-alert"
-        message="D4U chi ghi nhan so du noi bo. Admin/Finance se chuyen khoan thu cong ben ngoai he thong khi duyet withdrawal."
+        message="D4U ghi nhận số dư nội bộ. Admin/Finance sẽ chuyển khoản thủ công ngoài hệ thống khi duyệt yêu cầu rút tiền."
+        description="Sau khi SME duyệt Final, hệ thống release escrow vào ví Student. Bạn có thể tạo yêu cầu rút tiền khi số dư khả dụng đủ tối thiểu 50,000 VND."
       />
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
           <Card loading={loading}>
-            <Statistic title="Co the rut" value={wallet?.availableBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
+            <Statistic title="Có thể rút" value={wallet?.availableBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
           </Card>
         </Col>
         <Col xs={24} md={8}>
           <Card loading={loading}>
-            <Statistic title="Dang khoa" value={wallet?.lockedBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
+            <Statistic title="Đang khóa" value={wallet?.lockedBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
           </Card>
         </Col>
         <Col xs={24} md={8}>
           <Card loading={loading}>
-            <Statistic title="Trang thai vi" value={wallet?.status ?? 'ACTIVE'} />
+            <Statistic title="Trạng thái ví" value={wallet?.status ?? 'ACTIVE'} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[16, 16]} className="section-grid">
         <Col xs={24} lg={12}>
-          <Card title="Phuong thuc nhan tien">
+          <Card title="Tài khoản nhận tiền">
+            {sectionErrors.methods ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.methods} /> : null}
             <Form form={form} layout="vertical" onFinish={createPaymentMethod}>
-              <Form.Item name="accountHolderName" label="Chu tai khoan" rules={[{ required: true, message: 'Nhap ten chu tai khoan.' }]}>
+              <Form.Item name="accountHolderName" label="Chủ tài khoản" rules={[{ required: true, message: 'Nhập tên chủ tài khoản.' }]}>
                 <Input maxLength={120} />
               </Form.Item>
-              <Form.Item name="accountNumber" label="So tai khoan" rules={[{ required: true, message: 'Nhap so tai khoan.' }]}>
+              <Form.Item name="accountNumber" label="Số tài khoản" rules={[{ required: true, message: 'Nhập số tài khoản.' }]}>
                 <Input maxLength={40} />
               </Form.Item>
-              <Button type="primary" htmlType="submit" loading={savingMethod}>Luu tai khoan</Button>
+              <Button type="primary" htmlType="submit" loading={savingMethod}>Lưu tài khoản</Button>
             </Form>
             <Table
               className="embedded-table"
               size="small"
               rowKey="id"
-              dataSource={paymentMethods}
+              dataSource={activePaymentMethods}
               columns={[
-                { title: 'Chu TK', dataIndex: 'accountHolderName' },
-                { title: 'So TK', dataIndex: 'maskedAccountNumber' },
-                { title: 'Trang thai', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> }
+                { title: 'Chủ TK', dataIndex: 'accountHolderName' },
+                { title: 'Số TK', dataIndex: 'maskedAccountNumber' },
+                { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> }
               ]}
               pagination={false}
             />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Tao yeu cau rut tien">
+          <Card title="Tạo yêu cầu rút tiền">
             {hasActiveWithdrawal && (
               <Alert
                 type="warning"
                 showIcon
                 className="form-alert"
-                message="Ban dang co mot yeu cau rut tien cho xu ly. Hay cho Admin/Finance hoan tat truoc khi tao yeu cau moi."
+                message="Bạn đang có một yêu cầu rút tiền chờ xử lý. Hãy chờ Admin/Finance hoàn tất trước khi tạo yêu cầu mới."
               />
             )}
+            {activePaymentMethods.length === 0 ? (
+              <Alert type="warning" showIcon className="form-alert" message="Bạn cần lưu tài khoản ngân hàng trước khi rút tiền." />
+            ) : null}
             <Form form={withdrawalForm} layout="vertical" onFinish={createWithdrawal}>
-              <Form.Item name="paymentMethodId" label="Tai khoan nhan" rules={[{ required: true, message: 'Chon tai khoan nhan.' }]}>
-                <select className="native-select">
-                  <option value="">Chon tai khoan</option>
-                  {paymentMethods.map((method) => (
-                    <option key={method.id} value={method.id}>{method.accountHolderName} - {method.maskedAccountNumber}</option>
-                  ))}
-                </select>
+              <Form.Item name="paymentMethodId" label="Tài khoản nhận" rules={[{ required: true, message: 'Chọn tài khoản nhận.' }]}>
+                <Select
+                  placeholder="Chọn tài khoản"
+                  options={activePaymentMethods.map((method) => ({
+                    value: method.id,
+                    label: `${method.accountHolderName} - ${method.maskedAccountNumber}`
+                  }))}
+                />
               </Form.Item>
-              <Form.Item name="amount" label="So tien rut" rules={[{ required: true, message: 'Nhap so tien rut.' }]}>
+              <Form.Item name="amount" label="Số tiền rút" rules={[{ required: true, message: 'Nhập số tiền rút.' }]}>
                 <InputNumber min={50000} step={50000} style={{ width: '100%' }} />
               </Form.Item>
-              <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={paymentMethods.length === 0 || hasActiveWithdrawal}>
-                Gui yeu cau
+              <Alert
+                type={withdrawalAmount > 0 && !hasEnoughBalance ? 'error' : 'info'}
+                showIcon
+                className="form-alert"
+                message={`Phí rút tiền: ${formatCurrency(withdrawalFee, wallet?.currency)}. Thực nhận: ${formatCurrency(withdrawalNetAmount, wallet?.currency)}.`}
+              />
+              <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={!canRequestWithdrawal}>
+                Gửi yêu cầu
               </Button>
             </Form>
           </Card>
         </Col>
       </Row>
 
-      <Card className="table-card" title="Yeu cau rut tien">
+      <Card className="table-card" title="Yêu cầu rút tiền">
+        {sectionErrors.withdrawals ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.withdrawals} /> : null}
         <Table rowKey="id" loading={loading} columns={withdrawalColumns} dataSource={withdrawals} scroll={{ x: 900 }} />
       </Card>
       <Card className="table-card" title="Ledger">
+        {sectionErrors.transactions ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.transactions} /> : null}
         <Table
           rowKey="id"
           loading={loading}
@@ -504,8 +546,8 @@ export function StudentWalletPage() {
             expandedRowRender: (row) => (
               <Space wrap size="large">
                 <span>Gross: <strong>{formatCurrency(row.grossAmount, wallet?.currency)}</strong></span>
-                <span>Phi nen tang: <strong>{formatCurrency(row.feeAmount, wallet?.currency)}</strong></span>
-                <span>Student nhan: <strong>{formatCurrency(row.netAmount, wallet?.currency)}</strong></span>
+                <span>Phí nền tảng: <strong>{formatCurrency(row.feeAmount, wallet?.currency)}</strong></span>
+                <span>Student nhận: <strong>{formatCurrency(row.netAmount, wallet?.currency)}</strong></span>
               </Space>
             )
           }}

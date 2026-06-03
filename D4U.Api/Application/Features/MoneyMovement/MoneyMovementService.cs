@@ -377,11 +377,14 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         var wallet = await RequireWalletForStudentAsync(userId, cancellationToken);
-        return await QueryWithdrawalsWithMethods()
+        var withdrawals = await QueryWithdrawalsWithMethods()
             .Where(value => value.Withdrawal.WalletId == wallet.Id)
             .OrderByDescending(value => value.Withdrawal.RequestedAt)
-            .Select(value => ToWithdrawalResponse(value.Withdrawal, value.PaymentMethod))
             .ToListAsync(cancellationToken);
+
+        return withdrawals
+            .Select(value => ToWithdrawalResponse(value.Withdrawal, value.PaymentMethod))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<WithdrawalRequestResponse>> ListAdminWithdrawalRequestsAsync(
@@ -389,10 +392,13 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         await RequireAdminAsync(adminUserId, cancellationToken);
-        return await QueryWithdrawalsWithMethods()
+        var withdrawals = await QueryWithdrawalsWithMethods()
             .OrderByDescending(value => value.Withdrawal.RequestedAt)
-            .Select(value => ToWithdrawalResponse(value.Withdrawal, value.PaymentMethod))
             .ToListAsync(cancellationToken);
+
+        return withdrawals
+            .Select(value => ToWithdrawalResponse(value.Withdrawal, value.PaymentMethod))
+            .ToList();
     }
 
     public async Task<WithdrawalRequestResponse> ProcessWithdrawalRequestAsync(
