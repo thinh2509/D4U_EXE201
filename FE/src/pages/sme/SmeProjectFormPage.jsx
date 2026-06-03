@@ -142,7 +142,7 @@ export function SmeProjectFormPage({ mode }) {
       />
 
       <div className="project-form-layout">
-        <Card className="ai-panel" title={<span><BulbOutlined /> AI Project Brief Assistant</span>}>
+        <Card className="ai-panel" title={<span><BulbOutlined /> Trợ lý AI viết brief</span>}>
           <Alert className="page-alert" type="info" showIcon message="AI chỉ hỗ trợ prefill nội dung. SME vẫn quyết định brief, ngân sách và deadline cuối cùng." />
           <Form form={aiForm} layout="vertical" onFinish={applyAiSuggestion} requiredMark={false}>
             <Form.Item name="rawIdea" label="Ý tưởng thô" rules={[{ required: true, message: 'Vui lòng nhập ý tưởng.' }, { min: 20, message: 'Tối thiểu 20 ký tự.' }]}>
@@ -183,7 +183,7 @@ export function SmeProjectFormPage({ mode }) {
             <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, message: 'Vui lòng nhập tiêu đề.' }]}>
               <Input size="large" />
             </Form.Item>
-            <Form.Item name="brief" label="Brief" rules={[{ required: true }, { min: 20, message: 'Brief tối thiểu 20 ký tự.' }]}>
+            <Form.Item name="brief" label="Mô tả yêu cầu / Brief dự án" rules={[{ required: true }, { min: 20, message: 'Brief tối thiểu 20 ký tự.' }]}>
               <Input.TextArea rows={7} />
             </Form.Item>
             <Form.Item name="usagePurpose" label="Mục đích sử dụng">
@@ -192,8 +192,8 @@ export function SmeProjectFormPage({ mode }) {
             <div className="form-two-cols">
               <Form.Item name="projectType" label="Loại dự án" rules={[{ required: true, message: 'Vui lòng chọn loại dự án.' }]}>
                 <Select size="large" options={[
-                  { value: 'OPEN', label: 'OPEN - Công khai' },
-                  { value: 'PRIVATE', label: 'PRIVATE - Mời riêng' }
+                  { value: 'OPEN', label: 'Công khai - nhận ứng tuyển' },
+                  { value: 'PRIVATE', label: 'Riêng tư - mời sinh viên' }
                 ]} />
               </Form.Item>
               <Form.Item name="budgetAmount" label="Ngân sách" rules={[{ required: true }]}>
@@ -201,18 +201,18 @@ export function SmeProjectFormPage({ mode }) {
               </Form.Item>
             </div>
             <div className="form-two-cols">
-              <Form.Item name="sketchDeadlineAt" label="Deadline sketch" rules={[{ required: true }]}>
+              <Form.Item name="sketchDeadlineAt" label="Hạn nộp Sketch" rules={[{ required: true }]}>
                 <Input size="large" type="datetime-local" />
               </Form.Item>
-              <Form.Item name="finalDeadlineAt" label="Deadline final" rules={[{ required: true }]}>
+              <Form.Item name="finalDeadlineAt" label="Hạn nộp Final" rules={[{ required: true }]}>
                 <Input size="large" type="datetime-local" />
               </Form.Item>
             </div>
-            <Form.Item name="totalDeadlineAt" label="Deadline tổng" rules={[{ required: true }]}>
+            <Form.Item name="totalDeadlineAt" label="Deadline cuối dự án" rules={[{ required: true }]}>
               <Input size="large" type="datetime-local" />
             </Form.Item>
             <Space wrap>
-              <Button type="primary" size="large" htmlType="submit" loading={saving}>{mode === 'edit' ? 'Cập nhật' : 'Tạo draft'}</Button>
+              <Button type="primary" size="large" htmlType="submit" loading={saving}>{mode === 'edit' ? 'Cập nhật' : 'Lưu nháp'}</Button>
               <Button size="large" onClick={() => navigate('/sme/projects')}>Hủy</Button>
             </Space>
           </Form>

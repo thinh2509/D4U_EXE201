@@ -103,8 +103,8 @@ export function SmeProjectDetailPage() {
               <Descriptions.Item label="Trạng thái"><StatusBadge status={project.status} /></Descriptions.Item>
               <Descriptions.Item label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</Descriptions.Item>
               <Descriptions.Item label="Loại dự án">{project.projectType}</Descriptions.Item>
-              <Descriptions.Item label="Deadline sketch">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
-              <Descriptions.Item label="Deadline final">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
+              <Descriptions.Item label="Hạn nộp Sketch">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
+              <Descriptions.Item label="Hạn nộp Final">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
               <Descriptions.Item label="Deadline tổng">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
               <Descriptions.Item label="Publish lúc">{formatDate(project.publishedAt)}</Descriptions.Item>
               <Descriptions.Item label="Mục đích sử dụng" span={2}>{project.usagePurpose || 'Chưa có'}</Descriptions.Item>
