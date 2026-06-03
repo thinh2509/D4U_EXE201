@@ -169,12 +169,13 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 ### Wallet and Withdrawal
 
 - [x] Student has wallet with available, pending, locked balances, currency, and status.
-- [x] Student can create bank account payment method.
+- [x] Student can create bank account payment method with bank name.
+- [x] Admin can view protected full account number for manual withdrawal transfer.
 - [x] Student can request withdrawal.
 - [x] Withdrawal requires wallet `ACTIVE`.
 - [x] Withdrawal requires student `can_withdraw = true`.
 - [x] Withdrawal minimum amount is 50,000 VND.
-- [x] Withdrawal fee is 5,000 VND.
+- [x] Withdrawal fee is 0 VND in MVP.
 - [x] Admin/Finance can manually process withdrawal request after external bank transfer.
 - [x] Successful withdrawal creates debit transaction.
 - [x] Failed withdrawal creates reversal transaction.

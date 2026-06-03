@@ -31,15 +31,20 @@ public sealed record WalletTransactionResponse(
 public sealed record PaymentMethodResponse(
     Guid Id,
     string MethodType,
+    string? BankName,
+    string? BankCode,
     string? AccountHolderName,
     string? MaskedAccountNumber,
+    bool HasFullAccountNumber,
     bool IsDefault,
     string Status,
     DateTimeOffset CreatedAt);
 
 public sealed record CreatePaymentMethodRequest(
+    string BankName,
     string AccountHolderName,
     string AccountNumber,
+    string? BankCode = null,
     bool IsDefault = true);
 
 public sealed record WithdrawalRequestResponse(
@@ -53,8 +58,14 @@ public sealed record WithdrawalRequestResponse(
     string? FailureReason,
     DateTimeOffset RequestedAt,
     DateTimeOffset? ProcessedAt,
+    string? BankName,
+    string? BankCode,
     string? MaskedAccountNumber,
+    string? AccountNumber,
     string? AccountHolderName,
+    bool HasFullAccountNumber,
+    decimal TransferAmount,
+    string TransferContent,
     DateTimeOffset? ProcessingStartedAt,
     DateTimeOffset? TransferredAt,
     string? BankTransactionReference,

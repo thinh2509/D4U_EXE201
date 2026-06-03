@@ -1,6 +1,6 @@
-import { AuditOutlined, StarOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
-import { App, Button, Card, Form, Input, Modal, Space, Table } from 'antd';
-import { useEffect, useState } from 'react';
+import { AuditOutlined, CopyOutlined, StarOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
+import { Alert, App, Button, Card, Empty, Form, Input, Modal, Segmented, Space, Tag, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
@@ -41,6 +41,8 @@ export function AdminWithdrawalsPage() {
   const [form] = Form.useForm();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedId, setSelectedId] = useState(null);
   const [actingRow, setActingRow] = useState(null);
   const [decision, setDecision] = useState(null);
   const [error, setError] = useState(null);
@@ -60,6 +62,17 @@ export function AdminWithdrawalsPage() {
   useEffect(() => {
     loadRows();
   }, []);
+
+  useEffect(() => {
+    if (rows.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+
+    if (!rows.some((row) => row.id === selectedId)) {
+      setSelectedId(rows[0].id);
+    }
+  }, [rows, selectedId]);
 
   const openDecision = (row, nextDecision) => {
     setActingRow(row);
@@ -97,49 +110,90 @@ export function AdminWithdrawalsPage() {
     }
   };
 
-  if (error) return <ErrorState description={error} onRetry={loadRows} />;
-
-  const columns = [
-    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-    {
-      title: 'Tài khoản',
-      render: (_, row) => (
-        <div>
-          <strong>{row.accountHolderName}</strong>
-          <div className="muted-text">{row.maskedAccountNumber}</div>
-        </div>
-      )
-    },
-    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value) },
-    { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value) },
-    { title: 'Chuyển thực tế', dataIndex: 'netAmount', render: (value) => formatCurrency(value) },
-    { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
-    { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
-    { title: 'Mã GD ngân hàng', dataIndex: 'bankTransactionReference' },
-    { title: 'Xử lý lúc', dataIndex: 'processedAt', render: formatDate },
-    {
-      title: 'Hành động',
-      render: (_, row) => (
-        <Space wrap>
-          {row.status === 'PENDING' && (
-            <Button type="primary" onClick={() => openDecision(row, 'PROCESSING')}>
-              Nhận xử lý
-            </Button>
-          )}
-          {row.status === 'PROCESSING' && (
-            <>
-              <Button type="primary" onClick={() => openDecision(row, 'COMPLETED')}>
-                Đã chuyển khoản
-              </Button>
-              <Button danger onClick={() => openDecision(row, 'FAILED')}>
-                Thất bại
-              </Button>
-            </>
-          )}
-        </Space>
-      )
+  const copyText = async (value, successText = 'Đã copy.') => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(String(value));
+      message.success(successText);
+    } catch {
+      message.warning('Không thể copy tự động. Hãy copy thủ công.');
     }
-  ];
+  };
+
+  const summary = useMemo(() => ({
+    PENDING: rows.filter((row) => row.status === 'PENDING').length,
+    PROCESSING: rows.filter((row) => row.status === 'PROCESSING').length,
+    COMPLETED: rows.filter((row) => row.status === 'COMPLETED').length,
+    FAILED: rows.filter((row) => row.status === 'FAILED').length
+  }), [rows]);
+
+  const filteredRows = rows.filter((row) => statusFilter === 'ALL' || row.status === statusFilter);
+  const selectedRow = filteredRows.find((row) => row.id === selectedId) ?? filteredRows[0] ?? null;
+
+  const canTransfer = (row) => Boolean(row?.hasFullAccountNumber && row?.accountNumber);
+
+  const TransferCopyField = ({ label, value, copyLabel, strong = false }) => (
+    <div className="withdrawal-detail-field">
+      <span>{label}</span>
+      <div>
+        {value ? (
+          <Space size={6}>
+            <Typography.Text strong={strong}>{value}</Typography.Text>
+            <Button
+              size="small"
+              type="text"
+              icon={<CopyOutlined />}
+              onClick={() => copyText(value, copyLabel)}
+            />
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">Chưa có</Typography.Text>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderActions = (row, compact = false) => {
+    if (!row) return null;
+    const transferReady = canTransfer(row);
+
+    if (row.status === 'PENDING') {
+      return (
+        <Button
+          type="primary"
+          block={compact}
+          disabled={!transferReady}
+          title={transferReady ? undefined : 'Thiếu số tài khoản đầy đủ nên chưa thể xử lý.'}
+          onClick={() => openDecision(row, 'PROCESSING')}
+        >
+          Nhận xử lý
+        </Button>
+      );
+    }
+
+    if (row.status === 'PROCESSING') {
+      return (
+        <Space direction={compact ? 'vertical' : 'horizontal'} className="withdrawal-action-group">
+          <Button
+            type="primary"
+            block={compact}
+            disabled={!transferReady}
+            title={transferReady ? undefined : 'Thiếu số tài khoản đầy đủ nên chưa thể xác nhận chuyển khoản.'}
+            onClick={() => openDecision(row, 'COMPLETED')}
+          >
+            Đã chuyển khoản
+          </Button>
+          <Button danger block={compact} onClick={() => openDecision(row, 'FAILED')}>
+            Thất bại
+          </Button>
+        </Space>
+      );
+    }
+
+    return <Typography.Text type="secondary">Không còn hành động cần xử lý.</Typography.Text>;
+  };
+
+  if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
   return (
     <>
@@ -149,15 +203,128 @@ export function AdminWithdrawalsPage() {
         description="Admin/Finance cập nhật kết quả sau khi chuyển khoản thủ công ngoài hệ thống."
         extra={<Button onClick={loadRows}>Làm mới</Button>}
       />
-      <Card className="table-card">
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          scroll={{ x: 1120 }}
-          pagination={{ pageSize: 10 }}
-        />
+      <div className="withdrawal-summary-grid">
+        {[
+          ['Chờ xử lý', 'PENDING', summary.PENDING],
+          ['Đang xử lý', 'PROCESSING', summary.PROCESSING],
+          ['Đã hoàn tất', 'COMPLETED', summary.COMPLETED],
+          ['Thất bại', 'FAILED', summary.FAILED]
+        ].map(([label, status, count]) => (
+          <Card key={status} className="withdrawal-summary-card">
+            <span>{label}</span>
+            <strong>{count}</strong>
+            <StatusBadge status={status} />
+          </Card>
+        ))}
+      </div>
+
+      <Card className="withdrawal-workbench">
+        <div className="withdrawal-toolbar">
+          <div>
+            <strong>Danh sách yêu cầu rút tiền</strong>
+            <span>{filteredRows.length} yêu cầu trong bộ lọc hiện tại</span>
+          </div>
+          <Segmented
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value)}
+            options={[
+              { label: 'Tất cả', value: 'ALL' },
+              { label: 'Chờ xử lý', value: 'PENDING' },
+              { label: 'Đang xử lý', value: 'PROCESSING' },
+              { label: 'Hoàn tất', value: 'COMPLETED' },
+              { label: 'Thất bại', value: 'FAILED' }
+            ]}
+          />
+        </div>
+
+        <div className="withdrawal-layout">
+          <div className="withdrawal-list">
+            {loading ? (
+              <div className="withdrawal-empty">Đang tải yêu cầu rút tiền...</div>
+            ) : filteredRows.length === 0 ? (
+              <Empty description="Không có yêu cầu trong trạng thái này." />
+            ) : filteredRows.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                className={`withdrawal-request-card ${selectedRow?.id === row.id ? 'is-active' : ''}`}
+                onClick={() => setSelectedId(row.id)}
+              >
+                <div className="withdrawal-card-topline">
+                  <StatusBadge status={row.status} />
+                  <span>{formatDate(row.requestedAt)}</span>
+                </div>
+                <div className="withdrawal-card-title">
+                  <strong>{row.bankName || 'Thiếu ngân hàng'}</strong>
+                  <span>{formatCurrency(row.transferAmount ?? row.netAmount)}</span>
+                </div>
+                <div className="withdrawal-card-meta">
+                  <span>{row.accountHolderName || 'Thiếu chủ tài khoản'}</span>
+                  <span>{row.accountNumber || row.maskedAccountNumber || 'Thiếu số tài khoản'}</span>
+                </div>
+                {!canTransfer(row) ? <Tag color="warning">Thiếu số TK đầy đủ</Tag> : null}
+              </button>
+            ))}
+          </div>
+
+          <div className="withdrawal-detail-panel">
+            {selectedRow ? (
+              <>
+                <div className="withdrawal-detail-header">
+                  <div>
+                    <StatusBadge status={selectedRow.status} />
+                    <h3>{selectedRow.bankName || 'Thiếu ngân hàng'}</h3>
+                    <p>{selectedRow.accountHolderName || 'Thiếu chủ tài khoản'}</p>
+                  </div>
+                  <div className="withdrawal-detail-amount">
+                    <span>Số tiền cần chuyển</span>
+                    <strong>{formatCurrency(selectedRow.transferAmount ?? selectedRow.netAmount)}</strong>
+                  </div>
+                </div>
+
+                {!canTransfer(selectedRow) ? (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    className="form-alert"
+                    message="Yêu cầu này thiếu số tài khoản đầy đủ."
+                    description="Admin/Finance chưa thể nhận xử lý hoặc xác nhận chuyển khoản. Student cần tạo lại tài khoản nhận tiền mới có đủ thông tin."
+                  />
+                ) : null}
+
+                <div className="withdrawal-transfer-box">
+                  <TransferCopyField label="Số tài khoản" value={selectedRow.accountNumber} copyLabel="Đã copy số tài khoản." strong />
+                  <TransferCopyField
+                    label="Số tiền chuyển"
+                    value={formatCurrency(selectedRow.transferAmount ?? selectedRow.netAmount)}
+                    copyLabel="Đã copy số tiền chuyển."
+                    strong
+                  />
+                  <TransferCopyField label="Nội dung chuyển khoản" value={selectedRow.transferContent} copyLabel="Đã copy nội dung chuyển khoản." strong />
+                </div>
+
+                <div className="withdrawal-detail-grid">
+                  <div><span>Ngày yêu cầu</span><strong>{formatDate(selectedRow.requestedAt)}</strong></div>
+                  <div><span>Bắt đầu xử lý</span><strong>{formatDate(selectedRow.processingStartedAt) || 'Chưa có'}</strong></div>
+                  <div><span>Mã GD ngân hàng</span><strong>{selectedRow.bankTransactionReference || 'Chưa có'}</strong></div>
+                  <div><span>Xử lý lúc</span><strong>{formatDate(selectedRow.processedAt) || 'Chưa có'}</strong></div>
+                  <div><span>Phí rút</span><strong>{formatCurrency(selectedRow.feeAmount)}</strong></div>
+                  <div><span>Thực nhận</span><strong>{formatCurrency(selectedRow.netAmount)}</strong></div>
+                </div>
+
+                {selectedRow.failureReason ? (
+                  <Alert type="error" showIcon className="form-alert" message="Lý do thất bại" description={selectedRow.failureReason} />
+                ) : null}
+
+                <div className="withdrawal-detail-actions">
+                  {renderActions(selectedRow, true)}
+                </div>
+              </>
+            ) : (
+              <Empty description="Chọn một yêu cầu để xem chi tiết." />
+            )}
+          </div>
+        </div>
       </Card>
       <Modal
         title={
@@ -174,8 +341,41 @@ export function AdminWithdrawalsPage() {
       >
         <Form form={form} layout="vertical" onFinish={submitDecision}>
           <p className="muted-text">
-            Yêu cầu {actingRow ? formatCurrency(actingRow.amount) : ''}; số tiền thực chuyển {actingRow ? formatCurrency(actingRow.netAmount) : ''}.
+            Yêu cầu {actingRow ? formatCurrency(actingRow.amount) : ''}; số tiền thực chuyển {actingRow ? formatCurrency(actingRow.transferAmount ?? actingRow.netAmount) : ''}.
           </p>
+          {decision === 'COMPLETED' && actingRow ? (
+            <div className="form-alert">
+              <div><strong>Ngân hàng:</strong> {actingRow.bankName || 'Thiếu ngân hàng'}</div>
+              <div><strong>Chủ TK:</strong> {actingRow.accountHolderName}</div>
+              <div>
+                <strong>Số TK:</strong>{' '}
+                {actingRow.accountNumber ? (
+                  <Space size={4}>
+                    <span>{actingRow.accountNumber}</span>
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<CopyOutlined />}
+                      onClick={() => copyText(actingRow.accountNumber, 'Đã copy số tài khoản.')}
+                    />
+                  </Space>
+                ) : 'Thiếu số tài khoản đầy đủ'}
+              </div>
+              <div><strong>Số tiền chuyển:</strong> {formatCurrency(actingRow.transferAmount ?? actingRow.netAmount)}</div>
+              <div>
+                <strong>Nội dung CK:</strong>{' '}
+                <Space size={4}>
+                  <span>{actingRow.transferContent}</span>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<CopyOutlined />}
+                    onClick={() => copyText(actingRow.transferContent, 'Đã copy nội dung chuyển khoản.')}
+                  />
+                </Space>
+              </div>
+            </div>
+          ) : null}
           {decision === 'FAILED' && (
             <Form.Item name="failureReason" label="Lý do thất bại" rules={[{ required: true, message: 'Nhập lý do thất bại.' }]}>
               <Input.TextArea rows={3} maxLength={500} />

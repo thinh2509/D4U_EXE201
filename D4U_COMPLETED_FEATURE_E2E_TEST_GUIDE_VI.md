@@ -1268,6 +1268,8 @@ Create payment method request:
 
 ```json
 {
+  "bankName": "Vietcombank",
+  "bankCode": "VCB",
   "accountHolderName": "Student Test 001",
   "accountNumber": "1234567890",
   "isDefault": true
@@ -1285,19 +1287,21 @@ Create withdrawal request:
 
 Expected:
 
-- Payment method chỉ lưu `masked_account_number`, không lưu raw bank account number.
+- Payment method lưu `bank_name`, `bank_code`, `masked_account_number` và `account_number_encrypted`; không lưu raw bank account number.
+- Payment method thiếu `bankName` bị chặn khi tạo mới; method cũ thiếu ngân hàng không được dùng để rút tiền.
+- Student API chỉ trả số tài khoản mask; Admin withdrawal API trả số tài khoản đầy đủ và nội dung chuyển khoản.
 - Amount dưới `50,000 VND` bị chặn.
 - Wallet không `ACTIVE` bị chặn.
 - Student `can_withdraw = false` bị chặn.
 - Không đủ available balance bị chặn.
 - Pending withdrawal move `available_balance` sang `locked_balance`.
 - Mỗi wallet chỉ có tối đa một withdrawal `PENDING` hoặc `PROCESSING`.
-- Fee cố định `5,000 VND`, `net_amount = amount - 5,000`.
+- Phí rút tiền MVP là `0 VND`, `net_amount = amount`.
 
 SQL check:
 
 ```sql
-select account_holder_name, masked_account_number, provider_token, is_default, status
+select bank_name, bank_code, account_holder_name, masked_account_number, account_number_encrypted is not null as has_encrypted_account_number, provider_token, is_default, status
 from payment_methods
 order by created_at desc;
 

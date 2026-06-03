@@ -17,7 +17,7 @@ public sealed class WithdrawalRequestConfiguration : IEntityTypeConfiguration<Wi
         entity.Property(request => request.RequestedByUserId).HasColumnName("requested_by_user_id").IsRequired();
         entity.Property(request => request.PaymentMethodId).HasColumnName("payment_method_id").IsRequired();
         entity.Property(request => request.Amount).HasColumnName("amount").HasPrecision(12, 2).IsRequired();
-        entity.Property(request => request.FeeAmount).HasColumnName("fee_amount").HasPrecision(12, 2).HasDefaultValue(5000m).IsRequired();
+        entity.Property(request => request.FeeAmount).HasColumnName("fee_amount").HasPrecision(12, 2).IsRequired();
         entity.Property(request => request.NetAmount).HasColumnName("net_amount").HasPrecision(12, 2).IsRequired();
         entity.Property(request => request.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("PENDING").IsRequired();
         entity.Property(request => request.FailureReason).HasColumnName("failure_reason");

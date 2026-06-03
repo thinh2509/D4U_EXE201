@@ -9,7 +9,7 @@ public sealed class WithdrawalRequest
     public Guid RequestedByUserId { get; set; }
     public Guid PaymentMethodId { get; set; }
     public decimal Amount { get; set; }
-    public decimal FeeAmount { get; set; } = 5000m;
+    public decimal FeeAmount { get; set; }
     public decimal NetAmount { get; set; }
     public string Status { get; set; } = "PENDING";
     public string? FailureReason { get; set; }

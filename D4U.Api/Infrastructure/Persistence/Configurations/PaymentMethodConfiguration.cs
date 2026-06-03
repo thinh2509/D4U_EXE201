@@ -15,8 +15,11 @@ public sealed class PaymentMethodConfiguration : IEntityTypeConfiguration<Paymen
         entity.Property(method => method.Id).HasColumnName("id");
         entity.Property(method => method.UserId).HasColumnName("user_id").IsRequired();
         entity.Property(method => method.MethodType).HasColumnName("method_type").HasMaxLength(50).HasDefaultValue("BANK_ACCOUNT").IsRequired();
+        entity.Property(method => method.BankName).HasColumnName("bank_name").HasMaxLength(120);
+        entity.Property(method => method.BankCode).HasColumnName("bank_code").HasMaxLength(30);
         entity.Property(method => method.AccountHolderName).HasColumnName("account_holder_name").HasMaxLength(255);
         entity.Property(method => method.MaskedAccountNumber).HasColumnName("masked_account_number").HasMaxLength(100);
+        entity.Property(method => method.AccountNumberEncrypted).HasColumnName("account_number_encrypted").HasColumnType("text");
         entity.Property(method => method.ProviderToken).HasColumnName("provider_token").HasMaxLength(255);
         entity.Property(method => method.IsDefault).HasColumnName("is_default").HasDefaultValue(false).IsRequired();
         entity.Property(method => method.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("ACTIVE").IsRequired();

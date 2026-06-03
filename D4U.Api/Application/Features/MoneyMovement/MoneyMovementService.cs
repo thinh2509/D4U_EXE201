@@ -4,14 +4,18 @@ using D4U.Api.Application.Common.Data;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class MoneyMovementService(
     IUnitOfWork unitOfWork,
-    D4UDbContext dbContext) : IMoneyMovementService
+    D4UDbContext dbContext,
+    IDataProtectionProvider dataProtectionProvider) : IMoneyMovementService
 {
+    private readonly IDataProtector accountNumberProtector =
+        dataProtectionProvider.CreateProtector("D4U.PaymentMethods.AccountNumber.v1");
     private const decimal MinimumWithdrawalAmount = 50000m;
-    private const decimal WithdrawalFeeAmount = 5000m;
+    private const decimal WithdrawalFeeAmount = 0m;
     private const string WithdrawalPending = "PENDING";
     private const string WithdrawalProcessing = "PROCESSING";
     private const string WithdrawalCompleted = "COMPLETED";
@@ -232,6 +236,11 @@ public sealed class MoneyMovementService(
     {
         await RequireStudentProfileAsync(userId, cancellationToken);
 
+        if (string.IsNullOrWhiteSpace(request.BankName))
+        {
+            throw new InvalidOperationException("Bank name is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.AccountHolderName))
         {
             throw new InvalidOperationException("Account holder name is required.");
@@ -260,8 +269,11 @@ public sealed class MoneyMovementService(
             Id = Guid.NewGuid(),
             UserId = userId,
             MethodType = "BANK_ACCOUNT",
+            BankName = request.BankName.Trim(),
+            BankCode = string.IsNullOrWhiteSpace(request.BankCode) ? null : request.BankCode.Trim(),
             AccountHolderName = request.AccountHolderName.Trim(),
             MaskedAccountNumber = MaskAccountNumber(request.AccountNumber),
+            AccountNumberEncrypted = ProtectAccountNumber(request.AccountNumber),
             IsDefault = request.IsDefault,
             Status = "ACTIVE",
             CreatedAt = now
@@ -278,12 +290,15 @@ public sealed class MoneyMovementService(
     {
         await RequireStudentProfileAsync(userId, cancellationToken);
 
-        return await unitOfWork.Repository<PaymentMethod>().Query()
+        var paymentMethods = await unitOfWork.Repository<PaymentMethod>().Query()
             .Where(method => method.UserId == userId)
             .OrderByDescending(method => method.IsDefault)
             .ThenByDescending(method => method.CreatedAt)
-            .Select(method => ToPaymentMethodResponse(method))
             .ToListAsync(cancellationToken);
+
+        return paymentMethods
+            .Select(ToPaymentMethodResponse)
+            .ToList();
     }
 
     public async Task<WithdrawalRequestResponse> CreateWithdrawalRequestAsync(
@@ -377,13 +392,14 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         var wallet = await RequireWalletForStudentAsync(userId, cancellationToken);
-        var withdrawals = await QueryWithdrawalsWithMethods()
-            .Where(value => value.Withdrawal.WalletId == wallet.Id)
-            .OrderByDescending(value => value.Withdrawal.RequestedAt)
+        var withdrawals = await unitOfWork.Repository<WithdrawalRequest>().Query()
+            .Where(withdrawal => withdrawal.WalletId == wallet.Id)
+            .OrderByDescending(withdrawal => withdrawal.RequestedAt)
             .ToListAsync(cancellationToken);
+        var paymentMethods = await LoadWithdrawalPaymentMethodsAsync(withdrawals, cancellationToken);
 
         return withdrawals
-            .Select(value => ToWithdrawalResponse(value.Withdrawal, value.PaymentMethod))
+            .Select(withdrawal => ToWithdrawalResponse(withdrawal, paymentMethods[withdrawal.PaymentMethodId], includeAccountNumber: false))
             .ToList();
     }
 
@@ -392,13 +408,30 @@ public sealed class MoneyMovementService(
         CancellationToken cancellationToken = default)
     {
         await RequireAdminAsync(adminUserId, cancellationToken);
-        var withdrawals = await QueryWithdrawalsWithMethods()
-            .OrderByDescending(value => value.Withdrawal.RequestedAt)
+        var withdrawals = await unitOfWork.Repository<WithdrawalRequest>().Query()
+            .OrderByDescending(withdrawal => withdrawal.RequestedAt)
             .ToListAsync(cancellationToken);
-
-        return withdrawals
-            .Select(value => ToWithdrawalResponse(value.Withdrawal, value.PaymentMethod))
+        var paymentMethods = await LoadWithdrawalPaymentMethodsAsync(withdrawals, cancellationToken);
+        var responses = withdrawals
+            .Select(withdrawal => ToWithdrawalResponse(withdrawal, paymentMethods[withdrawal.PaymentMethodId], includeAccountNumber: true))
             .ToList();
+
+        var sensitiveCount = responses.Count(response => !string.IsNullOrWhiteSpace(response.AccountNumber));
+        if (sensitiveCount > 0)
+        {
+            await AddAuditLogAsync(
+                adminUserId,
+                "WITHDRAWAL_BANK_DETAILS_VIEWED",
+                nameof(WithdrawalRequest),
+                null,
+                "{}",
+                $$"""{"withdrawalCount":{{sensitiveCount}}}""",
+                DateTimeOffset.UtcNow,
+                cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        return responses;
     }
 
     public async Task<WithdrawalRequestResponse> ProcessWithdrawalRequestAsync(
@@ -568,7 +601,7 @@ public sealed class MoneyMovementService(
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return ToWithdrawalResponse(withdrawal, paymentMethod);
+            return ToWithdrawalResponse(withdrawal, paymentMethod, includeAccountNumber: true);
         }
         catch
         {
@@ -673,15 +706,37 @@ public sealed class MoneyMovementService(
             throw new UnauthorizedAccessException("Payment method is not available.");
         }
 
+        if (string.IsNullOrWhiteSpace(paymentMethod.BankName))
+        {
+            throw new InvalidOperationException("Payment method must include bank name before withdrawal.");
+        }
+
+        if (string.IsNullOrWhiteSpace(paymentMethod.AccountNumberEncrypted))
+        {
+            throw new InvalidOperationException("Payment method must include full account number before withdrawal.");
+        }
+
+        _ = UnprotectAccountNumber(paymentMethod.AccountNumberEncrypted);
         return paymentMethod;
     }
 
-    private IQueryable<WithdrawalWithMethod> QueryWithdrawalsWithMethods()
+    private async Task<Dictionary<Guid, PaymentMethod>> LoadWithdrawalPaymentMethodsAsync(
+        IReadOnlyCollection<WithdrawalRequest> withdrawals,
+        CancellationToken cancellationToken)
     {
-        return from withdrawal in unitOfWork.Repository<WithdrawalRequest>().Query()
-            join paymentMethod in unitOfWork.Repository<PaymentMethod>().Query()
-                on withdrawal.PaymentMethodId equals paymentMethod.Id
-            select new WithdrawalWithMethod(withdrawal, paymentMethod);
+        var paymentMethodIds = withdrawals
+            .Select(withdrawal => withdrawal.PaymentMethodId)
+            .Distinct()
+            .ToList();
+
+        if (paymentMethodIds.Count == 0)
+        {
+            return new Dictionary<Guid, PaymentMethod>();
+        }
+
+        return await unitOfWork.Repository<PaymentMethod>().Query()
+            .Where(paymentMethod => paymentMethodIds.Contains(paymentMethod.Id))
+            .ToDictionaryAsync(paymentMethod => paymentMethod.Id, cancellationToken);
     }
 
     private static string MaskAccountNumber(string accountNumber)
@@ -695,11 +750,50 @@ public sealed class MoneyMovementService(
         return $"****{digits[^4..]}";
     }
 
+    private string ProtectAccountNumber(string accountNumber)
+    {
+        return accountNumberProtector.Protect(accountNumber.Trim());
+    }
+
+    private string UnprotectAccountNumber(string encryptedAccountNumber)
+    {
+        try
+        {
+            return accountNumberProtector.Unprotect(encryptedAccountNumber);
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Không thể giải mã số tài khoản.", exception);
+        }
+    }
+
+    private string? TryUnprotectAccountNumber(PaymentMethod paymentMethod)
+    {
+        if (string.IsNullOrWhiteSpace(paymentMethod.AccountNumberEncrypted))
+        {
+            return null;
+        }
+
+        try
+        {
+            return accountNumberProtector.Unprotect(paymentMethod.AccountNumberEncrypted);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string BuildTransferContent(Guid withdrawalRequestId)
+    {
+        return $"D4U WD {withdrawalRequestId.ToString("N")[..8].ToUpperInvariant()}";
+    }
+
     private async Task AddAuditLogAsync(
         Guid? actorUserId,
         string action,
         string entityType,
-        Guid entityId,
+        Guid? entityId,
         string beforeJson,
         string afterJson,
         DateTimeOffset now,
@@ -782,22 +876,41 @@ public sealed class MoneyMovementService(
             disbursement?.NetAmount);
     }
 
-    private static PaymentMethodResponse ToPaymentMethodResponse(PaymentMethod method)
+    private PaymentMethodResponse ToPaymentMethodResponse(PaymentMethod method)
     {
+        var hasFullAccountNumber = !string.IsNullOrWhiteSpace(method.AccountNumberEncrypted) &&
+            !string.IsNullOrWhiteSpace(TryUnprotectAccountNumber(method));
+
         return new PaymentMethodResponse(
             method.Id,
             method.MethodType,
+            method.BankName,
+            method.BankCode,
             method.AccountHolderName,
             method.MaskedAccountNumber,
+            hasFullAccountNumber,
             method.IsDefault,
             method.Status,
             method.CreatedAt);
     }
 
-    private static WithdrawalRequestResponse ToWithdrawalResponse(
+    private WithdrawalRequestResponse ToWithdrawalResponse(
         WithdrawalRequest request,
         PaymentMethod paymentMethod)
     {
+        return ToWithdrawalResponse(request, paymentMethod, includeAccountNumber: false);
+    }
+
+    private WithdrawalRequestResponse ToWithdrawalResponse(
+        WithdrawalRequest request,
+        PaymentMethod paymentMethod,
+        bool includeAccountNumber)
+    {
+        var accountNumber = includeAccountNumber ? TryUnprotectAccountNumber(paymentMethod) : null;
+        var hasFullAccountNumber = includeAccountNumber
+            ? !string.IsNullOrWhiteSpace(accountNumber)
+            : !string.IsNullOrWhiteSpace(paymentMethod.AccountNumberEncrypted);
+
         return new WithdrawalRequestResponse(
             request.Id,
             request.WalletId,
@@ -809,8 +922,14 @@ public sealed class MoneyMovementService(
             request.FailureReason,
             request.RequestedAt,
             request.ProcessedAt,
+            paymentMethod.BankName,
+            paymentMethod.BankCode,
             paymentMethod.MaskedAccountNumber,
+            accountNumber,
             paymentMethod.AccountHolderName,
+            hasFullAccountNumber,
+            request.NetAmount,
+            BuildTransferContent(request.Id),
             request.ProcessingStartedAt,
             request.TransferredAt,
             request.BankTransactionReference,
@@ -830,8 +949,4 @@ public sealed class MoneyMovementService(
             disbursement.CreatedAt,
             disbursement.CompletedAt);
     }
-
-    private sealed record WithdrawalWithMethod(
-        WithdrawalRequest Withdrawal,
-        PaymentMethod PaymentMethod);
 }

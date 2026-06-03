@@ -48,6 +48,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<IConnectionStringProvider, ConnectionStringProvider>();
         services.AddHttpContextAccessor();
+        services.AddDataProtection();
 
         services.AddDbContext<D4UDbContext>((serviceProvider, options) =>
         {

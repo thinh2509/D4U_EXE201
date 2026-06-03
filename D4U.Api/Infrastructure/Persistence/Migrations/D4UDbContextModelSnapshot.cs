@@ -587,6 +587,20 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("account_holder_name");
 
+                    b.Property<string>("AccountNumberEncrypted")
+                        .HasColumnType("text")
+                        .HasColumnName("account_number_encrypted");
+
+                    b.Property<string>("BankCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("bank_code");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("bank_name");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -2009,10 +2023,8 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasColumnName("failure_reason");
 
                     b.Property<decimal>("FeeAmount")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)")
-                        .HasDefaultValue(5000m)
                         .HasColumnName("fee_amount");
 
                     b.Property<decimal>("NetAmount")

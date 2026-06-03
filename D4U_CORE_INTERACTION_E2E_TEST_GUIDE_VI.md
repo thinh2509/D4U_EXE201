@@ -440,16 +440,18 @@ Chỉ chạy khi ví Student có ít nhất `50000 VND`.
 
 | Trường UI | Giá trị mẫu |
 | --- | --- |
+| Ngân hàng | `Vietcombank` |
+| Mã ngân hàng | `VCB` |
 | Chủ tài khoản | `NGUYEN VAN A` |
 | Số tài khoản | `1234567890` |
 
 2. Bấm `Lưu tài khoản`.
 
-Kết quả cần thấy: danh sách chỉ hiển thị số tài khoản đã mask.
+Kết quả cần thấy: Student chỉ thấy ngân hàng, chủ tài khoản và số tài khoản đã mask.
 
 **Bước 22 - Student tạo withdrawal**
 
-1. Tại card `Tạo yêu cầu rút tiền`, chọn tài khoản nhận.
+1. Tại card `Tạo yêu cầu rút tiền`, chọn tài khoản nhận có đầy đủ ngân hàng.
 2. Nhập số tiền tối thiểu `50000`.
 3. Gửi yêu cầu.
 
@@ -458,6 +460,7 @@ Kết quả cần thấy:
 - Withdrawal có status `PENDING`.
 - Available balance giảm.
 - Locked balance tăng cùng amount.
+- Fee rút tiền là `0 VND`, `netAmount = amount`.
 - Không thể tạo withdrawal thứ hai khi request hiện tại còn `PENDING` hoặc `PROCESSING`.
 
 **Bước 23 - Admin xử lý thủ công**
@@ -466,12 +469,13 @@ Kết quả cần thấy:
 2. Mở `<public-origin>/admin/withdrawals`.
 3. Tìm withdrawal vừa tạo.
 4. Bấm `Nhận xử lý`, kiểm tra withdrawal chuyển sang `PROCESSING`.
-5. Chuyển khoản ngoài hệ thống.
+5. Chuyển khoản ngoài hệ thống tới đúng ngân hàng, chủ tài khoản, số tài khoản đầy đủ và nội dung chuyển khoản hiển thị trên hàng withdrawal.
 6. Bấm `Đã chuyển khoản`, nhập mã giao dịch ngân hàng và thời gian chuyển.
 
 Kết quả cần thấy:
 
 - Withdrawal chuyển `PENDING -> PROCESSING -> COMPLETED`.
+- Admin có đủ `Ngân hàng`, `Chủ TK`, `Số TK`, `Số tiền chuyển` và `Nội dung CK`.
 - Locked balance giảm.
 - Ledger có `WITHDRAWAL_DEBIT`.
 

@@ -1,5 +1,5 @@
 import { FileDoneOutlined, FolderOpenOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
-import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table } from 'antd';
+import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
@@ -306,11 +306,27 @@ export function StudentWalletShellPage() {
   );
 }
 
+const isValidPaymentMethod = (method) => method?.status === 'ACTIVE' && method?.bankName && method?.hasFullAccountNumber;
+
+const getPaymentMethodIssue = (method) => {
+  if (method?.status !== 'ACTIVE') return 'Tài khoản chưa active';
+  if (!method?.bankName) return 'Thiếu ngân hàng';
+  if (!method?.hasFullAccountNumber) return 'Thiếu số tài khoản đầy đủ';
+  return null;
+};
+
+const getPaymentMethodLabel = (method) => [
+  method?.bankName || 'Thiếu ngân hàng',
+  method?.accountHolderName || 'Thiếu chủ tài khoản',
+  method?.maskedAccountNumber || 'Thiếu số TK'
+].join(' - ');
+
 export function StudentWalletPage() {
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [withdrawalForm] = Form.useForm();
   const withdrawalAmount = Number(Form.useWatch('amount', withdrawalForm) ?? 0);
+  const selectedPaymentMethodId = Form.useWatch('paymentMethodId', withdrawalForm);
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -363,10 +379,20 @@ export function StudentWalletPage() {
     loadWallet();
   }, []);
 
+  useEffect(() => {
+    if (!selectedPaymentMethodId) return;
+    const selectedMethod = paymentMethods.find((method) => method.id === selectedPaymentMethodId);
+    if (selectedMethod && !isValidPaymentMethod(selectedMethod)) {
+      withdrawalForm.setFieldsValue({ paymentMethodId: undefined });
+    }
+  }, [paymentMethods, selectedPaymentMethodId, withdrawalForm]);
+
   const createPaymentMethod = async (values) => {
     setSavingMethod(true);
     try {
-      await walletApi.createPaymentMethod({
+      const savedMethod = await walletApi.createPaymentMethod({
+        bankName: values.bankName,
+        bankCode: values.bankCode,
         accountHolderName: values.accountHolderName,
         accountNumber: values.accountNumber,
         isDefault: true
@@ -374,6 +400,9 @@ export function StudentWalletPage() {
       message.success('Đã lưu tài khoản nhận tiền.');
       form.resetFields();
       await loadWallet();
+      if (isValidPaymentMethod(savedMethod)) {
+        withdrawalForm.setFieldsValue({ paymentMethodId: savedMethod.id });
+      }
     } catch (requestError) {
       message.error(getApiErrorMessage(requestError, 'Không thể lưu tài khoản nhận tiền.'));
     } finally {
@@ -413,21 +442,54 @@ export function StudentWalletPage() {
     { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
     { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
     { title: 'Thực nhận', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Tài khoản', dataIndex: 'maskedAccountNumber' },
+    {
+      title: 'Tài khoản',
+      render: (_, row) => (
+        <div>
+          <strong>{row.bankName || 'Thiếu ngân hàng'}</strong>
+          <div>{row.accountHolderName}</div>
+          <div className="muted-text">{row.maskedAccountNumber}</div>
+        </div>
+      )
+    },
     { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
     { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
     { title: 'Mã giao dịch NH', dataIndex: 'bankTransactionReference' },
     { title: 'Lý do thất bại', dataIndex: 'failureReason' }
   ];
   const hasActiveWithdrawal = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
-  const activePaymentMethods = paymentMethods.filter((method) => method.status === 'ACTIVE');
-  const withdrawalFee = withdrawalAmount > 0 ? 5000 : 0;
-  const withdrawalNetAmount = Math.max(0, withdrawalAmount - withdrawalFee);
+  const validPaymentMethods = paymentMethods.filter(isValidPaymentMethod);
+  const invalidPaymentMethods = paymentMethods.filter((method) => !isValidPaymentMethod(method));
+  const selectedPaymentMethod = validPaymentMethods.find((method) => method.id === selectedPaymentMethodId);
+  const paymentMethodOptions = [
+    ...validPaymentMethods.map((method) => ({
+      value: method.id,
+      label: getPaymentMethodLabel(method)
+    })),
+    ...invalidPaymentMethods.map((method) => ({
+      value: method.id,
+      label: `${getPaymentMethodLabel(method)} (${getPaymentMethodIssue(method)})`,
+      disabled: true
+    }))
+  ];
+  const minimumWithdrawalAmount = 50000;
+  const withdrawalFee = 0;
+  const withdrawalNetAmount = Math.max(0, withdrawalAmount);
   const hasEnoughBalance = wallet ? wallet.availableBalance >= withdrawalAmount : false;
-  const canRequestWithdrawal = activePaymentMethods.length > 0 &&
+  const canRequestWithdrawal = validPaymentMethods.length > 0 &&
+    Boolean(selectedPaymentMethod) &&
     !hasActiveWithdrawal &&
-    withdrawalAmount >= 50000 &&
+    withdrawalAmount >= minimumWithdrawalAmount &&
     hasEnoughBalance;
+  const withdrawalBlockingMessage = (() => {
+    if (validPaymentMethods.length === 0) return 'Bạn cần lưu tài khoản ngân hàng có đầy đủ số tài khoản trước khi rút tiền.';
+    if (!selectedPaymentMethod) return 'Chọn tài khoản nhận tiền hợp lệ.';
+    if (hasActiveWithdrawal) return 'Bạn đang có yêu cầu rút tiền chờ xử lý.';
+    if (!withdrawalAmount) return 'Nhập số tiền muốn rút. Số tiền tối thiểu là 50.000 VND.';
+    if (withdrawalAmount < minimumWithdrawalAmount) return 'Số tiền rút tối thiểu là 50.000 VND.';
+    if (!hasEnoughBalance) return `Số dư có thể rút hiện tại chỉ còn ${formatCurrency(wallet?.availableBalance ?? 0, wallet?.currency)}.`;
+    return null;
+  })();
 
   return (
     <>
@@ -467,6 +529,12 @@ export function StudentWalletPage() {
           <Card title="Tài khoản nhận tiền">
             {sectionErrors.methods ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.methods} /> : null}
             <Form form={form} layout="vertical" onFinish={createPaymentMethod}>
+              <Form.Item name="bankName" label="Ngân hàng" rules={[{ required: true, message: 'Nhập tên ngân hàng.' }]}>
+                <Input maxLength={120} placeholder="Ví dụ: Vietcombank, MB Bank, Techcombank" />
+              </Form.Item>
+              <Form.Item name="bankCode" label="Mã ngân hàng" tooltip="Không bắt buộc trong MVP. Có thể dùng mã như VCB, MB, TCB nếu biết.">
+                <Input maxLength={30} placeholder="Không bắt buộc" />
+              </Form.Item>
               <Form.Item name="accountHolderName" label="Chủ tài khoản" rules={[{ required: true, message: 'Nhập tên chủ tài khoản.' }]}>
                 <Input maxLength={120} />
               </Form.Item>
@@ -479,11 +547,24 @@ export function StudentWalletPage() {
               className="embedded-table"
               size="small"
               rowKey="id"
-              dataSource={activePaymentMethods}
+              dataSource={paymentMethods}
               columns={[
+                { title: 'Ngân hàng', dataIndex: 'bankName', render: (value) => value || 'Thiếu ngân hàng' },
                 { title: 'Chủ TK', dataIndex: 'accountHolderName' },
-                { title: 'Số TK', dataIndex: 'maskedAccountNumber' },
-                { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> }
+                {
+                  title: 'Số TK',
+                  render: (_, row) => (
+                    <span>{row.maskedAccountNumber || 'Thiếu số TK'}</span>
+                  )
+                },
+                { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
+                {
+                  title: 'Ghi chú',
+                  render: (_, row) => {
+                    const issue = getPaymentMethodIssue(row);
+                    return issue ? <Tag color="warning">{issue}</Tag> : <Tag color="success">Có thể rút</Tag>;
+                  }
+                }
               ]}
               pagination={false}
             />
@@ -499,28 +580,38 @@ export function StudentWalletPage() {
                 message="Bạn đang có một yêu cầu rút tiền chờ xử lý. Hãy chờ Admin/Finance hoàn tất trước khi tạo yêu cầu mới."
               />
             )}
-            {activePaymentMethods.length === 0 ? (
-              <Alert type="warning" showIcon className="form-alert" message="Bạn cần lưu tài khoản ngân hàng trước khi rút tiền." />
+            {validPaymentMethods.length === 0 ? (
+              <Alert type="warning" showIcon className="form-alert" message="Bạn cần lưu tài khoản ngân hàng có đầy đủ số tài khoản trước khi rút tiền." />
             ) : null}
             <Form form={withdrawalForm} layout="vertical" onFinish={createWithdrawal}>
               <Form.Item name="paymentMethodId" label="Tài khoản nhận" rules={[{ required: true, message: 'Chọn tài khoản nhận.' }]}>
                 <Select
                   placeholder="Chọn tài khoản"
-                  options={activePaymentMethods.map((method) => ({
-                    value: method.id,
-                    label: `${method.accountHolderName} - ${method.maskedAccountNumber}`
-                  }))}
+                  options={paymentMethodOptions}
                 />
               </Form.Item>
-              <Form.Item name="amount" label="Số tiền rút" rules={[{ required: true, message: 'Nhập số tiền rút.' }]}>
-                <InputNumber min={50000} step={50000} style={{ width: '100%' }} />
+              <Form.Item
+                name="amount"
+                label="Số tiền rút"
+                rules={[
+                  { required: true, message: 'Nhập số tiền rút.' },
+                  {
+                    validator: (_, value) => {
+                      if (value == null || value === '') return Promise.resolve();
+                      return Number(value) >= minimumWithdrawalAmount
+                        ? Promise.resolve()
+                        : Promise.reject(new Error('Số tiền rút tối thiểu là 50.000 VND.'));
+                    }
+                  }
+                ]}
+              >
+                <InputNumber min={0} step={10000} style={{ width: '100%' }} />
               </Form.Item>
-              <Alert
-                type={withdrawalAmount > 0 && !hasEnoughBalance ? 'error' : 'info'}
-                showIcon
-                className="form-alert"
-                message={`Phí rút tiền: ${formatCurrency(withdrawalFee, wallet?.currency)}. Thực nhận: ${formatCurrency(withdrawalNetAmount, wallet?.currency)}.`}
-              />
+              <div className="muted-text form-alert">
+                <div>Phí rút tiền: <strong>{formatCurrency(withdrawalFee, wallet?.currency)}</strong></div>
+                <div>Thực nhận: <strong>{formatCurrency(withdrawalNetAmount, wallet?.currency)}</strong></div>
+                <div>{withdrawalBlockingMessage ?? 'D4U không thu phí rút tiền trong MVP.'}</div>
+              </div>
               <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={!canRequestWithdrawal}>
                 Gửi yêu cầu
               </Button>

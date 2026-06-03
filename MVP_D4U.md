@@ -433,8 +433,11 @@ Student wallet includes:
 
 Payment method:
 
+- Bank name.
+- Optional bank code.
 - Bank account holder name.
 - Masked account number.
+- Protected full account number for Admin manual transfer.
 - Optional provider token.
 - Default flag.
 
@@ -445,7 +448,7 @@ Withdrawal flow:
 3. System checks wallet is `ACTIVE`.
 4. System checks `can_withdraw = true`.
 5. System checks minimum amount is 50,000 VND.
-6. System applies 5,000 VND fee.
+6. System applies 0 VND withdrawal fee in MVP.
 7. System creates withdrawal request.
 8. Admin/Finance manually transfers money to the Student bank account outside the system.
 9. Admin/Finance marks the withdrawal as successful or failed in D4U.
