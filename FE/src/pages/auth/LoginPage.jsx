@@ -1,19 +1,16 @@
 import { GoogleLogin } from '@react-oauth/google';
 import {
-  CheckCircleOutlined,
   GoogleOutlined,
   LockOutlined,
-  MailOutlined,
-  SafetyCertificateOutlined,
-  ThunderboltOutlined
+  MailOutlined
 } from '@ant-design/icons';
 import { App, Button, Card, Form, Input, Radio, Typography } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
-import { D4ULogo } from '../../components/D4ULogo.jsx';
 import { roleHome } from '../../components/RouteGuards.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { authApi } from '../../services/authApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+import { AuthBrandPanel } from './AuthBrandPanel.jsx';
 
 const { Title, Text } = Typography;
 
@@ -64,30 +61,7 @@ export function LoginPage() {
   return (
     <main className="auth-page">
       <div className="auth-shell auth-shell-login">
-        <section className="auth-showcase">
-          <div className="auth-logo-tile"><D4ULogo /></div>
-          <div className="auth-showcase-copy">
-            <Text className="auth-kicker">D4U Marketplace</Text>
-            <h1>Không gian làm việc cho dự án thiết kế có kiểm soát.</h1>
-            <p>
-              Sinh viên được xác thực, doanh nghiệp đăng brief rõ ràng, AI hỗ trợ đúng lúc
-              và các luồng thanh toán MVP được đặt trong một trải nghiệm gọn, sáng, đáng tin.
-            </p>
-          </div>
-          <div className="auth-visual">
-            <div className="auth-panel-preview">
-              <div className="preview-header"><span /><strong>D4U Flow</strong></div>
-              <div className="preview-row active"><SafetyCertificateOutlined /> Xác thực sinh viên</div>
-              <div className="preview-row"><ThunderboltOutlined /> AI brief assistant</div>
-              <div className="preview-row"><CheckCircleOutlined /> Marketplace dự án</div>
-            </div>
-          </div>
-          <div className="auth-feature-row">
-            <span>Verified students</span>
-            <span>Project marketplace</span>
-            <span>Payment-ready workflow</span>
-          </div>
-        </section>
+        <AuthBrandPanel />
 
         <Card className="auth-card">
           <div className="auth-card-content">

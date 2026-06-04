@@ -1,7 +1,5 @@
 import {
   BankOutlined,
-  CheckCircleOutlined,
-  FileSearchOutlined,
   IdcardOutlined,
   LockOutlined,
   MailOutlined,
@@ -9,9 +7,9 @@ import {
 } from '@ant-design/icons';
 import { App, Button, Card, Form, Input, Radio, Typography } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
-import { D4ULogo } from '../../components/D4ULogo.jsx';
 import { authApi } from '../../services/authApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+import { AuthBrandPanel } from './AuthBrandPanel.jsx';
 
 const { Title, Text } = Typography;
 
@@ -32,30 +30,7 @@ export function RegisterPage() {
   return (
     <main className="auth-page">
       <div className="auth-shell auth-shell-register">
-        <section className="auth-showcase">
-          <div className="auth-logo-tile"><D4ULogo /></div>
-          <div className="auth-showcase-copy">
-            <Text className="auth-kicker">Bắt đầu với D4U</Text>
-            <h1>Gia nhập marketplace thiết kế theo đúng vai trò.</h1>
-            <p>
-              Chọn vai trò ngay từ đầu để D4U điều hướng đúng luồng hồ sơ,
-              xác thực, dự án và vận hành MVP.
-            </p>
-          </div>
-          <div className="auth-visual">
-            <div className="auth-panel-preview">
-              <div className="preview-header"><span /><strong>Account setup</strong></div>
-              <div className="preview-row active"><IdcardOutlined /> Sinh viên thiết kế</div>
-              <div className="preview-row"><BankOutlined /> Doanh nghiệp SME</div>
-              <div className="preview-row"><FileSearchOutlined /> Admin review</div>
-            </div>
-          </div>
-          <div className="auth-feature-row">
-            <span>Student profile</span>
-            <span>SME workspace</span>
-            <span><CheckCircleOutlined /> Review flow</span>
-          </div>
-        </section>
+        <AuthBrandPanel />
 
         <Card className="auth-card">
           <div className="auth-card-content">

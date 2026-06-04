@@ -1,9 +1,9 @@
-import { CheckCircleOutlined, MailOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { MailOutlined } from '@ant-design/icons';
 import { App, Button, Card, Form, Input, Typography } from 'antd';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { D4ULogo } from '../../components/D4ULogo.jsx';
 import { authApi } from '../../services/authApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+import { AuthBrandPanel } from './AuthBrandPanel.jsx';
 
 const { Title, Text } = Typography;
 
@@ -42,30 +42,7 @@ export function VerifyEmailPage() {
   return (
     <main className="auth-page">
       <div className="auth-shell auth-shell-register">
-        <section className="auth-showcase">
-          <div className="auth-logo-tile"><D4ULogo /></div>
-          <div className="auth-showcase-copy">
-            <Text className="auth-kicker">Email verification</Text>
-            <h1>Xác minh email để bảo vệ tài khoản D4U.</h1>
-            <p>
-              Mã OTP được gửi tới email bạn đăng ký. Sau khi xác minh,
-              bạn có thể đăng nhập và tiếp tục hoàn thiện hồ sơ.
-            </p>
-          </div>
-          <div className="auth-visual">
-            <div className="auth-panel-preview">
-              <div className="preview-header"><span /><strong>Secure signup</strong></div>
-              <div className="preview-row active"><MailOutlined /> Nhận mã qua email</div>
-              <div className="preview-row"><SafetyCertificateOutlined /> Xác minh tài khoản</div>
-              <div className="preview-row"><CheckCircleOutlined /> Đăng nhập D4U</div>
-            </div>
-          </div>
-          <div className="auth-feature-row">
-            <span>Email thật</span>
-            <span>OTP bảo mật</span>
-            <span>Không dùng email ảo</span>
-          </div>
-        </section>
+        <AuthBrandPanel />
 
         <Card className="auth-card">
           <div className="auth-card-content">
