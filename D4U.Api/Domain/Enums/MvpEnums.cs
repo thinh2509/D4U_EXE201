@@ -34,6 +34,7 @@ public enum ProjectStatus
     FINAL_REVIEW,
     ADMIN_REVIEW,
     COMPLETED,
+    STUDENT_ABANDONED,
     CANCELLED
 }
 
@@ -63,6 +64,7 @@ public enum EscrowStatus
     FUNDED,
     RELEASE_PENDING,
     RELEASED,
+    REFUND_PENDING,
     REFUNDED,
     PARTIALLY_REFUNDED,
     CANCELLED

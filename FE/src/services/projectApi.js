@@ -17,6 +17,8 @@ export const projectApi = {
   publishProject: (projectId) => apiClient.post(`/projects/${projectId}/publish`),
   cancelProject: (projectId, cancellationReason) =>
     apiClient.post(`/projects/${projectId}/cancel`, { cancellationReason }),
+  abandonProject: (projectId, cancellationReason) =>
+    apiClient.post(`/projects/${projectId}/abandon`, { cancellationReason }),
   deleteProject: (projectId) => apiClient.delete(`/projects/${projectId}`),
   submitApplication: (projectId, payload) => apiClient.post(`/projects/${projectId}/applications`, payload),
   listApplications: (projectId) => apiClient.get(`/projects/${projectId}/applications`),

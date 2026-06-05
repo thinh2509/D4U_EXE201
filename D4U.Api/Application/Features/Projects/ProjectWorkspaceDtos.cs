@@ -1,5 +1,6 @@
 namespace D4U.Api.Application.Features.Projects;
 
+using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Domain.Enums;
 
 public sealed record SubmissionUploadResponse(
@@ -28,6 +29,7 @@ public sealed record ProjectWorkspaceResponse(
     WorkspaceOfferResponse? Offer,
     WorkspacePaymentResponse? Payment,
     WorkspaceEscrowResponse? Escrow,
+    RefundResponse? Refund,
     IReadOnlyList<WorkspaceSubmissionResponse> Submissions,
     IReadOnlyList<WorkspaceReviewActionResponse> ReviewActions);
 

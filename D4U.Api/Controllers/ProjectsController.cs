@@ -101,6 +101,17 @@ public sealed class ProjectsController(
         return Ok(response);
     }
 
+    [HttpPost("{projectId:guid}/abandon")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<ProjectResponse>> Abandon(
+        Guid projectId,
+        CancelProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.AbandonAsync(GetRequiredUserId(), projectId, request, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpDelete("{projectId:guid}")]
     [Authorize(Roles = nameof(UserRole.SME))]
     public async Task<ActionResult<ProjectResponse>> Delete(

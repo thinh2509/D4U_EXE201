@@ -7,6 +7,22 @@ public interface IMoneyMovementService
         Guid? actorUserId,
         CancellationToken cancellationToken = default);
 
+    Task<RefundResponse> CreateStudentAbandonRefundAsync(
+        Guid projectId,
+        Guid studentUserId,
+        string reason,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RefundResponse>> ListAdminRefundsAsync(
+        Guid adminUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<RefundResponse> MarkRefundCompletedAsync(
+        Guid adminUserId,
+        Guid refundId,
+        ProcessRefundRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<WalletResponse> GetMyWalletAsync(
         Guid userId,
         CancellationToken cancellationToken = default);

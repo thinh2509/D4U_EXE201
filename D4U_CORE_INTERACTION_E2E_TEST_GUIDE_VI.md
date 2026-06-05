@@ -1,34 +1,34 @@
-# D4U Core Interaction E2E Test Guide
+﻿# D4U Core Interaction E2E Test Guide
 
-Tài liệu này kiểm thử luồng core theo tương tác thực tế giữa SME và Student. Không test theo kiểu một role hoàn thành toàn bộ thao tác rồi mới đổi sang role còn lại. Mỗi bước đều có người thực hiện, phản hồi cần quan sát và trạng thái hệ thống cần xác nhận trước khi bàn giao cho bên tiếp theo.
+TÃ i liá»‡u nÃ y kiá»ƒm thá»­ luá»“ng core theo tÆ°Æ¡ng tÃ¡c thá»±c táº¿ giá»¯a SME vÃ  Student. KhÃ´ng test theo kiá»ƒu má»™t role hoÃ n thÃ nh toÃ n bá»™ thao tÃ¡c rá»“i má»›i Ä‘á»•i sang role cÃ²n láº¡i. Má»—i bÆ°á»›c Ä‘á»u cÃ³ ngÆ°á»i thá»±c hiá»‡n, pháº£n há»“i cáº§n quan sÃ¡t vÃ  tráº¡ng thÃ¡i há»‡ thá»‘ng cáº§n xÃ¡c nháº­n trÆ°á»›c khi bÃ n giao cho bÃªn tiáº¿p theo.
 
-## 1. Phạm Vi
+## 1. Pháº¡m Vi
 
-Luồng Done cần xác nhận:
+Luá»“ng Done cáº§n xÃ¡c nháº­n:
 
 ```text
-SME đăng project
+SME Ä‘Äƒng project
 -> Student apply
--> SME tạo offer
+-> SME táº¡o offer
 -> Student accept
--> SME thanh toán PayOS thật
--> Student nộp Sketch
+-> SME thanh toÃ¡n PayOS tháº­t
+-> Student ná»™p Sketch
 -> SME review Sketch
--> Student nộp Final
+-> Student ná»™p Final
 -> SME review Final
 -> escrow release
--> ví Student nhận net amount
+-> vÃ­ Student nháº­n net amount
 ```
 
-Trong tranche hiện tại:
+Trong tranche hiá»‡n táº¡i:
 
-- Withdrawal chỉ smoke thủ công.
-- Admin xử lý `ADMIN_REVIEW` qua Swagger.
-- Không test refund split rules, rating, portfolio, package purchase, AI Matching hoặc automatic payout.
+- Withdrawal chá»‰ smoke thá»§ cÃ´ng.
+- Admin xá»­ lÃ½ `ADMIN_REVIEW` qua Swagger.
+- KhÃ´ng test refund split rules, rating, portfolio, package purchase, AI Matching hoáº·c automatic payout.
 
-## 2. Chuẩn Bị
+## 2. Chuáº©n Bá»‹
 
-### 2.1. Chạy hệ thống
+### 2.1. Cháº¡y há»‡ thá»‘ng
 
 ```powershell
 cd D:\Codex
@@ -36,7 +36,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Kỳ vọng:
+Ká»³ vá»ng:
 
 - `d4u-postgres`: `healthy`.
 - `d4u-api`: running.
@@ -49,19 +49,19 @@ Kỳ vọng:
 
 Xem [PAYOS_LIVE_SMOKE_RUNBOOK_VI.md](PAYOS_LIVE_SMOKE_RUNBOOK_VI.md).
 
-Với named tunnel, dùng hostname ổn định:
+Vá»›i named tunnel, dÃ¹ng hostname á»•n Ä‘á»‹nh:
 
 ```text
 https://d4u-demo.<domain>
 ```
 
-Với Quick Tunnel chỉ dùng tạm khi smoke:
+Vá»›i Quick Tunnel chá»‰ dÃ¹ng táº¡m khi smoke:
 
 ```text
 https://<random>.trycloudflare.com
 ```
 
-Với named tunnel hoặc môi trường deploy, dùng public origin cho return URL:
+Vá»›i named tunnel hoáº·c mÃ´i trÆ°á»ng deploy, dÃ¹ng public origin cho return URL:
 
 ```env
 PAYMENT_PROVIDER=PayOS
@@ -72,433 +72,433 @@ PAYMENT_PAYOS_API_KEY=<secret>
 PAYMENT_PAYOS_CHECKSUM_KEY=<secret>
 ```
 
-Webhook phải được confirm với PayOS:
+Webhook pháº£i Ä‘Æ°á»£c confirm vá»›i PayOS:
 
 ```text
 https://<public-origin>/api/v1/payments/payos/webhook
 ```
 
-Với Quick Tunnel để smoke local trên cùng máy, webhook vẫn dùng HTTPS public nhưng return/cancel URL nên quay về localhost để giữ session SME:
+Vá»›i Quick Tunnel Ä‘á»ƒ smoke local trÃªn cÃ¹ng mÃ¡y, webhook váº«n dÃ¹ng HTTPS public nhÆ°ng return/cancel URL nÃªn quay vá» localhost Ä‘á»ƒ giá»¯ session SME:
 
 ```env
 PAYMENT_RETURN_URL=http://localhost:3000/payment/success
 PAYMENT_CANCEL_URL=http://localhost:3000/payment/cancel
 ```
 
-### 2.3. Tài khoản
+### 2.3. TÃ i khoáº£n
 
-Chuẩn bị ba phiên trình duyệt hoặc ba profile riêng:
+Chuáº©n bá»‹ ba phiÃªn trÃ¬nh duyá»‡t hoáº·c ba profile riÃªng:
 
-| Phiên | Role | Mục đích |
+| PhiÃªn | Role | Má»¥c Ä‘Ã­ch |
 | --- | --- | --- |
-| A | SME | Tạo project, tạo offer, thanh toán, review |
-| B | Student | Apply, accept offer, upload và nộp bài |
-| C | Admin | Duyệt verification và xử lý `ADMIN_REVIEW` khi cần |
+| A | SME | Táº¡o project, táº¡o offer, thanh toÃ¡n, review |
+| B | Student | Apply, accept offer, upload vÃ  ná»™p bÃ i |
+| C | Admin | Duyá»‡t verification vÃ  xá»­ lÃ½ `ADMIN_REVIEW` khi cáº§n |
 
-Không dùng cùng một browser profile cho SME và Student vì token đăng nhập sẽ ghi đè nhau.
+KhÃ´ng dÃ¹ng cÃ¹ng má»™t browser profile cho SME vÃ  Student vÃ¬ token Ä‘Äƒng nháº­p sáº½ ghi Ä‘Ã¨ nhau.
 
-### 2.4. Dữ liệu project mẫu
+### 2.4. Dá»¯ liá»‡u project máº«u
 
-| Trường | Giá trị smoke |
+| TrÆ°á»ng | GiÃ¡ trá»‹ smoke |
 | --- | --- |
 | Project type | `OPEN` |
-| Budget | `10000 VND` hoặc giá trị nhỏ hợp lệ |
-| Revision | Không giới hạn số lần chỉnh sửa |
-| Sketch deadline | Trong tương lai |
+| Budget | `10000 VND` hoáº·c giÃ¡ trá»‹ nhá» há»£p lá»‡ |
+| Revision | KhÃ´ng giá»›i háº¡n sá»‘ láº§n chá»‰nh sá»­a |
+| Sketch deadline | Trong tÆ°Æ¡ng lai |
 | Final deadline | Sau Sketch deadline |
 | Total deadline | Sau Final deadline |
 
-## 3. Luồng Tương Tác Chính
+## 3. Luá»“ng TÆ°Æ¡ng TÃ¡c ChÃ­nh
 
-### 3.0. Kịch Bản Thao Tác Chi Tiết Từng Bước
+### 3.0. Ká»‹ch Báº£n Thao TÃ¡c Chi Tiáº¿t Tá»«ng BÆ°á»›c
 
-Phần này là đường chạy chính để tester thực hiện lần đầu. Dùng hai cửa sổ trình duyệt song song:
+Pháº§n nÃ y lÃ  Ä‘Æ°á»ng cháº¡y chÃ­nh Ä‘á»ƒ tester thá»±c hiá»‡n láº§n Ä‘áº§u. DÃ¹ng hai cá»­a sá»• trÃ¬nh duyá»‡t song song:
 
-- Cửa sổ A: đăng nhập SME.
-- Cửa sổ B: đăng nhập Student.
-- Thay `<public-origin>` bằng URL tunnel HTTPS đang chạy nếu test PayOS thật.
-- Ghi lại `projectId`, `offerId` và `paymentId` khi chúng xuất hiện để đối chiếu DB.
+- Cá»­a sá»• A: Ä‘Äƒng nháº­p SME.
+- Cá»­a sá»• B: Ä‘Äƒng nháº­p Student.
+- Thay `<public-origin>` báº±ng URL tunnel HTTPS Ä‘ang cháº¡y náº¿u test PayOS tháº­t.
+- Ghi láº¡i `projectId`, `offerId` vÃ  `paymentId` khi chÃºng xuáº¥t hiá»‡n Ä‘á»ƒ Ä‘á»‘i chiáº¿u DB.
 
-#### Chặng 1: SME Đăng Project, Student Apply
+#### Cháº·ng 1: SME ÄÄƒng Project, Student Apply
 
-**Bước 1 - SME mở form tạo project**
+**BÆ°á»›c 1 - SME má»Ÿ form táº¡o project**
 
-1. Tại cửa sổ A, đăng nhập tài khoản SME.
-2. Mở `<public-origin>/sme/projects/new`.
-3. Kiểm tra tiêu đề trang là `Tạo dự án`.
-4. Không bắt buộc dùng AI Brief Assistant. Nếu muốn kiểm tra AI mock, nhập `Ý tưởng thô` tối thiểu 20 ký tự và bấm `Gợi ý bằng AI`.
+1. Táº¡i cá»­a sá»• A, Ä‘Äƒng nháº­p tÃ i khoáº£n SME.
+2. Má»Ÿ `<public-origin>/sme/projects/new`.
+3. Kiá»ƒm tra tiÃªu Ä‘á» trang lÃ  `Táº¡o dá»± Ã¡n`.
+4. KhÃ´ng báº¯t buá»™c dÃ¹ng AI Brief Assistant. Náº¿u muá»‘n kiá»ƒm tra AI mock, nháº­p `Ã tÆ°á»Ÿng thÃ´` tá»‘i thiá»ƒu 20 kÃ½ tá»± vÃ  báº¥m `Gá»£i Ã½ báº±ng AI`.
 
-Kết quả cần thấy: form `Thông tin dự án` hiển thị đầy đủ.
+Káº¿t quáº£ cáº§n tháº¥y: form `ThÃ´ng tin dá»± Ã¡n` hiá»ƒn thá»‹ Ä‘áº§y Ä‘á»§.
 
-**Bước 2 - SME nhập dữ liệu project**
+**BÆ°á»›c 2 - SME nháº­p dá»¯ liá»‡u project**
 
-Nhập dữ liệu mẫu:
+Nháº­p dá»¯ liá»‡u máº«u:
 
-| Trường UI | Giá trị mẫu |
+| TrÆ°á»ng UI | GiÃ¡ trá»‹ máº«u |
 | --- | --- |
-| Danh mục thiết kế | Chọn một category đang có |
-| Tiêu đề | `Smoke Test PayOS - <ngày giờ>` |
-| Brief | `Thiết kế bộ nhận diện tối giản cho chiến dịch thử nghiệm D4U.` |
-| Mục đích sử dụng | `Kiểm thử luồng core` |
-| Loại dự án | `OPEN` |
-| Ngân sách | `10000` |
-| Deadline sketch | Một ngày trong tương lai |
+| Danh má»¥c thiáº¿t káº¿ | Chá»n má»™t category Ä‘ang cÃ³ |
+| TiÃªu Ä‘á» | `Smoke Test PayOS - <ngÃ y giá»>` |
+| Brief | `Thiáº¿t káº¿ bá»™ nháº­n diá»‡n tá»‘i giáº£n cho chiáº¿n dá»‹ch thá»­ nghiá»‡m D4U.` |
+| Má»¥c Ä‘Ã­ch sá»­ dá»¥ng | `Kiá»ƒm thá»­ luá»“ng core` |
+| Loáº¡i dá»± Ã¡n | `OPEN` |
+| NgÃ¢n sÃ¡ch | `10000` |
+| Deadline sketch | Má»™t ngÃ y trong tÆ°Æ¡ng lai |
 | Deadline final | Sau deadline sketch |
-| Deadline tổng | Sau deadline final |
+| Deadline tá»•ng | Sau deadline final |
 
-Sau đó bấm `Tạo draft`.
+Sau Ä‘Ã³ báº¥m `Táº¡o draft`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Trình duyệt chuyển sang project detail.
-- Badge trạng thái là `DRAFT`.
-- Ghi lại `projectId` từ URL `/sme/projects/{projectId}`.
+- TrÃ¬nh duyá»‡t chuyá»ƒn sang project detail.
+- Badge tráº¡ng thÃ¡i lÃ  `DRAFT`.
+- Ghi láº¡i `projectId` tá»« URL `/sme/projects/{projectId}`.
 
-**Bước 3 - SME publish project**
+**BÆ°á»›c 3 - SME publish project**
 
-1. Tại project detail, kiểm tra brief, budget và deadline.
-2. Bấm `Publish`.
-3. Chờ thông báo publish thành công.
+1. Táº¡i project detail, kiá»ƒm tra brief, budget vÃ  deadline.
+2. Báº¥m `Publish`.
+3. Chá» thÃ´ng bÃ¡o publish thÃ nh cÃ´ng.
 
-Kết quả cần thấy: project chuyển sang `OPEN`.
+Káº¿t quáº£ cáº§n tháº¥y: project chuyá»ƒn sang `OPEN`.
 
-**Bước 4 - Student tìm project**
+**BÆ°á»›c 4 - Student tÃ¬m project**
 
-1. Chuyển sang cửa sổ B và đăng nhập Student đã được verify.
-2. Mở `<public-origin>/student/projects`.
-3. Bấm `Làm mới`.
-4. Tìm project theo tiêu đề vừa nhập.
-5. Bấm mở project.
+1. Chuyá»ƒn sang cá»­a sá»• B vÃ  Ä‘Äƒng nháº­p Student Ä‘Ã£ Ä‘Æ°á»£c verify.
+2. Má»Ÿ `<public-origin>/student/projects`.
+3. Báº¥m `LÃ m má»›i`.
+4. TÃ¬m project theo tiÃªu Ä‘á» vá»«a nháº­p.
+5. Báº¥m má»Ÿ project.
 
-Kết quả cần thấy: trang detail hiển thị đúng brief, budget và deadline SME đã cấu hình.
+Káº¿t quáº£ cáº§n tháº¥y: trang detail hiá»ƒn thá»‹ Ä‘Ãºng brief, budget vÃ  deadline SME Ä‘Ã£ cáº¥u hÃ¬nh.
 
-**Bước 5 - Student gửi ứng tuyển**
+**BÆ°á»›c 5 - Student gá»­i á»©ng tuyá»ƒn**
 
-1. Kiểm tra sidebar hiển thị budget, Sketch deadline, Final deadline và Total deadline.
-2. Bấm `Gửi ứng tuyển` để test quick apply theo điều khoản project.
+1. Kiá»ƒm tra sidebar hiá»ƒn thá»‹ budget, Sketch deadline, Final deadline vÃ  Total deadline.
+2. Báº¥m `Gá»­i á»©ng tuyá»ƒn` Ä‘á»ƒ test quick apply theo Ä‘iá»u khoáº£n project.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- UI báo gửi thành công.
-- Application lưu `proposed_price` bằng budget project.
-- Application lưu ghi chú xác nhận theo điều khoản công bố và không yêu cầu số ngày dự kiến.
-- Nút apply chuyển thành `Đã ứng tuyển` hoặc bị disable.
-- Không gửi lại application thứ hai cho cùng project.
+- UI bÃ¡o gá»­i thÃ nh cÃ´ng.
+- Application lÆ°u `proposed_price` báº±ng budget project.
+- Application lÆ°u ghi chÃº xÃ¡c nháº­n theo Ä‘iá»u khoáº£n cÃ´ng bá»‘ vÃ  khÃ´ng yÃªu cáº§u sá»‘ ngÃ y dá»± kiáº¿n.
+- NÃºt apply chuyá»ƒn thÃ nh `ÄÃ£ á»©ng tuyá»ƒn` hoáº·c bá»‹ disable.
+- KhÃ´ng gá»­i láº¡i application thá»© hai cho cÃ¹ng project.
 
-Để test nhánh custom proposal trên một project khác:
+Äá»ƒ test nhÃ¡nh custom proposal trÃªn má»™t project khÃ¡c:
 
-1. Tại sidebar project detail, bấm `Đề xuất khác`.
-2. Nhập `Giá đề xuất mới` và `Giải pháp đề xuất` tối thiểu 20 ký tự.
-3. Bấm `Tiếp tục`, kiểm tra modal xác nhận cuối rồi bấm `Gửi ứng tuyển`.
+1. Táº¡i sidebar project detail, báº¥m `Äá» xuáº¥t khÃ¡c`.
+2. Nháº­p `GiÃ¡ Ä‘á» xuáº¥t má»›i` vÃ  `Giáº£i phÃ¡p Ä‘á» xuáº¥t` tá»‘i thiá»ƒu 20 kÃ½ tá»±.
+3. Báº¥m `Tiáº¿p tá»¥c`, kiá»ƒm tra modal xÃ¡c nháº­n cuá»‘i rá»“i báº¥m `Gá»­i á»©ng tuyá»ƒn`.
 
-Kết quả cần thấy: application lưu đúng giá và giải pháp Student vừa nhập.
+Káº¿t quáº£ cáº§n tháº¥y: application lÆ°u Ä‘Ãºng giÃ¡ vÃ  giáº£i phÃ¡p Student vá»«a nháº­p.
 
-**Bước 6 - SME nhận application**
+**BÆ°á»›c 6 - SME nháº­n application**
 
-1. Quay lại cửa sổ A.
-2. Tại project detail, bấm `Xem ứng tuyển`.
-3. Nếu danh sách chưa cập nhật, bấm `Làm mới`.
-4. Tìm application vừa gửi.
+1. Quay láº¡i cá»­a sá»• A.
+2. Táº¡i project detail, báº¥m `Xem á»©ng tuyá»ƒn`.
+3. Náº¿u danh sÃ¡ch chÆ°a cáº­p nháº­t, báº¥m `LÃ m má»›i`.
+4. TÃ¬m application vá»«a gá»­i.
 
-Kết quả cần thấy: SME đọc được Student, giá application và giải pháp hoặc ghi chú xác nhận theo điều khoản project.
+Káº¿t quáº£ cáº§n tháº¥y: SME Ä‘á»c Ä‘Æ°á»£c Student, giÃ¡ application vÃ  giáº£i phÃ¡p hoáº·c ghi chÃº xÃ¡c nháº­n theo Ä‘iá»u khoáº£n project.
 
-#### Chặng 2: SME Gửi Offer, Student Accept
+#### Cháº·ng 2: SME Gá»­i Offer, Student Accept
 
-**Bước 7 - SME gửi offer**
+**BÆ°á»›c 7 - SME gá»­i offer**
 
-1. Trong danh sách ứng tuyển, bấm `Chọn và gửi offer` tại application của Student.
-2. Kiểm tra modal chỉ đọc hiển thị Student, giá offer, giải pháp hoặc ghi chú xác nhận và hạn phản hồi cố định 48 giờ.
-3. Bấm `Gửi offer`.
+1. Trong danh sÃ¡ch á»©ng tuyá»ƒn, báº¥m `Chá»n vÃ  gá»­i offer` táº¡i application cá»§a Student.
+2. Kiá»ƒm tra modal chá»‰ Ä‘á»c hiá»ƒn thá»‹ Student, giÃ¡ offer, giáº£i phÃ¡p hoáº·c ghi chÃº xÃ¡c nháº­n vÃ  háº¡n pháº£n há»“i cá»‘ Ä‘á»‹nh 48 giá».
+3. Báº¥m `Gá»­i offer`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- UI báo gửi offer thành công.
-- SME không nhập lại giá hoặc deadline.
-- Backend lấy giá offer từ application đã chọn.
-- Offer có trạng thái `WAITING_ACCEPTANCE`.
-- Project chuyển sang `OFFER_SELECTED`.
+- UI bÃ¡o gá»­i offer thÃ nh cÃ´ng.
+- SME khÃ´ng nháº­p láº¡i giÃ¡ hoáº·c deadline.
+- Backend láº¥y giÃ¡ offer tá»« application Ä‘Ã£ chá»n.
+- Offer cÃ³ tráº¡ng thÃ¡i `WAITING_ACCEPTANCE`.
+- Project chuyá»ƒn sang `OFFER_SELECTED`.
 
-**Bước 8 - Student nhận và accept offer**
+**BÆ°á»›c 8 - Student nháº­n vÃ  accept offer**
 
-1. Quay lại cửa sổ B.
-2. Mở `<public-origin>/student/offers`.
-3. Bấm `Làm mới`.
-4. Tìm offer đúng project và đúng số tiền.
-5. Bấm `Chấp nhận`.
+1. Quay láº¡i cá»­a sá»• B.
+2. Má»Ÿ `<public-origin>/student/offers`.
+3. Báº¥m `LÃ m má»›i`.
+4. TÃ¬m offer Ä‘Ãºng project vÃ  Ä‘Ãºng sá»‘ tiá»n.
+5. Báº¥m `Cháº¥p nháº­n`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- UI báo đã chấp nhận offer và nhắc SME cần thanh toán escrow.
-- Offer chuyển sang `ACCEPTED`.
-- Student chưa được nộp Sketch cho tới khi PayOS webhook xác nhận thanh toán.
+- UI bÃ¡o Ä‘Ã£ cháº¥p nháº­n offer vÃ  nháº¯c SME cáº§n thanh toÃ¡n escrow.
+- Offer chuyá»ƒn sang `ACCEPTED`.
+- Student chÆ°a Ä‘Æ°á»£c ná»™p Sketch cho tá»›i khi PayOS webhook xÃ¡c nháº­n thanh toÃ¡n.
 
-#### Chặng 3: SME Thanh Toán PayOS Thật
+#### Cháº·ng 3: SME Thanh ToÃ¡n PayOS Tháº­t
 
-**Bước 9 - SME mở workspace**
+**BÆ°á»›c 9 - SME má»Ÿ workspace**
 
-1. Quay lại cửa sổ A.
-2. Mở `<public-origin>/sme/offers`.
-3. Bấm `Làm mới`.
-4. Tại offer vừa được accept, kiểm tra có hai nút:
-   - `Workspace & escrow`: mở trang điều phối project.
-   - `Thanh toán PayOS`: mở checkout PayOS trực tiếp từ danh sách offer.
-5. Bấm `Workspace & escrow`.
+1. Quay láº¡i cá»­a sá»• A.
+2. Má»Ÿ `<public-origin>/sme/offers`.
+3. Báº¥m `LÃ m má»›i`.
+4. Táº¡i offer vá»«a Ä‘Æ°á»£c accept, kiá»ƒm tra cÃ³ hai nÃºt:
+   - `Workspace & escrow`: má»Ÿ trang Ä‘iá»u phá»‘i project.
+   - `Thanh toÃ¡n PayOS`: má»Ÿ checkout PayOS trá»±c tiáº¿p tá»« danh sÃ¡ch offer.
+5. Báº¥m `Workspace & escrow`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- URL là `/projects/{projectId}/execution`.
-- Card `Việc cần làm tiếp theo` hiển thị `Thanh toán escrow qua PayOS`.
-- Cột trạng thái hiển thị offer `ACCEPTED`.
+- URL lÃ  `/projects/{projectId}/execution`.
+- Card `Viá»‡c cáº§n lÃ m tiáº¿p theo` hiá»ƒn thá»‹ `Thanh toÃ¡n escrow qua PayOS`.
+- Cá»™t tráº¡ng thÃ¡i hiá»ƒn thá»‹ offer `ACCEPTED`.
 
-Lưu ý:
+LÆ°u Ã½:
 
-- Nút PayOS không nằm tại trang project detail `/sme/projects/{projectId}`.
-- Nếu đang ở project detail, bấm `Workspace & escrow` trong card `Thao tác`.
-- Nếu không thấy nút `Workspace`, bấm `Làm mới` và kiểm tra Student đã bấm `Chấp nhận` offer.
-- Nếu muốn bỏ qua workspace, mở `/sme/offers` và bấm `Thanh toán PayOS`.
+- NÃºt PayOS khÃ´ng náº±m táº¡i trang project detail `/sme/projects/{projectId}`.
+- Náº¿u Ä‘ang á»Ÿ project detail, báº¥m `Workspace & escrow` trong card `Thao tÃ¡c`.
+- Náº¿u khÃ´ng tháº¥y nÃºt `Workspace`, báº¥m `LÃ m má»›i` vÃ  kiá»ƒm tra Student Ä‘Ã£ báº¥m `Cháº¥p nháº­n` offer.
+- Náº¿u muá»‘n bá» qua workspace, má»Ÿ `/sme/offers` vÃ  báº¥m `Thanh toÃ¡n PayOS`.
 
-**Bước 10 - SME tạo checkout PayOS**
+**BÆ°á»›c 10 - SME táº¡o checkout PayOS**
 
-1. Trong workspace, tại card `Việc cần làm tiếp theo`, bấm `Mở thanh toán PayOS`.
-2. Chờ tab checkout PayOS mở ra.
-3. Ghi lại `paymentId` nếu xuất hiện trong return URL hoặc kiểm tra bằng Swagger.
-4. Không đóng workspace gốc; giữ tab này để quan sát trạng thái.
+1. Trong workspace, táº¡i card `Viá»‡c cáº§n lÃ m tiáº¿p theo`, báº¥m `Má»Ÿ thanh toÃ¡n PayOS`.
+2. Chá» tab checkout PayOS má»Ÿ ra.
+3. Ghi láº¡i `paymentId` náº¿u xuáº¥t hiá»‡n trong return URL hoáº·c kiá»ƒm tra báº±ng Swagger.
+4. KhÃ´ng Ä‘Ã³ng workspace gá»‘c; giá»¯ tab nÃ y Ä‘á»ƒ quan sÃ¡t tráº¡ng thÃ¡i.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- PayOS hiển thị QR hoặc thông tin chuyển khoản.
-- Backend tạo payment `PENDING`.
-- Escrow được tạo với trạng thái `PENDING_PAYMENT`.
-- Offer chuyển sang `PENDING_PAYMENT`.
+- PayOS hiá»ƒn thá»‹ QR hoáº·c thÃ´ng tin chuyá»ƒn khoáº£n.
+- Backend táº¡o payment `PENDING`.
+- Escrow Ä‘Æ°á»£c táº¡o vá»›i tráº¡ng thÃ¡i `PENDING_PAYMENT`.
+- Offer chuyá»ƒn sang `PENDING_PAYMENT`.
 
-**Bước 11 - SME chuyển khoản thật giá trị nhỏ**
+**BÆ°á»›c 11 - SME chuyá»ƒn khoáº£n tháº­t giÃ¡ trá»‹ nhá»**
 
-1. Dùng ứng dụng ngân hàng quét QR PayOS.
-2. Kiểm tra số tiền là `10000 VND`.
-3. Xác nhận chuyển khoản.
-4. Chờ PayOS chuyển trình duyệt về `/payment/success?paymentId=...`.
+1. DÃ¹ng á»©ng dá»¥ng ngÃ¢n hÃ ng quÃ©t QR PayOS.
+2. Kiá»ƒm tra sá»‘ tiá»n lÃ  `10000 VND`.
+3. XÃ¡c nháº­n chuyá»ƒn khoáº£n.
+4. Chá» PayOS chuyá»ƒn trÃ¬nh duyá»‡t vá» `/payment/success?paymentId=...`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Return page hiển thị trạng thái `Đang đối soát với PayOS`, tiến độ, lần kiểm tra gần nhất và hạn checkout.
-- Trang chỉ poll backend; không tự đánh dấu thành công từ query string.
-- Backend ưu tiên webhook và có thể reconcile trực tiếp với PayOS qua `GET /v2/payment-requests/{orderCode}` khi payment còn `PENDING`.
-- Sau khi webhook hoặc reconcile trusted từ PayOS xác nhận `PAID`, trang chuyển về workspace.
+- Return page hiá»ƒn thá»‹ tráº¡ng thÃ¡i `Äang Ä‘á»‘i soÃ¡t vá»›i PayOS`, tiáº¿n Ä‘á»™, láº§n kiá»ƒm tra gáº§n nháº¥t vÃ  háº¡n checkout.
+- Trang chá»‰ poll backend; khÃ´ng tá»± Ä‘Ã¡nh dáº¥u thÃ nh cÃ´ng tá»« query string.
+- Backend Æ°u tiÃªn webhook vÃ  cÃ³ thá»ƒ reconcile trá»±c tiáº¿p vá»›i PayOS qua `GET /v2/payment-requests/{orderCode}` khi payment cÃ²n `PENDING`.
+- Sau khi webhook hoáº·c reconcile trusted tá»« PayOS xÃ¡c nháº­n `PAID`, trang chuyá»ƒn vá» workspace.
 
-**Bước 12 - Xác nhận project đã bắt đầu**
+**BÆ°á»›c 12 - XÃ¡c nháº­n project Ä‘Ã£ báº¯t Ä‘áº§u**
 
-Tại workspace SME:
+Táº¡i workspace SME:
 
-1. Bấm `Làm mới`.
-2. Kiểm tra:
+1. Báº¥m `LÃ m má»›i`.
+2. Kiá»ƒm tra:
 
-| Thành phần | Giá trị kỳ vọng |
+| ThÃ nh pháº§n | GiÃ¡ trá»‹ ká»³ vá»ng |
 | --- | --- |
 | Project | `IN_PROGRESS` |
 | Offer | `ACTIVE` |
 | Payment | `SUCCESS` |
 | Escrow | `FUNDED` |
 
-Tại cửa sổ B:
+Táº¡i cá»­a sá»• B:
 
-1. Mở `<public-origin>/student/my-projects`.
-2. Bấm `Làm mới`.
-3. Tại project vừa thanh toán, bấm `Workspace`.
+1. Má»Ÿ `<public-origin>/student/my-projects`.
+2. Báº¥m `LÃ m má»›i`.
+3. Táº¡i project vá»«a thanh toÃ¡n, báº¥m `Workspace`.
 
-Kết quả cần thấy: Student thấy next action `Nộp Sketch`.
+Káº¿t quáº£ cáº§n tháº¥y: Student tháº¥y next action `Ná»™p Sketch`.
 
-#### Chặng 4: Student Nộp Sketch, SME Phản Hồi
+#### Cháº·ng 4: Student Ná»™p Sketch, SME Pháº£n Há»“i
 
-**Bước 13 - Student upload Sketch**
+**BÆ°á»›c 13 - Student upload Sketch**
 
-1. Tại workspace Student, nhập mô tả: `Sketch vòng đầu cho bộ nhận diện`.
-2. Bấm `Upload file`.
-3. Chọn một file `.jpg`, `.png` hoặc `.pdf` nhỏ hơn hoặc bằng 20 MB.
-4. Chờ tên file xuất hiện dưới nút upload.
-5. Bấm `Nộp bài`.
+1. Táº¡i workspace Student, nháº­p mÃ´ táº£: `Sketch vÃ²ng Ä‘áº§u cho bá»™ nháº­n diá»‡n`.
+2. Báº¥m `Upload file`.
+3. Chá»n má»™t file `.jpg`, `.png` hoáº·c `.pdf` nhá» hÆ¡n hoáº·c báº±ng 20 MB.
+4. Chá» tÃªn file xuáº¥t hiá»‡n dÆ°á»›i nÃºt upload.
+5. Báº¥m `Ná»™p bÃ i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Submission mới có milestone `SKETCH`.
-- Submission có status `SUBMITTED`.
-- Project chuyển sang `SKETCH_REVIEW`.
+- Submission má»›i cÃ³ milestone `SKETCH`.
+- Submission cÃ³ status `SUBMITTED`.
+- Project chuyá»ƒn sang `SKETCH_REVIEW`.
 
-**Bước 14 - SME kiểm tra Sketch**
+**BÆ°á»›c 14 - SME kiá»ƒm tra Sketch**
 
-1. Quay lại workspace SME.
-2. Bấm `Làm mới`.
-3. Kiểm tra next action là `Duyệt Sketch`.
-4. Trong bảng `Submission`, bấm tên file để download.
-5. Mở file và kiểm tra nội dung.
+1. Quay láº¡i workspace SME.
+2. Báº¥m `LÃ m má»›i`.
+3. Kiá»ƒm tra next action lÃ  `Duyá»‡t Sketch`.
+4. Trong báº£ng `Submission`, báº¥m tÃªn file Ä‘á»ƒ download.
+5. Má»Ÿ file vÃ  kiá»ƒm tra ná»™i dung.
 
-Kết quả cần thấy: SME download được file Student vừa nộp.
+Káº¿t quáº£ cáº§n tháº¥y: SME download Ä‘Æ°á»£c file Student vá»«a ná»™p.
 
-**Bước 15A - Nhánh duyệt nhanh**
+**BÆ°á»›c 15A - NhÃ¡nh duyá»‡t nhanh**
 
-Nếu muốn đi thẳng tới Final:
+Náº¿u muá»‘n Ä‘i tháº³ng tá»›i Final:
 
-1. SME bấm `Duyệt`.
-2. Student quay lại workspace và bấm `Làm mới`.
+1. SME báº¥m `Duyá»‡t`.
+2. Student quay láº¡i workspace vÃ  báº¥m `LÃ m má»›i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Sketch chuyển sang `APPROVED`.
-- Student thấy next action `Nộp Final`.
+- Sketch chuyá»ƒn sang `APPROVED`.
+- Student tháº¥y next action `Ná»™p Final`.
 
-**Bước 15B - Nhánh yêu cầu chỉnh sửa**
+**BÆ°á»›c 15B - NhÃ¡nh yÃªu cáº§u chá»‰nh sá»­a**
 
-Nếu muốn test vòng revision trước:
+Náº¿u muá»‘n test vÃ²ng revision trÆ°á»›c:
 
-1. SME bấm `Yêu cầu chỉnh sửa`.
-2. Nhập `Nội dung cần sửa`: `Điều chỉnh màu chủ đạo và tăng khoảng cách logo.`
-3. Chọn `Hạn nộp lại` trong tương lai.
-4. Xác nhận modal.
-5. Student bấm `Làm mới`.
+1. SME báº¥m `YÃªu cáº§u chá»‰nh sá»­a`.
+2. Nháº­p `Ná»™i dung cáº§n sá»­a`: `Äiá»u chá»‰nh mÃ u chá»§ Ä‘áº¡o vÃ  tÄƒng khoáº£ng cÃ¡ch logo.`
+3. Chá»n `Háº¡n ná»™p láº¡i` trong tÆ°Æ¡ng lai.
+4. XÃ¡c nháº­n modal.
+5. Student báº¥m `LÃ m má»›i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Project chuyển sang `REVISION_REQUESTED`.
-- Student thấy feedback trong `Lịch sử review`.
-- Student thấy next action `Nộp bản chỉnh sửa`.
+- Project chuyá»ƒn sang `REVISION_REQUESTED`.
+- Student tháº¥y feedback trong `Lá»‹ch sá»­ review`.
+- Student tháº¥y next action `Ná»™p báº£n chá»‰nh sá»­a`.
 
-**Bước 16 - Student nộp revision**
+**BÆ°á»›c 16 - Student ná»™p revision**
 
-Chỉ chạy nếu đã chọn bước 15B:
+Chá»‰ cháº¡y náº¿u Ä‘Ã£ chá»n bÆ°á»›c 15B:
 
-1. Student nhập mô tả: `Đã chỉnh màu và khoảng cách logo`.
-2. Bấm `Upload file`, chọn file mới.
-3. Bấm `Nộp bài`.
-4. SME bấm `Làm mới`, download file revision và bấm `Duyệt`.
-5. Student bấm `Làm mới`.
+1. Student nháº­p mÃ´ táº£: `ÄÃ£ chá»‰nh mÃ u vÃ  khoáº£ng cÃ¡ch logo`.
+2. Báº¥m `Upload file`, chá»n file má»›i.
+3. Báº¥m `Ná»™p bÃ i`.
+4. SME báº¥m `LÃ m má»›i`, download file revision vÃ  báº¥m `Duyá»‡t`.
+5. Student báº¥m `LÃ m má»›i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Revision round tăng để lưu lịch sử.
-- Sketch cuối cùng được approve.
-- Student thấy next action `Nộp Final`.
+- Revision round tÄƒng Ä‘á»ƒ lÆ°u lá»‹ch sá»­.
+- Sketch cuá»‘i cÃ¹ng Ä‘Æ°á»£c approve.
+- Student tháº¥y next action `Ná»™p Final`.
 
-#### Chặng 5: Student Nộp Final, Hệ Thống Release Escrow
+#### Cháº·ng 5: Student Ná»™p Final, Há»‡ Thá»‘ng Release Escrow
 
-**Bước 17 - Student nộp Final**
+**BÆ°á»›c 17 - Student ná»™p Final**
 
-1. Trong workspace Student, nhập mô tả: `Final artwork và file bàn giao`.
-2. Bấm `Upload file`.
-3. Chọn file Final hợp lệ.
-4. Bấm `Nộp bài`.
+1. Trong workspace Student, nháº­p mÃ´ táº£: `Final artwork vÃ  file bÃ n giao`.
+2. Báº¥m `Upload file`.
+3. Chá»n file Final há»£p lá»‡.
+4. Báº¥m `Ná»™p bÃ i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Submission mới có milestone `FINAL`.
-- Project chuyển sang `FINAL_REVIEW`.
+- Submission má»›i cÃ³ milestone `FINAL`.
+- Project chuyá»ƒn sang `FINAL_REVIEW`.
 
-**Bước 18 - SME approve Final**
+**BÆ°á»›c 18 - SME approve Final**
 
-1. Quay lại workspace SME.
-2. Bấm `Làm mới`.
-3. Download file Final và kiểm tra.
-4. Bấm `Duyệt`.
+1. Quay láº¡i workspace SME.
+2. Báº¥m `LÃ m má»›i`.
+3. Download file Final vÃ  kiá»ƒm tra.
+4. Báº¥m `Duyá»‡t`.
 
-Kết quả cần thấy ngay:
+Káº¿t quáº£ cáº§n tháº¥y ngay:
 
-- Final chuyển sang `APPROVED`.
-- Project chuyển sang `COMPLETED`.
-- Hệ thống thử release escrow ngay trong luồng hoàn tất.
+- Final chuyá»ƒn sang `APPROVED`.
+- Project chuyá»ƒn sang `COMPLETED`.
+- Há»‡ thá»‘ng thá»­ release escrow ngay trong luá»“ng hoÃ n táº¥t.
 
-**Bước 19 - Kiểm tra escrow release**
+**BÆ°á»›c 19 - Kiá»ƒm tra escrow release**
 
-1. Tại workspace SME hoặc Student, bấm `Làm mới`.
-2. Kiểm tra escrow.
-3. Nếu vẫn là `RELEASE_PENDING`, chờ tối đa khoảng một phút để hosted worker retry rồi bấm `Làm mới` lại.
+1. Táº¡i workspace SME hoáº·c Student, báº¥m `LÃ m má»›i`.
+2. Kiá»ƒm tra escrow.
+3. Náº¿u váº«n lÃ  `RELEASE_PENDING`, chá» tá»‘i Ä‘a khoáº£ng má»™t phÃºt Ä‘á»ƒ hosted worker retry rá»“i báº¥m `LÃ m má»›i` láº¡i.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Escrow chuyển sang `RELEASED`.
-- Chỉ có một disbursement.
-- Chỉ có một wallet transaction `DISBURSEMENT_CREDIT`.
+- Escrow chuyá»ƒn sang `RELEASED`.
+- Chá»‰ cÃ³ má»™t disbursement.
+- Chá»‰ cÃ³ má»™t wallet transaction `DISBURSEMENT_CREDIT`.
 
-**Bước 20 - Student kiểm tra ví**
+**BÆ°á»›c 20 - Student kiá»ƒm tra vÃ­**
 
-1. Tại cửa sổ B, mở `<public-origin>/student/wallet`.
-2. Bấm `Làm mới`.
-3. Kiểm tra card `Có thể rút`.
-4. Kiểm tra bảng `Ledger`.
+1. Táº¡i cá»­a sá»• B, má»Ÿ `<public-origin>/student/wallet`.
+2. Báº¥m `LÃ m má»›i`.
+3. Kiá»ƒm tra card `CÃ³ thá»ƒ rÃºt`.
+4. Kiá»ƒm tra báº£ng `Ledger`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Available balance tăng đúng `netAmount`.
-- Ledger có transaction `DISBURSEMENT_CREDIT`.
+- Available balance tÄƒng Ä‘Ãºng `netAmount`.
+- Ledger cÃ³ transaction `DISBURSEMENT_CREDIT`.
 - `netAmount = grossAmount - platformFeeAmount`.
-- Có thể mở rộng dòng ledger để xem gross amount, platform fee và net amount.
+- CÃ³ thá»ƒ má»Ÿ rá»™ng dÃ²ng ledger Ä‘á»ƒ xem gross amount, platform fee vÃ  net amount.
 
-#### Chặng 6: Withdrawal Manual Smoke
+#### Cháº·ng 6: Withdrawal Manual Smoke
 
-Chỉ chạy khi ví Student có ít nhất `50000 VND`.
+Chá»‰ cháº¡y khi vÃ­ Student cÃ³ Ã­t nháº¥t `50000 VND`.
 
-**Bước 21 - Student lưu tài khoản nhận tiền**
+**BÆ°á»›c 21 - Student lÆ°u tÃ i khoáº£n nháº­n tiá»n**
 
-1. Trong `/student/wallet`, tại card `Phương thức nhận tiền`, nhập:
+1. Trong `/student/wallet`, táº¡i card `PhÆ°Æ¡ng thá»©c nháº­n tiá»n`, nháº­p:
 
-| Trường UI | Giá trị mẫu |
+| TrÆ°á»ng UI | GiÃ¡ trá»‹ máº«u |
 | --- | --- |
-| Ngân hàng | `Vietcombank` |
-| Mã ngân hàng | `VCB` |
-| Chủ tài khoản | `NGUYEN VAN A` |
-| Số tài khoản | `1234567890` |
+| NgÃ¢n hÃ ng | `Vietcombank` |
+| MÃ£ ngÃ¢n hÃ ng | `VCB` |
+| Chá»§ tÃ i khoáº£n | `NGUYEN VAN A` |
+| Sá»‘ tÃ i khoáº£n | `1234567890` |
 
-2. Bấm `Lưu tài khoản`.
+2. Báº¥m `LÆ°u tÃ i khoáº£n`.
 
-Kết quả cần thấy: Student chỉ thấy ngân hàng, chủ tài khoản và số tài khoản đã mask.
+Káº¿t quáº£ cáº§n tháº¥y: Student chá»‰ tháº¥y ngÃ¢n hÃ ng, chá»§ tÃ i khoáº£n vÃ  sá»‘ tÃ i khoáº£n Ä‘Ã£ mask.
 
-**Bước 22 - Student tạo withdrawal**
+**BÆ°á»›c 22 - Student táº¡o withdrawal**
 
-1. Tại card `Tạo yêu cầu rút tiền`, chọn tài khoản nhận có đầy đủ ngân hàng.
-2. Nhập số tiền tối thiểu `50000`.
-3. Gửi yêu cầu.
+1. Táº¡i card `Táº¡o yÃªu cáº§u rÃºt tiá»n`, chá»n tÃ i khoáº£n nháº­n cÃ³ Ä‘áº§y Ä‘á»§ ngÃ¢n hÃ ng.
+2. Nháº­p sá»‘ tiá»n tá»‘i thiá»ƒu `50000`.
+3. Gá»­i yÃªu cáº§u.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Withdrawal có status `PENDING`.
-- Available balance giảm.
-- Locked balance tăng cùng amount.
-- Fee rút tiền là `0 VND`, `netAmount = amount`.
-- Không thể tạo withdrawal thứ hai khi request hiện tại còn `PENDING` hoặc `PROCESSING`.
+- Withdrawal cÃ³ status `PENDING`.
+- Available balance giáº£m.
+- Locked balance tÄƒng cÃ¹ng amount.
+- Fee rÃºt tiá»n lÃ  `0 VND`, `netAmount = amount`.
+- KhÃ´ng thá»ƒ táº¡o withdrawal thá»© hai khi request hiá»‡n táº¡i cÃ²n `PENDING` hoáº·c `PROCESSING`.
 
-**Bước 23 - Admin xử lý thủ công**
+**BÆ°á»›c 23 - Admin xá»­ lÃ½ thá»§ cÃ´ng**
 
-1. Tại cửa sổ C, đăng nhập Admin.
-2. Mở `<public-origin>/admin/withdrawals`.
-3. Tìm withdrawal vừa tạo.
-4. Bấm `Nhận xử lý`, kiểm tra withdrawal chuyển sang `PROCESSING`.
-5. Chuyển khoản ngoài hệ thống tới đúng ngân hàng, chủ tài khoản, số tài khoản đầy đủ và nội dung chuyển khoản hiển thị trên hàng withdrawal.
-6. Bấm `Đã chuyển khoản`, nhập mã giao dịch ngân hàng và thời gian chuyển.
+1. Táº¡i cá»­a sá»• C, Ä‘Äƒng nháº­p Admin.
+2. Má»Ÿ `<public-origin>/admin/withdrawals`.
+3. TÃ¬m withdrawal vá»«a táº¡o.
+4. Báº¥m `Nháº­n xá»­ lÃ½`, kiá»ƒm tra withdrawal chuyá»ƒn sang `PROCESSING`.
+5. Chuyá»ƒn khoáº£n ngoÃ i há»‡ thá»‘ng tá»›i Ä‘Ãºng ngÃ¢n hÃ ng, chá»§ tÃ i khoáº£n, sá»‘ tÃ i khoáº£n Ä‘áº§y Ä‘á»§ vÃ  ná»™i dung chuyá»ƒn khoáº£n hiá»ƒn thá»‹ trÃªn hÃ ng withdrawal.
+6. Báº¥m `ÄÃ£ chuyá»ƒn khoáº£n`, nháº­p mÃ£ giao dá»‹ch ngÃ¢n hÃ ng vÃ  thá»i gian chuyá»ƒn.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Withdrawal chuyển `PENDING -> PROCESSING -> COMPLETED`.
-- Admin có đủ `Ngân hàng`, `Chủ TK`, `Số TK`, `Số tiền chuyển` và `Nội dung CK`.
-- Locked balance giảm.
-- Ledger có `WITHDRAWAL_DEBIT`.
+- Withdrawal chuyá»ƒn `PENDING -> PROCESSING -> COMPLETED`.
+- Admin cÃ³ Ä‘á»§ `NgÃ¢n hÃ ng`, `Chá»§ TK`, `Sá»‘ TK`, `Sá»‘ tiá»n chuyá»ƒn` vÃ  `Ná»™i dung CK`.
+- Locked balance giáº£m.
+- Ledger cÃ³ `WITHDRAWAL_DEBIT`.
 
-#### Chặng 7: Ghi Biên Bản
+#### Cháº·ng 7: Ghi BiÃªn Báº£n
 
-**Bước 24 - Lưu checkpoint**
+**BÆ°á»›c 24 - LÆ°u checkpoint**
 
-1. Ghi lại project ID, offer ID, payment ID và PayOS order code.
-2. Chạy SQL tại mục 5.
-3. Điền biên bản tại mục 6.
-4. Không ghi Client ID, API Key hoặc Checksum Key vào tài liệu hoặc screenshot.
+1. Ghi láº¡i project ID, offer ID, payment ID vÃ  PayOS order code.
+2. Cháº¡y SQL táº¡i má»¥c 5.
+3. Äiá»n biÃªn báº£n táº¡i má»¥c 6.
+4. KhÃ´ng ghi Client ID, API Key hoáº·c Checksum Key vÃ o tÃ i liá»‡u hoáº·c screenshot.
 
-### TC-CORE-01: SME Đăng Project, Student Nhìn Thấy Project
+### TC-CORE-01: SME ÄÄƒng Project, Student NhÃ¬n Tháº¥y Project
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | SME | Đăng nhập và mở `/sme/projects/new`. | Form tạo project hiển thị. | SME session hợp lệ. |
-| 2 | SME | Tạo draft project. | Project detail hiển thị trạng thái draft. | Project `DRAFT`. |
-| 3 | SME | Publish project. | SME thấy trạng thái đã mở. | Project `OPEN`. |
-| 4 | Student | Refresh `/student/projects`. | Project mới xuất hiện trong marketplace. | Student đọc được project `OPEN`. |
-| 5 | Student | Mở project detail. | Brief, budget và deadline đúng dữ liệu SME nhập. | Chưa có application. |
+| 1 | SME | ÄÄƒng nháº­p vÃ  má»Ÿ `/sme/projects/new`. | Form táº¡o project hiá»ƒn thá»‹. | SME session há»£p lá»‡. |
+| 2 | SME | Táº¡o draft project. | Project detail hiá»ƒn thá»‹ tráº¡ng thÃ¡i draft. | Project `DRAFT`. |
+| 3 | SME | Publish project. | SME tháº¥y tráº¡ng thÃ¡i Ä‘Ã£ má»Ÿ. | Project `OPEN`. |
+| 4 | Student | Refresh `/student/projects`. | Project má»›i xuáº¥t hiá»‡n trong marketplace. | Student Ä‘á»c Ä‘Æ°á»£c project `OPEN`. |
+| 5 | Student | Má»Ÿ project detail. | Brief, budget vÃ  deadline Ä‘Ãºng dá»¯ liá»‡u SME nháº­p. | ChÆ°a cÃ³ application. |
 
-API hỗ trợ:
+API há»— trá»£:
 
 ```text
 POST /api/v1/projects
@@ -507,31 +507,31 @@ GET  /api/v1/projects
 GET  /api/v1/projects/{projectId}
 ```
 
-### TC-CORE-02: Student Apply, SME Nhận Application
+### TC-CORE-02: Student Apply, SME Nháº­n Application
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | Student | Tại project detail, gửi application. | UI báo gửi thành công. | Application `SUBMITTED`. |
-| 2 | SME | Refresh `/sme/projects/{projectId}/applications`. | Application của Student xuất hiện. | SME đọc được cover letter và proposed price. |
-| 3 | Student | Gửi application lần hai cho cùng project. | API/UI từ chối duplicate apply. | Chỉ có một application. |
+| 1 | Student | Táº¡i project detail, gá»­i application. | UI bÃ¡o gá»­i thÃ nh cÃ´ng. | Application `SUBMITTED`. |
+| 2 | SME | Refresh `/sme/projects/{projectId}/applications`. | Application cá»§a Student xuáº¥t hiá»‡n. | SME Ä‘á»c Ä‘Æ°á»£c cover letter vÃ  proposed price. |
+| 3 | Student | Gá»­i application láº§n hai cho cÃ¹ng project. | API/UI tá»« chá»‘i duplicate apply. | Chá»‰ cÃ³ má»™t application. |
 
-API hỗ trợ:
+API há»— trá»£:
 
 ```text
 POST /api/v1/projects/{projectId}/applications
 GET  /api/v1/projects/{projectId}/applications
 ```
 
-### TC-CORE-03: SME Gửi Offer, Student Accept
+### TC-CORE-03: SME Gá»­i Offer, Student Accept
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | SME | Chọn application và tạo offer. | UI báo tạo offer thành công. | Offer `WAITING_ACCEPTANCE`; project `OFFER_SELECTED`. |
-| 2 | Student | Refresh `/student/offers`. | Offer mới xuất hiện với amount và deadline. | Student thấy đúng offer. |
-| 3 | Student | Accept offer. | UI báo chấp nhận thành công. | Offer `ACCEPTED`. |
-| 4 | SME | Refresh `/sme/offers`. | Nút thanh toán hoặc workspace khả dụng. | SME có thể bắt đầu PayOS checkout. |
+| 1 | SME | Chá»n application vÃ  táº¡o offer. | UI bÃ¡o táº¡o offer thÃ nh cÃ´ng. | Offer `WAITING_ACCEPTANCE`; project `OFFER_SELECTED`. |
+| 2 | Student | Refresh `/student/offers`. | Offer má»›i xuáº¥t hiá»‡n vá»›i amount vÃ  deadline. | Student tháº¥y Ä‘Ãºng offer. |
+| 3 | Student | Accept offer. | UI bÃ¡o cháº¥p nháº­n thÃ nh cÃ´ng. | Offer `ACCEPTED`. |
+| 4 | SME | Refresh `/sme/offers`. | NÃºt thanh toÃ¡n hoáº·c workspace kháº£ dá»¥ng. | SME cÃ³ thá»ƒ báº¯t Ä‘áº§u PayOS checkout. |
 
-API hỗ trợ:
+API há»— trá»£:
 
 ```text
 POST /api/v1/projects/{projectId}/offers
@@ -539,24 +539,24 @@ POST /api/v1/offers/{offerId}/accept
 POST /api/v1/offers/{offerId}/reject
 ```
 
-### TC-CORE-04: SME Thanh Toán PayOS Thật, Student Được Bắt Đầu
+### TC-CORE-04: SME Thanh ToÃ¡n PayOS Tháº­t, Student ÄÆ°á»£c Báº¯t Äáº§u
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | SME | Mở `/projects/{projectId}/execution`. | Workspace hiển thị next action `PAY_ESCROW`. | Offer `ACCEPTED`. |
-| 2 | SME | Chọn `Mở thanh toán PayOS`. | Checkout PayOS hoặc QR mở ra. | Payment `PENDING`; escrow `PENDING_PAYMENT`; offer `PENDING_PAYMENT`. |
-| 3 | SME | Quét QR và chuyển khoản thật giá trị nhỏ. | PayOS chuyển về `/payment/success?paymentId=...`. | Return page chỉ poll backend mỗi 2 giây. |
-| 4 | System | PayOS gọi webhook public HTTPS. | Webhook trả HTTP `2xx`. | Signature hợp lệ. |
-| 5 | System | Backend xử lý webhook. | Return page chuyển về workspace sau khi backend xác nhận. | Payment `SUCCESS`; escrow `FUNDED`; offer `ACTIVE`; project `IN_PROGRESS`. |
-| 6 | Student | Refresh `/student/my-projects`, mở workspace. | Next action là `SUBMIT_SKETCH`. | Student bắt đầu thực hiện project. |
+| 1 | SME | Má»Ÿ `/projects/{projectId}/execution`. | Workspace hiá»ƒn thá»‹ next action `PAY_ESCROW`. | Offer `ACCEPTED`. |
+| 2 | SME | Chá»n `Má»Ÿ thanh toÃ¡n PayOS`. | Checkout PayOS hoáº·c QR má»Ÿ ra. | Payment `PENDING`; escrow `PENDING_PAYMENT`; offer `PENDING_PAYMENT`. |
+| 3 | SME | QuÃ©t QR vÃ  chuyá»ƒn khoáº£n tháº­t giÃ¡ trá»‹ nhá». | PayOS chuyá»ƒn vá» `/payment/success?paymentId=...`. | Return page chá»‰ poll backend má»—i 2 giÃ¢y. |
+| 4 | System | PayOS gá»i webhook public HTTPS. | Webhook tráº£ HTTP `2xx`. | Signature há»£p lá»‡. |
+| 5 | System | Backend xá»­ lÃ½ webhook. | Return page chuyá»ƒn vá» workspace sau khi backend xÃ¡c nháº­n. | Payment `SUCCESS`; escrow `FUNDED`; offer `ACTIVE`; project `IN_PROGRESS`. |
+| 6 | Student | Refresh `/student/my-projects`, má»Ÿ workspace. | Next action lÃ  `SUBMIT_SKETCH`. | Student báº¯t Ä‘áº§u thá»±c hiá»‡n project. |
 
-Điểm kiểm soát quan trọng:
+Äiá»ƒm kiá»ƒm soÃ¡t quan trá»ng:
 
-- Không sửa payment thành `SUCCESS` chỉ vì trình duyệt quay về return URL.
-- Webhook gửi lại không tạo cập nhật trùng.
-- Payment `FAILED`, `CANCELLED` hoặc `EXPIRED` không được bắt đầu project.
+- KhÃ´ng sá»­a payment thÃ nh `SUCCESS` chá»‰ vÃ¬ trÃ¬nh duyá»‡t quay vá» return URL.
+- Webhook gá»­i láº¡i khÃ´ng táº¡o cáº­p nháº­t trÃ¹ng.
+- Payment `FAILED`, `CANCELLED` hoáº·c `EXPIRED` khÃ´ng Ä‘Æ°á»£c báº¯t Ä‘áº§u project.
 
-API hỗ trợ:
+API há»— trá»£:
 
 ```text
 POST /api/v1/offers/{offerId}/payment
@@ -565,17 +565,17 @@ POST /api/v1/payments/payos/webhook
 GET  /api/v1/projects/{projectId}/workspace
 ```
 
-### TC-CORE-05: Student Nộp Sketch, SME Approve
+### TC-CORE-05: Student Ná»™p Sketch, SME Approve
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | Student | Trong workspace, upload file Sketch jpg/png/pdf tối đa 20 MB. | File upload thành công và hiện trong danh sách. | File metadata được lưu. |
-| 2 | Student | Nộp Sketch. | Timeline chuyển sang chờ SME review. | Submission `SKETCH`, status `SUBMITTED`; project `SKETCH_REVIEW`. |
-| 3 | SME | Refresh cùng workspace. | Next action `REVIEW_SKETCH`; SME download được file. | SME đọc đúng submission. |
-| 4 | SME | Approve Sketch. | Timeline mở bước Final cho Student. | Sketch `APPROVED`; project `IN_PROGRESS`. |
-| 5 | Student | Refresh workspace. | Next action `SUBMIT_FINAL`. | Student có thể nộp Final. |
+| 1 | Student | Trong workspace, upload file Sketch jpg/png/pdf tá»‘i Ä‘a 20 MB. | File upload thÃ nh cÃ´ng vÃ  hiá»‡n trong danh sÃ¡ch. | File metadata Ä‘Æ°á»£c lÆ°u. |
+| 2 | Student | Ná»™p Sketch. | Timeline chuyá»ƒn sang chá» SME review. | Submission `SKETCH`, status `SUBMITTED`; project `SKETCH_REVIEW`. |
+| 3 | SME | Refresh cÃ¹ng workspace. | Next action `REVIEW_SKETCH`; SME download Ä‘Æ°á»£c file. | SME Ä‘á»c Ä‘Ãºng submission. |
+| 4 | SME | Approve Sketch. | Timeline má»Ÿ bÆ°á»›c Final cho Student. | Sketch `APPROVED`; project `IN_PROGRESS`. |
+| 5 | Student | Refresh workspace. | Next action `SUBMIT_FINAL`. | Student cÃ³ thá»ƒ ná»™p Final. |
 
-API hỗ trợ:
+API há»— trá»£:
 
 ```text
 POST /api/v1/files/submissions
@@ -584,36 +584,36 @@ GET  /api/v1/files/{fileId}/download
 POST /api/v1/projects/{projectId}/submissions/{submissionId}/approve
 ```
 
-### TC-CORE-06: SME Yêu Cầu Revision, Student Nộp Lại
+### TC-CORE-06: SME YÃªu Cáº§u Revision, Student Ná»™p Láº¡i
 
-Chạy case này trên Sketch hoặc Final trước khi approve.
+Cháº¡y case nÃ y trÃªn Sketch hoáº·c Final trÆ°á»›c khi approve.
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | SME | Tại submission đang chờ review, chọn yêu cầu chỉnh sửa. | SME nhập nội dung và hạn nộp lại. | Submission `REVISION_REQUESTED`; project `REVISION_REQUESTED`. |
-| 2 | Student | Refresh workspace. | Feedback và deadline xuất hiện; next action `SUBMIT_REVISION`. | Student thấy đúng yêu cầu. |
-| 3 | Student | Upload file mới và nộp revision. | Timeline quay lại chờ SME review. | Revision round tăng; project trở lại review milestone tương ứng. |
-| 4 | SME | Refresh workspace và approve revision. | Milestone được duyệt. | Revision round được lưu để audit. |
+| 1 | SME | Táº¡i submission Ä‘ang chá» review, chá»n yÃªu cáº§u chá»‰nh sá»­a. | SME nháº­p ná»™i dung vÃ  háº¡n ná»™p láº¡i. | Submission `REVISION_REQUESTED`; project `REVISION_REQUESTED`. |
+| 2 | Student | Refresh workspace. | Feedback vÃ  deadline xuáº¥t hiá»‡n; next action `SUBMIT_REVISION`. | Student tháº¥y Ä‘Ãºng yÃªu cáº§u. |
+| 3 | Student | Upload file má»›i vÃ  ná»™p revision. | Timeline quay láº¡i chá» SME review. | Revision round tÄƒng; project trá»Ÿ láº¡i review milestone tÆ°Æ¡ng á»©ng. |
+| 4 | SME | Refresh workspace vÃ  approve revision. | Milestone Ä‘Æ°á»£c duyá»‡t. | Revision round Ä‘Æ°á»£c lÆ°u Ä‘á»ƒ audit. |
 
-SME có thể tiếp tục yêu cầu revision khi cần. Hệ thống lưu revision round để audit nhưng không giới hạn số lần chỉnh sửa.
+SME cÃ³ thá»ƒ tiáº¿p tá»¥c yÃªu cáº§u revision khi cáº§n. Há»‡ thá»‘ng lÆ°u revision round Ä‘á»ƒ audit nhÆ°ng khÃ´ng giá»›i háº¡n sá»‘ láº§n chá»‰nh sá»­a.
 
-### TC-CORE-07: SME Báo File Lỗi, Student Upload Lại
+### TC-CORE-07: SME BÃ¡o File Lá»—i, Student Upload Láº¡i
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | SME | Chọn `Báo file lỗi`, lý do ví dụ `CANNOT_OPEN`, và hạn upload lại. | Review history ghi nhận lý do. | Submission `INVALID_REPORTED`. |
-| 2 | Student | Refresh workspace. | Student thấy invalid-file reason và deadline upload lại. | Không mất lịch sử submission cũ. |
-| 3 | Student | Upload file hợp lệ và nộp lại. | SME nhận submission mới để review. | Luồng quay lại milestone review. |
+| 1 | SME | Chá»n `BÃ¡o file lá»—i`, lÃ½ do vÃ­ dá»¥ `CANNOT_OPEN`, vÃ  háº¡n upload láº¡i. | Review history ghi nháº­n lÃ½ do. | Submission `INVALID_REPORTED`. |
+| 2 | Student | Refresh workspace. | Student tháº¥y invalid-file reason vÃ  deadline upload láº¡i. | KhÃ´ng máº¥t lá»‹ch sá»­ submission cÅ©. |
+| 3 | Student | Upload file há»£p lá»‡ vÃ  ná»™p láº¡i. | SME nháº­n submission má»›i Ä‘á»ƒ review. | Luá»“ng quay láº¡i milestone review. |
 
-### TC-CORE-08: Student Nộp Final, SME Approve, Ví Được Credit
+### TC-CORE-08: Student Ná»™p Final, SME Approve, VÃ­ ÄÆ°á»£c Credit
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | Student | Upload và nộp Final sau khi Sketch approved. | Timeline chuyển sang chờ Final review. | Submission `FINAL`, status `SUBMITTED`; project `FINAL_REVIEW`. |
-| 2 | SME | Refresh workspace, download Final và approve. | Workspace hiển thị hoàn thành. | Final `APPROVED`; project `COMPLETED`; escrow `RELEASE_PENDING`. |
-| 3 | System | Hosted worker xử lý escrow release. | Không cần thao tác thủ công. | Escrow `RELEASED`; một disbursement `COMPLETED`. |
-| 4 | Student | Refresh `/student/wallet`. | Available balance tăng đúng net amount. | Một transaction `DISBURSEMENT_CREDIT`. |
-| 5 | Admin hoặc Swagger | Gọi retry release nếu cần. | Không credit lần hai. | Balance không đổi; không có disbursement trùng. |
+| 1 | Student | Upload vÃ  ná»™p Final sau khi Sketch approved. | Timeline chuyá»ƒn sang chá» Final review. | Submission `FINAL`, status `SUBMITTED`; project `FINAL_REVIEW`. |
+| 2 | SME | Refresh workspace, download Final vÃ  approve. | Workspace hiá»ƒn thá»‹ hoÃ n thÃ nh. | Final `APPROVED`; project `COMPLETED`; escrow `RELEASE_PENDING`. |
+| 3 | System | Hosted worker xá»­ lÃ½ escrow release. | KhÃ´ng cáº§n thao tÃ¡c thá»§ cÃ´ng. | Escrow `RELEASED`; má»™t disbursement `COMPLETED`. |
+| 4 | Student | Refresh `/student/wallet`. | Available balance tÄƒng Ä‘Ãºng net amount. | Má»™t transaction `DISBURSEMENT_CREDIT`. |
+| 5 | Admin hoáº·c Swagger | Gá»i retry release náº¿u cáº§n. | KhÃ´ng credit láº§n hai. | Balance khÃ´ng Ä‘á»•i; khÃ´ng cÃ³ disbursement trÃ¹ng. |
 
 Net amount:
 
@@ -623,31 +623,31 @@ netAmount = grossAmount - platformFeeAmount
 
 ### TC-CORE-09: Withdrawal Manual Smoke
 
-| Bước | Actor | Hành động | Phản hồi cần quan sát | Trạng thái kỳ vọng |
+| BÆ°á»›c | Actor | HÃ nh Ä‘á»™ng | Pháº£n há»“i cáº§n quan sÃ¡t | Tráº¡ng thÃ¡i ká»³ vá»ng |
 | --- | --- | --- | --- | --- |
-| 1 | Student | Tạo payment method ngân hàng. | Chỉ thấy account number đã mask. | Không lưu account number dạng rõ. |
-| 2 | Student | Tạo withdrawal tối thiểu `50000 VND`. | Request xuất hiện trong lịch sử. | Available giảm; locked tăng; withdrawal `PENDING`. |
-| 3 | Admin | Mở `/admin/withdrawals`, complete request sau chuyển khoản ngoài hệ thống. | Locked balance giảm. | Transaction `WITHDRAWAL_DEBIT`. |
-| 4 | Student | Tạo request khác; Admin chọn fail. | Tiền locked quay lại available. | Transaction `WITHDRAWAL_FAILED_REVERSAL`. |
+| 1 | Student | Táº¡o payment method ngÃ¢n hÃ ng. | Chá»‰ tháº¥y account number Ä‘Ã£ mask. | KhÃ´ng lÆ°u account number dáº¡ng rÃµ. |
+| 2 | Student | Táº¡o withdrawal tá»‘i thiá»ƒu `50000 VND`. | Request xuáº¥t hiá»‡n trong lá»‹ch sá»­. | Available giáº£m; locked tÄƒng; withdrawal `PENDING`. |
+| 3 | Admin | Má»Ÿ `/admin/withdrawals`, complete request sau chuyá»ƒn khoáº£n ngoÃ i há»‡ thá»‘ng. | Locked balance giáº£m. | Transaction `WITHDRAWAL_DEBIT`. |
+| 4 | Student | Táº¡o request khÃ¡c; Admin chá»n fail. | Tiá»n locked quay láº¡i available. | Transaction `WITHDRAWAL_FAILED_REVERSAL`. |
 
-## 4. Negative Cases Tại Điểm Bàn Giao
+## 4. Negative Cases Táº¡i Äiá»ƒm BÃ n Giao
 
-| ID | Bối cảnh | Thao tác | Kỳ vọng |
+| ID | Bá»‘i cáº£nh | Thao tÃ¡c | Ká»³ vá»ng |
 | --- | --- | --- | --- |
-| NEG-01 | Student chưa verify | Student apply project | Bị chặn. |
-| NEG-02 | Student đã apply | Student apply lại cùng project | Bị chặn duplicate. |
-| NEG-03 | Student chưa accept offer | SME tạo PayOS payment | Bị chặn. |
-| NEG-04 | Browser mở return URL thủ công | Client giả lập payment success | Backend không đổi trạng thái. |
-| NEG-05 | Sketch chưa approved | Student nộp Final | Bị chặn. |
-| NEG-06 | Upload file `.zip` hoặc file lớn hơn 20 MB | Student upload submission | Bị chặn. |
-| NEG-07 | SME không sở hữu project | SME mở workspace hoặc download file | Bị chặn. |
-| NEG-08 | Student không được chọn | Student mở workspace project khác | Bị chặn. |
-| NEG-09 | Release escrow chạy lại | Worker hoặc Admin retry | Không double credit. |
-| NEG-10 | Withdrawal dưới `50000 VND` | Student tạo request | Bị chặn. |
+| NEG-01 | Student chÆ°a verify | Student apply project | Bá»‹ cháº·n. |
+| NEG-02 | Student Ä‘Ã£ apply | Student apply láº¡i cÃ¹ng project | Bá»‹ cháº·n duplicate. |
+| NEG-03 | Student chÆ°a accept offer | SME táº¡o PayOS payment | Bá»‹ cháº·n. |
+| NEG-04 | Browser má»Ÿ return URL thá»§ cÃ´ng | Client giáº£ láº­p payment success | Backend khÃ´ng Ä‘á»•i tráº¡ng thÃ¡i. |
+| NEG-05 | Sketch chÆ°a approved | Student ná»™p Final | Bá»‹ cháº·n. |
+| NEG-06 | Upload file `.zip` hoáº·c file lá»›n hÆ¡n 20 MB | Student upload submission | Bá»‹ cháº·n. |
+| NEG-07 | SME khÃ´ng sá»Ÿ há»¯u project | SME má»Ÿ workspace hoáº·c download file | Bá»‹ cháº·n. |
+| NEG-08 | Student khÃ´ng Ä‘Æ°á»£c chá»n | Student má»Ÿ workspace project khÃ¡c | Bá»‹ cháº·n. |
+| NEG-09 | Release escrow cháº¡y láº¡i | Worker hoáº·c Admin retry | KhÃ´ng double credit. |
+| NEG-10 | Withdrawal dÆ°á»›i `50000 VND` | Student táº¡o request | Bá»‹ cháº·n. |
 
 ## 5. SQL Checkpoints
 
-Chạy sau các điểm bàn giao chính:
+Cháº¡y sau cÃ¡c Ä‘iá»ƒm bÃ n giao chÃ­nh:
 
 ```sql
 select id, status, selected_student_profile_id
@@ -692,123 +692,123 @@ where wallet_id = '<wallet-id>'
 order by created_at;
 ```
 
-## 6. Biên Bản Smoke Test
+## 6. BiÃªn Báº£n Smoke Test
 
-Ghi lại tối thiểu:
+Ghi láº¡i tá»‘i thiá»ƒu:
 
-| Mục | Giá trị |
+| Má»¥c | GiÃ¡ trá»‹ |
 | --- | --- |
-| Thời gian test | |
-| Branch và commit | |
+| Thá»i gian test | |
+| Branch vÃ  commit | |
 | Public origin | |
 | Project ID | |
 | Offer ID | |
 | Payment ID | |
 | PayOS order code | |
 | Webhook HTTP status | |
-| Project status cuối | |
-| Escrow status cuối | |
+| Project status cuá»‘i | |
+| Escrow status cuá»‘i | |
 | Gross amount | |
 | Platform fee | |
 | Net wallet credit | |
-| Retry release có double credit không | |
-| Người test SME | |
-| Người test Student | |
+| Retry release cÃ³ double credit khÃ´ng | |
+| NgÆ°á»i test SME | |
+| NgÆ°á»i test Student | |
 
-Không ghi Client ID, API Key hoặc Checksum Key vào biên bản.
+KhÃ´ng ghi Client ID, API Key hoáº·c Checksum Key vÃ o biÃªn báº£n.
 
-## 7. Bổ Sung Kiểm Tra Workspace Nộp Bài
+## 7. Bá»• Sung Kiá»ƒm Tra Workspace Ná»™p BÃ i
 
-Áp dụng cho route chung `/projects/{projectId}/execution`. Student và SME mở cùng URL nhưng thấy giao diện theo vai trò của mình. Workspace tự poll backend mỗi 5 giây; nút `Làm mới` vẫn dùng được khi cần kiểm tra ngay. Countdown deadline tự cập nhật mỗi phút và hiển thị theo giờ Việt Nam.
+Ãp dá»¥ng cho route chung `/projects/{projectId}/execution`. Student vÃ  SME má»Ÿ cÃ¹ng URL nhÆ°ng tháº¥y giao diá»‡n theo vai trÃ² cá»§a mÃ¬nh. Workspace tá»± poll backend má»—i 5 giÃ¢y; nÃºt `LÃ m má»›i` váº«n dÃ¹ng Ä‘Æ°á»£c khi cáº§n kiá»ƒm tra ngay. Countdown deadline tá»± cáº­p nháº­t má»—i phÃºt vÃ  hiá»ƒn thá»‹ theo giá» Viá»‡t Nam.
 
-### 7.0. Kiểm Tra Bố Cục Và Deadline
+### 7.0. Kiá»ƒm Tra Bá»‘ Cá»¥c VÃ  Deadline
 
-1. Mở workspace bằng SME rồi mở lại cùng URL bằng Student.
-2. Kiểm tra progress bar có thứ tự `Offer -> Escrow -> Sketch -> Revision -> Final -> Hoàn thành`.
-3. Kiểm tra sidebar `Mốc thời gian` hiển thị đầy đủ Sketch, Final và Toàn dự án.
-4. Khi có submission chờ review, kiểm tra deadline nổi bật chuyển thành `Hạn SME duyệt bài`.
-5. Khi SME yêu cầu chỉnh sửa hoặc báo file lỗi, kiểm tra deadline nổi bật chuyển thành `Hạn Student nộp lại`.
+1. Má»Ÿ workspace báº±ng SME rá»“i má»Ÿ láº¡i cÃ¹ng URL báº±ng Student.
+2. Kiá»ƒm tra progress bar cÃ³ thá»© tá»± `Offer -> Escrow -> Sketch -> Revision -> Final -> HoÃ n thÃ nh`.
+3. Kiá»ƒm tra sidebar `Má»‘c thá»i gian` hiá»ƒn thá»‹ Ä‘áº§y Ä‘á»§ Sketch, Final vÃ  ToÃ n dá»± Ã¡n.
+4. Khi cÃ³ submission chá» review, kiá»ƒm tra deadline ná»•i báº­t chuyá»ƒn thÃ nh `Háº¡n SME duyá»‡t bÃ i`.
+5. Khi SME yÃªu cáº§u chá»‰nh sá»­a hoáº·c bÃ¡o file lá»—i, kiá»ƒm tra deadline ná»•i báº­t chuyá»ƒn thÃ nh `Háº¡n Student ná»™p láº¡i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Mỗi deadline hiển thị cả ngày, giờ và countdown `Còn ...` hoặc `Quá hạn ...`.
-- Student và SME thấy cùng dữ liệu deadline nhưng khối action phù hợp với vai trò.
-- Dòng thời gian tương tác gộp hiển thị offer, escrow, submission, feedback, approval và release theo thứ tự mới nhất trước.
+- Má»—i deadline hiá»ƒn thá»‹ cáº£ ngÃ y, giá» vÃ  countdown `CÃ²n ...` hoáº·c `QuÃ¡ háº¡n ...`.
+- Student vÃ  SME tháº¥y cÃ¹ng dá»¯ liá»‡u deadline nhÆ°ng khá»‘i action phÃ¹ há»£p vá»›i vai trÃ².
+- DÃ²ng thá»i gian tÆ°Æ¡ng tÃ¡c gá»™p hiá»ƒn thá»‹ offer, escrow, submission, feedback, approval vÃ  release theo thá»© tá»± má»›i nháº¥t trÆ°á»›c.
 
-### 7.1. Student Chọn File Và Xác Nhận Nộp
+### 7.1. Student Chá»n File VÃ  XÃ¡c Nháº­n Ná»™p
 
-1. Student mở workspace khi next action là `Nộp Sketch`, `Nộp bản chỉnh sửa` hoặc `Nộp Final`.
-2. Bấm `Chọn file`, chọn nhiều file `.jpg`, `.png` hoặc `.pdf`, mỗi file tối đa 20 MB.
-3. Kiểm tra draft list hiển thị tên, định dạng, dung lượng và nút xóa từng file.
-4. Xóa một file khỏi draft list. File bị xóa không được upload.
-5. Bấm `Xác nhận nộp bài`.
-6. Kiểm tra modal xác nhận hiển thị đúng milestone, mô tả và danh sách file còn lại.
-7. Bấm `Xác nhận nộp`.
+1. Student má»Ÿ workspace khi next action lÃ  `Ná»™p Sketch`, `Ná»™p báº£n chá»‰nh sá»­a` hoáº·c `Ná»™p Final`.
+2. Báº¥m `Chá»n file`, chá»n nhiá»u file `.jpg`, `.png` hoáº·c `.pdf`, má»—i file tá»‘i Ä‘a 20 MB.
+3. Kiá»ƒm tra draft list hiá»ƒn thá»‹ tÃªn, Ä‘á»‹nh dáº¡ng, dung lÆ°á»£ng vÃ  nÃºt xÃ³a tá»«ng file.
+4. XÃ³a má»™t file khá»i draft list. File bá»‹ xÃ³a khÃ´ng Ä‘Æ°á»£c upload.
+5. Báº¥m `XÃ¡c nháº­n ná»™p bÃ i`.
+6. Kiá»ƒm tra modal xÃ¡c nháº­n hiá»ƒn thá»‹ Ä‘Ãºng milestone, mÃ´ táº£ vÃ  danh sÃ¡ch file cÃ²n láº¡i.
+7. Báº¥m `XÃ¡c nháº­n ná»™p`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- File chỉ được upload sau bước xác nhận.
-- Nếu một file upload lỗi, quá trình dừng và thông báo ghi rõ tên file lỗi.
-- Sau khi thành công, draft list được xóa và Student thấy trạng thái chờ SME duyệt cùng review deadline.
-- File `.zip`, file lớn hơn 20 MB hoặc file giả đuôi có nội dung không khớp định dạng bị chặn.
-- File upload thành công nhưng không được gắn vào submission sẽ được worker dọn sau 24 giờ.
+- File chá»‰ Ä‘Æ°á»£c upload sau bÆ°á»›c xÃ¡c nháº­n.
+- Náº¿u má»™t file upload lá»—i, quÃ¡ trÃ¬nh dá»«ng vÃ  thÃ´ng bÃ¡o ghi rÃµ tÃªn file lá»—i.
+- Sau khi thÃ nh cÃ´ng, draft list Ä‘Æ°á»£c xÃ³a vÃ  Student tháº¥y tráº¡ng thÃ¡i chá» SME duyá»‡t cÃ¹ng review deadline.
+- File `.zip`, file lá»›n hÆ¡n 20 MB hoáº·c file giáº£ Ä‘uÃ´i cÃ³ ná»™i dung khÃ´ng khá»›p Ä‘á»‹nh dáº¡ng bá»‹ cháº·n.
+- File upload thÃ nh cÃ´ng nhÆ°ng khÃ´ng Ä‘Æ°á»£c gáº¯n vÃ o submission sáº½ Ä‘Æ°á»£c worker dá»n sau 24 giá».
 
-### 7.2. SME Xử Lý Bản Mới Nhất
+### 7.2. SME Xá»­ LÃ½ Báº£n Má»›i Nháº¥t
 
-1. SME giữ workspace đang mở sau khi Student nộp bài.
-2. Chờ tối đa 5 giây hoặc bấm `Làm mới`.
-3. Tại panel `Bản đang chờ duyệt`, kiểm tra milestone, vòng audit, mô tả, thời gian nộp, hạn duyệt, countdown và file download.
-4. Download file bằng nút trong panel.
-5. Chọn một trong ba action: `Duyệt`, `Yêu cầu chỉnh sửa`, `Báo file lỗi`.
+1. SME giá»¯ workspace Ä‘ang má»Ÿ sau khi Student ná»™p bÃ i.
+2. Chá» tá»‘i Ä‘a 5 giÃ¢y hoáº·c báº¥m `LÃ m má»›i`.
+3. Táº¡i panel `Báº£n Ä‘ang chá» duyá»‡t`, kiá»ƒm tra milestone, vÃ²ng audit, mÃ´ táº£, thá»i gian ná»™p, háº¡n duyá»‡t, countdown vÃ  file download.
+4. Download file báº±ng nÃºt trong panel.
+5. Chá»n má»™t trong ba action: `Duyá»‡t`, `YÃªu cáº§u chá»‰nh sá»­a`, `BÃ¡o file lá»—i`.
 
-Kết quả cần thấy:
+Káº¿t quáº£ cáº§n tháº¥y:
 
-- Panel luôn hiển thị submission `SUBMITTED` hoặc `VALID` mới nhất.
-- `Dòng thời gian tương tác` gộp bài nộp và phản hồi, sắp xếp mới nhất trước.
-- Polling không xóa draft file hoặc nội dung mô tả Student đang nhập.
+- Panel luÃ´n hiá»ƒn thá»‹ submission `SUBMITTED` hoáº·c `VALID` má»›i nháº¥t.
+- `DÃ²ng thá»i gian tÆ°Æ¡ng tÃ¡c` gá»™p bÃ i ná»™p vÃ  pháº£n há»“i, sáº¯p xáº¿p má»›i nháº¥t trÆ°á»›c.
+- Polling khÃ´ng xÃ³a draft file hoáº·c ná»™i dung mÃ´ táº£ Student Ä‘ang nháº­p.
 
-### 7.3. Nhánh Báo File Lỗi Và Upload Lại
+### 7.3. NhÃ¡nh BÃ¡o File Lá»—i VÃ  Upload Láº¡i
 
-1. SME bấm `Báo file lỗi`, chọn `CANNOT_OPEN`, nhập mô tả và hạn upload lại.
-2. Student chờ tối đa 5 giây hoặc bấm `Làm mới`.
-3. Kiểm tra Student thấy next action `Nộp bản chỉnh sửa`, lý do file lỗi và deadline trong `Dòng thời gian tương tác`.
-4. Student chọn file mới và xác nhận nộp lại.
-5. SME chờ tối đa 5 giây, kiểm tra panel đang chờ duyệt hiển thị bản mới nhất rồi download và duyệt.
+1. SME báº¥m `BÃ¡o file lá»—i`, chá»n `CANNOT_OPEN`, nháº­p mÃ´ táº£ vÃ  háº¡n upload láº¡i.
+2. Student chá» tá»‘i Ä‘a 5 giÃ¢y hoáº·c báº¥m `LÃ m má»›i`.
+3. Kiá»ƒm tra Student tháº¥y next action `Ná»™p báº£n chá»‰nh sá»­a`, lÃ½ do file lá»—i vÃ  deadline trong `DÃ²ng thá»i gian tÆ°Æ¡ng tÃ¡c`.
+4. Student chá»n file má»›i vÃ  xÃ¡c nháº­n ná»™p láº¡i.
+5. SME chá» tá»‘i Ä‘a 5 giÃ¢y, kiá»ƒm tra panel Ä‘ang chá» duyá»‡t hiá»ƒn thá»‹ báº£n má»›i nháº¥t rá»“i download vÃ  duyá»‡t.
 
-Kết quả backend cần thấy:
+Káº¿t quáº£ backend cáº§n tháº¥y:
 
-- Submission cũ giữ status `INVALID_REPORTED`.
-- Project chuyển sang `REVISION_REQUESTED`.
-- Submission mới có type `REVISION`, giữ cùng milestone Sketch hoặc Final.
-- Báo file lỗi kỹ thuật không tăng `current_revision_round`.
-- `review_actions` giữ action `REPORT_INVALID_FILE` để audit.
+- Submission cÅ© giá»¯ status `INVALID_REPORTED`.
+- Project chuyá»ƒn sang `REVISION_REQUESTED`.
+- Submission má»›i cÃ³ type `REVISION`, giá»¯ cÃ¹ng milestone Sketch hoáº·c Final.
+- BÃ¡o file lá»—i ká»¹ thuáº­t khÃ´ng tÄƒng `current_revision_round`.
+- `review_actions` giá»¯ action `REPORT_INVALID_FILE` Ä‘á»ƒ audit.
 
 ## 8. Regression Sau Core Stabilization
 
-### 8.1. Offer Hết Hạn Trả Application Về Hàng Chờ
+### 8.1. Offer Háº¿t Háº¡n Tráº£ Application Vá» HÃ ng Chá»
 
-1. Tạo offer từ một application và để offer `WAITING_ACCEPTANCE`.
-2. Đặt `expires_at` của offer về quá khứ hoặc chờ worker chạy.
-3. Kiểm tra offer chuyển `EXPIRED`.
-4. Kiểm tra application liên kết trở về `SUBMITTED`, không bị kẹt ở `SELECTED`.
-5. Kiểm tra project trở về `OPEN` hoặc `PRIVATE_INVITED` nếu không còn offer active.
+1. Táº¡o offer tá»« má»™t application vÃ  Ä‘á»ƒ offer `WAITING_ACCEPTANCE`.
+2. Äáº·t `expires_at` cá»§a offer vá» quÃ¡ khá»© hoáº·c chá» worker cháº¡y.
+3. Kiá»ƒm tra offer chuyá»ƒn `EXPIRED`.
+4. Kiá»ƒm tra application liÃªn káº¿t trá»Ÿ vá» `SUBMITTED`, khÃ´ng bá»‹ káº¹t á»Ÿ `SELECTED`.
+5. Kiá»ƒm tra project trá»Ÿ vá» `OPEN` hoáº·c `PRIVATE_INVITED` náº¿u khÃ´ng cÃ²n offer active.
 
-### 8.2. Checkout PayOS Hết Hạn Nhưng Offer Vẫn Còn Thời Gian
+### 8.2. Checkout PayOS Háº¿t Háº¡n NhÆ°ng Offer Váº«n CÃ²n Thá»i Gian
 
-1. Tạo checkout PayOS nhưng không thanh toán.
-2. Đặt `payments.expires_at` về quá khứ hoặc chờ quá 15 phút.
-3. Kiểm tra payment chuyển `EXPIRED`, offer chuyển `PAYMENT_FAILED`.
-4. Kiểm tra SME vẫn tạo được checkout mới nếu `payment_due_at` 72 giờ chưa hết hạn.
-5. Tạo checkout retry mới, giữ một checkout cũ quá hạn và kiểm tra worker không kéo offer mới khỏi `PENDING_PAYMENT`.
+1. Táº¡o checkout PayOS nhÆ°ng khÃ´ng thanh toÃ¡n.
+2. Äáº·t `payments.expires_at` vá» quÃ¡ khá»© hoáº·c chá» quÃ¡ 15 phÃºt.
+3. Kiá»ƒm tra payment chuyá»ƒn `EXPIRED`, offer chuyá»ƒn `PAYMENT_FAILED`.
+4. Kiá»ƒm tra SME váº«n táº¡o Ä‘Æ°á»£c checkout má»›i náº¿u `payment_due_at` 72 giá» chÆ°a háº¿t háº¡n.
+5. Táº¡o checkout retry má»›i, giá»¯ má»™t checkout cÅ© quÃ¡ háº¡n vÃ  kiá»ƒm tra worker khÃ´ng kÃ©o offer má»›i khá»i `PENDING_PAYMENT`.
 
-### 8.3. Upload Submission Được Harden
+### 8.3. Upload Submission ÄÆ°á»£c Harden
 
-1. Upload file `.pdf` thật, tối đa đúng 20 MB: backend chấp nhận.
-2. Đổi tên file text hoặc file thực thi thành `.pdf`: backend từ chối vì signature không khớp.
-3. Upload file hợp lệ nhưng không submit: worker dọn metadata và file local sau 24 giờ.
+1. Upload file `.pdf` tháº­t, tá»‘i Ä‘a Ä‘Ãºng 20 MB: backend cháº¥p nháº­n.
+2. Äá»•i tÃªn file text hoáº·c file thá»±c thi thÃ nh `.pdf`: backend tá»« chá»‘i vÃ¬ signature khÃ´ng khá»›p.
+3. Upload file há»£p lá»‡ nhÆ°ng khÃ´ng submit: worker dá»n metadata vÃ  file local sau 24 giá».
 
-### 8.4. Return Page Không Spinner Vô Tận
+### 8.4. Return Page KhÃ´ng Spinner VÃ´ Táº­n
 
-1. Mở `/payment/success?paymentId=<payment-id>` khi webhook chưa tới.
-2. Sau tối đa 60 giây, kiểm tra trạng thái chờ đổi thành cảnh báo.
-3. Kiểm tra có nút `Kiểm tra lại` và lối tắt về workspace hoặc danh sách offer.
+1. Má»Ÿ `/payment/success?paymentId=<payment-id>` khi webhook chÆ°a tá»›i.
+2. Sau tá»‘i Ä‘a 60 giÃ¢y, kiá»ƒm tra tráº¡ng thÃ¡i chá» Ä‘á»•i thÃ nh cáº£nh bÃ¡o.
+3. Kiá»ƒm tra cÃ³ nÃºt `Kiá»ƒm tra láº¡i` vÃ  lá»‘i táº¯t vá» workspace hoáº·c danh sÃ¡ch offer.

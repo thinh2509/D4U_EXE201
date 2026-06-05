@@ -83,7 +83,8 @@ export function SmeProjectDetailPage() {
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadProject} />;
-  const canOpenWorkspace = ['OFFER_SELECTED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW', 'COMPLETED'].includes(project.status);
+  const canOpenWorkspace = ['OFFER_SELECTED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW', 'COMPLETED', 'CANCELLED'].includes(project.status);
+  const canCancelProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW'].includes(project.status);
 
   return (
     <>
@@ -119,7 +120,7 @@ export function SmeProjectDetailPage() {
               <Button block icon={<FileSearchOutlined />} onClick={() => navigate(`/sme/projects/${projectId}/applications`)}>Xem ứng tuyển</Button>
               {canOpenWorkspace ? <Button block type="primary" icon={<FileDoneOutlined />} onClick={() => navigate(`/projects/${projectId}/execution`)}>Workspace & escrow</Button> : null}
               <Button block type="primary" icon={<RocketOutlined />} loading={acting} onClick={publish} disabled={project.status !== 'DRAFT'}>Publish</Button>
-              <Button block danger icon={<StopOutlined />} loading={acting} onClick={cancel} disabled={!['DRAFT', 'OPEN', 'PRIVATE_INVITED'].includes(project.status)}>Hủy dự án</Button>
+              <Button block danger icon={<StopOutlined />} loading={acting} onClick={cancel} disabled={!canCancelProject}>Hủy dự án</Button>
               <Button block danger icon={<DeleteOutlined />} loading={acting} onClick={remove}>Xóa</Button>
             </Space>
           </Card>

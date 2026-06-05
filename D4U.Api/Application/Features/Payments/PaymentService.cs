@@ -424,6 +424,21 @@ public sealed class PaymentService(
                 cancellationToken);
         }
 
+        var studentUserId = await unitOfWork.Repository<StudentProfile>().Query()
+            .Where(profile => profile.Id == escrow.StudentProfileId)
+            .Select(profile => profile.UserId)
+            .FirstAsync(cancellationToken);
+        await AddNotificationAsync(
+            studentUserId,
+            null,
+            "PAYMENT_SUCCESS",
+            "Escrow đã được PayOS xác nhận",
+            $"Dự án {project.Title} đã bắt đầu sau khi thanh toán escrow thành công.",
+            nameof(Payment),
+            payment.Id,
+            now,
+            cancellationToken);
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -676,6 +691,46 @@ public sealed class PaymentService(
     {
         var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
         return $"{url}{separator}paymentId={paymentId}&offerId={offerId}&projectId={projectId}";
+    }
+
+    private async Task AddNotificationAsync(
+        Guid recipientUserId,
+        Guid? actorUserId,
+        string type,
+        string title,
+        string body,
+        string referenceType,
+        Guid referenceId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var exists = await unitOfWork.Repository<Notification>().AnyAsync(
+            notification => notification.RecipientUserId == recipientUserId &&
+                notification.Type == type &&
+                notification.ReferenceType == referenceType &&
+                notification.ReferenceId == referenceId,
+            cancellationToken);
+
+        if (exists)
+        {
+            return;
+        }
+
+        await unitOfWork.Repository<Notification>().AddAsync(
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = recipientUserId,
+                ActorUserId = actorUserId,
+                Type = type,
+                Title = title,
+                Body = body,
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                Status = NotificationStatus.UNREAD,
+                CreatedAt = now
+            },
+            cancellationToken);
     }
 
     private static PaymentResponse ToPaymentResponse(

@@ -1,6 +1,7 @@
 namespace D4U.Api.Infrastructure.Http;
 
-using Microsoft.AspNetCore.Mvc;
+using D4U.Api.Application.Common.Exceptions;
+using D4U.Api.Application.Common.Http;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
@@ -11,30 +12,42 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             await next(context);
         }
+        catch (AppException exception)
+        {
+            await WriteApiResponseAsync(context, exception.StatusCode, exception.Message, exception.Errors);
+        }
         catch (UnauthorizedAccessException exception)
         {
-            await WriteProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", exception.Message);
+            await WriteApiResponseAsync(context, StatusCodes.Status401Unauthorized, exception.Message, [exception.Message]);
         }
         catch (InvalidOperationException exception)
         {
-            await WriteProblemAsync(context, StatusCodes.Status400BadRequest, "Bad Request", exception.Message);
+            await WriteApiResponseAsync(context, StatusCodes.Status400BadRequest, exception.Message, [exception.Message]);
         }
         catch (DbUpdateConcurrencyException)
         {
-            await WriteProblemAsync(context, StatusCodes.Status409Conflict, "Conflict", "The project changed while the request was being processed. Refresh and try again.");
+            await WriteApiResponseAsync(
+                context,
+                StatusCodes.Status409Conflict,
+                "The project changed while the request was being processed. Refresh and try again.",
+                ["The project changed while the request was being processed. Refresh and try again."]);
         }
         catch (Exception exception)
         {
             logger.LogError(exception, "Unhandled request exception.");
-            await WriteProblemAsync(context, StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.");
+            await WriteApiResponseAsync(
+                context,
+                StatusCodes.Status500InternalServerError,
+                "An unexpected error occurred.",
+                ["An unexpected error occurred."]);
         }
     }
 
-    private static async Task WriteProblemAsync(
+    private static async Task WriteApiResponseAsync(
         HttpContext context,
         int statusCode,
-        string title,
-        string detail)
+        string message,
+        IReadOnlyList<string> errors)
     {
         if (context.Response.HasStarted)
         {
@@ -42,13 +55,6 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         }
 
         context.Response.StatusCode = statusCode;
-        var problem = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
-            Detail = detail
-        };
-
-        await context.Response.WriteAsJsonAsync(problem);
+        await context.Response.WriteAsJsonAsync(ApiResponse<object>.Fail(message, errors));
     }
 }

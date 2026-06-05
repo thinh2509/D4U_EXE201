@@ -1,5 +1,6 @@
 namespace D4U.Api.Application.Features.Projects;
 
+using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
@@ -19,6 +20,12 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
             .FirstOrDefaultAsync(cancellationToken);
         var escrow = await dbContext.Escrows
             .FirstOrDefaultAsync(value => value.ProjectId == projectId, cancellationToken);
+        var refund = escrow is null
+            ? null
+            : await dbContext.Refunds
+                .Where(value => value.EscrowId == escrow.Id)
+                .OrderByDescending(value => value.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
         var payment = escrow is null
             ? null
             : await dbContext.Payments
@@ -101,6 +108,22 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
                     escrow.FundedAt,
                     escrow.ReleasedAt,
                     escrow.CreatedAt),
+            refund is null || escrow is null
+                ? null
+                : new RefundResponse(
+                    refund.Id,
+                    refund.EscrowId,
+                    access.Project.Id,
+                    access.Project.Title,
+                    null,
+                    offer is null ? null : studentFullName,
+                    refund.Amount,
+                    refund.Currency,
+                    refund.Reason,
+                    refund.Status,
+                    refund.CreatedAt,
+                    refund.CompletedAt,
+                    refund.ProviderRefundId),
             submissions,
             reviewActions);
     }
@@ -250,6 +273,16 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
         if (project.Status == ProjectStatus.COMPLETED)
         {
             return new WorkspaceNextAction("COMPLETED", "SYSTEM");
+        }
+
+        if (project.Status == ProjectStatus.STUDENT_ABANDONED)
+        {
+            return new WorkspaceNextAction("STUDENT_ABANDONED", "SYSTEM");
+        }
+
+        if (project.Status == ProjectStatus.CANCELLED)
+        {
+            return new WorkspaceNextAction("CANCELLED", "SYSTEM");
         }
 
         var sketchApproved = submissions.Any(value =>

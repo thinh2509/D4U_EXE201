@@ -102,6 +102,34 @@ public sealed class MoneyMovementController(IMoneyMovementService moneyMovementS
         return Ok(response);
     }
 
+    [HttpGet("admin/refunds")]
+    [Authorize(Roles = nameof(UserRole.ADMIN))]
+    public async Task<ActionResult<IReadOnlyList<RefundResponse>>> ListRefunds(
+        CancellationToken cancellationToken)
+    {
+        var response = await moneyMovementService.ListAdminRefundsAsync(
+            GetRequiredUserId(),
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPost("admin/refunds/{refundId:guid}/mark-completed")]
+    [Authorize(Roles = nameof(UserRole.ADMIN))]
+    public async Task<ActionResult<RefundResponse>> MarkRefundCompleted(
+        Guid refundId,
+        ProcessRefundRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await moneyMovementService.MarkRefundCompletedAsync(
+            GetRequiredUserId(),
+            refundId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPost("projects/{projectId:guid}/escrow/release")]
     [Authorize(Roles = nameof(UserRole.ADMIN))]
     public async Task<ActionResult<DisbursementResponse?>> ReleaseProjectEscrow(

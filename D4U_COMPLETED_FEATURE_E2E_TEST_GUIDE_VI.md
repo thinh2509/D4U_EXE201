@@ -1,4 +1,4 @@
-# D4U Completed Feature E2E Test Guide
+﻿# D4U Completed Feature E2E Test Guide
 
 PayOS live smoke va Cloudflare named tunnel duoc huong dan rieng tai [PAYOS_LIVE_SMOKE_RUNBOOK_VI.md](PAYOS_LIVE_SMOKE_RUNBOOK_VI.md).
 
@@ -31,13 +31,13 @@ select type, amount, balance_after, reference_type, reference_id from wallet_tra
 
 Withdrawal trong tranche nay chi smoke manual: Student tao request; Admin complete hoac fail; balance khong am. Refund split rules thuoc Phase 4B.
 
-Tài liệu này dùng để test thủ công toàn bộ feature D4U đã hoàn thành trên branch `develop`. Nội dung bám theo các mục đã tick `[x]` trong `BACKLOG_D4U_MVP.md`: Phase 1 Foundation, Phase 2 Marketplace, Phase 3A PayOS Escrow Payment, và Phase 3B Project Execution.
+TÃ i liá»‡u nÃ y dÃ¹ng Ä‘á»ƒ test thá»§ cÃ´ng toÃ n bá»™ feature D4U Ä‘Ã£ hoÃ n thÃ nh trÃªn branch `develop`. Ná»™i dung bÃ¡m theo cÃ¡c má»¥c Ä‘Ã£ tick `[x]` trong `BACKLOG_D4U_MVP.md`: Phase 1 Foundation, Phase 2 Marketplace, Phase 3A PayOS Escrow Payment, vÃ  Phase 3B Project Execution.
 
-Không xem các phần sau là đã hoàn thành: Phase 4 refund/cancellation split rules, Portfolio Builder backend, Ratings, Paid Feature Packages, AI Matching entitlement, notification đầy đủ, automatic bank payout.
+KhÃ´ng xem cÃ¡c pháº§n sau lÃ  Ä‘Ã£ hoÃ n thÃ nh: Phase 4 refund/cancellation split rules, Portfolio Builder backend, Ratings, Paid Feature Packages, AI Matching entitlement, notification Ä‘áº§y Ä‘á»§, automatic bank payout.
 
-## 1. Chuẩn Bị Môi Trường
+## 1. Chuáº©n Bá»‹ MÃ´i TrÆ°á»ng
 
-### 1.1. Branch Và Validation Nhanh
+### 1.1. Branch VÃ  Validation Nhanh
 
 ```powershell
 cd D:\Codex
@@ -51,17 +51,17 @@ npm run lint
 cd ..
 ```
 
-Kỳ vọng:
+Ká»³ vá»ng:
 
-- Branch là `develop`.
-- Working tree sạch.
+- Branch lÃ  `develop`.
+- Working tree sáº¡ch.
 - Backend build pass.
-- Frontend build và lint pass.
-- Nếu Vite báo chunk lớn hơn 500 kB, ghi nhận là warning, không phải blocker cho E2E manual test.
+- Frontend build vÃ  lint pass.
+- Náº¿u Vite bÃ¡o chunk lá»›n hÆ¡n 500 kB, ghi nháº­n lÃ  warning, khÃ´ng pháº£i blocker cho E2E manual test.
 
 ### 1.2. Docker Local
 
-Docker Desktop phải chạy trước khi dùng Docker Compose.
+Docker Desktop pháº£i cháº¡y trÆ°á»›c khi dÃ¹ng Docker Compose.
 
 ```powershell
 cd D:\Codex
@@ -70,18 +70,18 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Kỳ vọng:
+Ká»³ vá»ng:
 
 - `d4u-postgres` healthy.
 - `d4u-api` running.
 - `d4u-frontend` running.
-- API tự chạy EF migrations vì `D4U_APPLY_MIGRATIONS=true` trong `docker-compose.yml`.
+- API tá»± cháº¡y EF migrations vÃ¬ `D4U_APPLY_MIGRATIONS=true` trong `docker-compose.yml`.
 
-Nếu Docker báo không kết nối được `dockerDesktopLinuxEngine`, mở Docker Desktop rồi chạy lại.
+Náº¿u Docker bÃ¡o khÃ´ng káº¿t ná»‘i Ä‘Æ°á»£c `dockerDesktopLinuxEngine`, má»Ÿ Docker Desktop rá»“i cháº¡y láº¡i.
 
 ### 1.3. URL Test
 
-| Mục | URL |
+| Má»¥c | URL |
 | --- | --- |
 | Frontend | `http://localhost:3000` |
 | Login | `http://localhost:3000/login` |
@@ -90,7 +90,7 @@ Nếu Docker báo không kết nối được `dockerDesktopLinuxEngine`, mở D
 | Swagger | `http://localhost:8080/swagger` |
 | API base | `http://localhost:8080/api/v1` |
 
-### 1.4. `.env` Tối Thiểu
+### 1.4. `.env` Tá»‘i Thiá»ƒu
 
 ```env
 POSTGRES_DB=d4u_mvp
@@ -135,22 +135,22 @@ STUDENT_EMAIL_ALLOWED_DOMAIN_1=edu.vn
 STUDENT_EMAIL_INCLUDE_CODE_IN_RESPONSE=true
 ```
 
-Ghi chú:
+Ghi chÃº:
 
-- SMTP thật cần Gmail App Password hoặc provider SMTP hợp lệ.
-- Google login chỉ test được nếu `GOOGLE_AUTH_CLIENT_ID` hợp lệ và frontend đã rebuild.
-- PayOS thật cần credentials và webhook public callback hoặc công cụ tunnel.
-- Local/test có thể dùng `PAYMENT_PROVIDER=Mock`; mock provider không gọi PayOS thật, trả checkout URL/QR giả và chấp nhận webhook có `signature = ""` hoặc `"mock"`.
-- EDU verification local có thể dùng `STUDENT_EMAIL_INCLUDE_CODE_IN_RESPONSE=true` để lấy code trong response.
+- SMTP tháº­t cáº§n Gmail App Password hoáº·c provider SMTP há»£p lá»‡.
+- Google login chá»‰ test Ä‘Æ°á»£c náº¿u `GOOGLE_AUTH_CLIENT_ID` há»£p lá»‡ vÃ  frontend Ä‘Ã£ rebuild.
+- PayOS tháº­t cáº§n credentials vÃ  webhook public callback hoáº·c cÃ´ng cá»¥ tunnel.
+- Local/test cÃ³ thá»ƒ dÃ¹ng `PAYMENT_PROVIDER=Mock`; mock provider khÃ´ng gá»i PayOS tháº­t, tráº£ checkout URL/QR giáº£ vÃ  cháº¥p nháº­n webhook cÃ³ `signature = ""` hoáº·c `"mock"`.
+- EDU verification local cÃ³ thá»ƒ dÃ¹ng `STUDENT_EMAIL_INCLUDE_CODE_IN_RESPONSE=true` Ä‘á»ƒ láº¥y code trong response.
 
 ### 1.5. PostgreSQL Check
 
-Kết nối DBeaver/pgAdmin:
+Káº¿t ná»‘i DBeaver/pgAdmin:
 
 | Field | Value |
 | --- | --- |
 | Host | `localhost` |
-| Port | `5433` hoặc `POSTGRES_PORT` |
+| Port | `5433` hoáº·c `POSTGRES_PORT` |
 | Database | `d4u_mvp` |
 | Username | `postgres` |
 | Password | `POSTGRES_PASSWORD` |
@@ -167,27 +167,27 @@ from subscription_plans
 order by monthly_price;
 ```
 
-Kỳ vọng:
+Ká»³ vá»ng:
 
-- Có seed `design_categories`.
-- Có seed `Basic`, `Pro`, `Premium`.
-- Có admin bootstrap nếu `.env` có `ADMIN_EMAIL` và `ADMIN_PASSWORD`.
+- CÃ³ seed `design_categories`.
+- CÃ³ seed `Basic`, `Pro`, `Premium`.
+- CÃ³ admin bootstrap náº¿u `.env` cÃ³ `ADMIN_EMAIL` vÃ  `ADMIN_PASSWORD`.
 
-## 2. Test Data Mẫu
+## 2. Test Data Máº«u
 
-| Role | Email mẫu | Password |
+| Role | Email máº«u | Password |
 | --- | --- | --- |
 | Student | `student.d4u.test+001@gmail.com` | `Student@123456` |
 | SME | `sme.d4u.test+001@gmail.com` | `Sme@123456` |
 | Admin | `ADMIN_EMAIL` trong `.env` | `ADMIN_PASSWORD` trong `.env` |
 
-Project mẫu:
+Project máº«u:
 
 ```json
 {
-  "title": "Thiết kế bộ nhận diện quán cà phê",
-  "brief": "Thiết kế logo, bảng màu và guideline cơ bản cho một quán cà phê specialty mới tại TP.HCM.",
-  "usagePurpose": "Dùng cho bảng hiệu, menu, social media và bao bì.",
+  "title": "Thiáº¿t káº¿ bá»™ nháº­n diá»‡n quÃ¡n cÃ  phÃª",
+  "brief": "Thiáº¿t káº¿ logo, báº£ng mÃ u vÃ  guideline cÆ¡ báº£n cho má»™t quÃ¡n cÃ  phÃª specialty má»›i táº¡i TP.HCM.",
+  "usagePurpose": "DÃ¹ng cho báº£ng hiá»‡u, menu, social media vÃ  bao bÃ¬.",
   "projectType": "OPEN",
   "budgetAmount": 3000000,
   "currency": "VND",
@@ -196,13 +196,13 @@ Project mẫu:
 }
 ```
 
-Deadline gợi ý:
+Deadline gá»£i Ã½:
 
-- `sketchDeadlineAt`: ngày mai hoặc sau đó.
+- `sketchDeadlineAt`: ngÃ y mai hoáº·c sau Ä‘Ã³.
 - `finalDeadlineAt`: sau sketch deadline.
 - `totalDeadlineAt`: sau final deadline.
 
-## 3. Auth Và Account
+## 3. Auth VÃ  Account
 
 ### 3.1. Register Student/SME
 
@@ -228,10 +228,10 @@ Request:
 
 Expected:
 
-- API trả user mới.
-- User có `status = PENDING`.
-- `email_verified_at` đang null.
-- Login email/password bị chặn trước khi verify email.
+- API tráº£ user má»›i.
+- User cÃ³ `status = PENDING`.
+- `email_verified_at` Ä‘ang null.
+- Login email/password bá»‹ cháº·n trÆ°á»›c khi verify email.
 
 SQL:
 
@@ -245,7 +245,7 @@ from user_email_verifications
 order by requested_at desc;
 ```
 
-### 3.2. Request Và Confirm Account Email
+### 3.2. Request VÃ  Confirm Account Email
 
 UI:
 
@@ -275,14 +275,14 @@ Confirm:
 
 Expected:
 
-- Confirm đúng code trả `status = CONFIRMED`.
-- `users.email_verified_at` được set.
-- Login email/password bắt đầu thành công.
+- Confirm Ä‘Ãºng code tráº£ `status = CONFIRMED`.
+- `users.email_verified_at` Ä‘Æ°á»£c set.
+- Login email/password báº¯t Ä‘áº§u thÃ nh cÃ´ng.
 
 Negative:
 
-- Confirm code sai trả lỗi.
-- Login trước verify trả lỗi unauthorized.
+- Confirm code sai tráº£ lá»—i.
+- Login trÆ°á»›c verify tráº£ lá»—i unauthorized.
 
 ### 3.3. Login, Me, Refresh, Logout
 
@@ -304,9 +304,9 @@ Login request:
 
 Expected:
 
-- Login trả `accessToken`, `refreshToken`, user role đúng.
-- `/auth/me` trả current user khi có Bearer token.
-- Refresh trả access/refresh token mới.
+- Login tráº£ `accessToken`, `refreshToken`, user role Ä‘Ãºng.
+- `/auth/me` tráº£ current user khi cÃ³ Bearer token.
+- Refresh tráº£ access/refresh token má»›i.
 - Logout revoke refresh session.
 
 SQL:
@@ -338,14 +338,14 @@ Request:
 
 Expected:
 
-- Chỉ hỗ trợ `STUDENT` và `SME`.
-- Tạo/link user theo Google email.
-- Lưu metadata provider trong `user_external_logins`.
-- Không lưu Google access token.
+- Chá»‰ há»— trá»£ `STUDENT` vÃ  `SME`.
+- Táº¡o/link user theo Google email.
+- LÆ°u metadata provider trong `user_external_logins`.
+- KhÃ´ng lÆ°u Google access token.
 
-Skip nếu chưa cấu hình `GOOGLE_AUTH_CLIENT_ID`.
+Skip náº¿u chÆ°a cáº¥u hÃ¬nh `GOOGLE_AUTH_CLIENT_ID`.
 
-## 4. Profile Và Verification
+## 4. Profile VÃ  Verification
 
 ### 4.1. Student Profile
 
@@ -365,14 +365,14 @@ Request:
   "school": "D4U University",
   "major": "Graphic Design",
   "studyStartYear": 2023,
-  "bio": "Sinh viên thiết kế đang tìm dự án nhận diện thương hiệu."
+  "bio": "Sinh viÃªn thiáº¿t káº¿ Ä‘ang tÃ¬m dá»± Ã¡n nháº­n diá»‡n thÆ°Æ¡ng hiá»‡u."
 }
 ```
 
 Expected:
 
-- Profile được tạo/cập nhật.
-- `verificationStatus` ban đầu là `NOT_SUBMITTED` hoặc chưa approved.
+- Profile Ä‘Æ°á»£c táº¡o/cáº­p nháº­t.
+- `verificationStatus` ban Ä‘áº§u lÃ  `NOT_SUBMITTED` hoáº·c chÆ°a approved.
 
 ### 4.2. SME Profile
 
@@ -399,8 +399,8 @@ Request:
 
 Expected:
 
-- SME profile được tạo.
-- Basic subscription plan được gán khi cần publish/pay.
+- SME profile Ä‘Æ°á»£c táº¡o.
+- Basic subscription plan Ä‘Æ°á»£c gÃ¡n khi cáº§n publish/pay.
 
 ### 4.3. Student Document Verification
 
@@ -429,13 +429,13 @@ Request metadata:
 
 Expected:
 
-- Tạo `files` record.
-- Tạo `student_verifications` status `PENDING`.
-- Chỉ chấp nhận `jpg`, `png`, `pdf`.
+- Táº¡o `files` record.
+- Táº¡o `student_verifications` status `PENDING`.
+- Chá»‰ cháº¥p nháº­n `jpg`, `png`, `pdf`.
 
 Negative:
 
-- `fileExtension = exe` bị chặn.
+- `fileExtension = exe` bá»‹ cháº·n.
 
 SQL:
 
@@ -476,13 +476,13 @@ Confirm:
 
 Expected:
 
-- Domain `.edu` hoặc `edu.vn` hợp lệ.
-- Confirm thành công set student profile `verification_status = APPROVED`.
-- Có thể apply project sau khi verified.
+- Domain `.edu` hoáº·c `edu.vn` há»£p lá»‡.
+- Confirm thÃ nh cÃ´ng set student profile `verification_status = APPROVED`.
+- CÃ³ thá»ƒ apply project sau khi verified.
 
 Negative:
 
-- Email không thuộc allowed domain bị chặn.
+- Email khÃ´ng thuá»™c allowed domain bá»‹ cháº·n.
 
 ### 4.5. Admin Review Verification
 
@@ -509,8 +509,8 @@ Reject request:
 
 Expected:
 
-- Approve set verification `APPROVED` và student profile `verification_status = APPROVED`.
-- Reject set verification `REJECTED` kèm reason.
+- Approve set verification `APPROVED` vÃ  student profile `verification_status = APPROVED`.
+- Reject set verification `REJECTED` kÃ¨m reason.
 
 ## 5. Marketplace
 
@@ -522,8 +522,8 @@ API:
 
 Expected:
 
-- Trả danh sách active categories.
-- Dùng `id` đầu tiên làm `designCategoryId` cho project.
+- Tráº£ danh sÃ¡ch active categories.
+- DÃ¹ng `id` Ä‘áº§u tiÃªn lÃ m `designCategoryId` cho project.
 
 ### 5.2. AI Project Brief Assistant
 
@@ -535,10 +535,10 @@ Request:
 
 ```json
 {
-  "rawIdea": "Tôi cần bộ nhận diện cho quán cà phê specialty mới.",
+  "rawIdea": "TÃ´i cáº§n bá»™ nháº­n diá»‡n cho quÃ¡n cÃ  phÃª specialty má»›i.",
   "businessField": "Food and Beverage",
-  "targetAudience": "Khách hàng trẻ tại TP.HCM",
-  "preferredStyle": "Tối giản, ấm áp",
+  "targetAudience": "KhÃ¡ch hÃ ng tráº» táº¡i TP.HCM",
+  "preferredStyle": "Tá»‘i giáº£n, áº¥m Ã¡p",
   "budgetAmount": 3000000,
   "totalDeadline": "2026-06-30T00:00:00Z"
 }
@@ -546,8 +546,8 @@ Request:
 
 Expected:
 
-- Trả suggested title, brief, usage purpose, deliverables, category hint, deadline notes.
-- Không tự publish project, không tự chọn student, không tự định giá cuối.
+- Tráº£ suggested title, brief, usage purpose, deliverables, category hint, deadline notes.
+- KhÃ´ng tá»± publish project, khÃ´ng tá»± chá»n student, khÃ´ng tá»± Ä‘á»‹nh giÃ¡ cuá»‘i.
 
 ### 5.3. SME Create Draft, Update, Publish
 
@@ -569,9 +569,9 @@ Create draft request:
 ```json
 {
   "designCategoryId": "<category-id>",
-  "title": "Thiết kế bộ nhận diện quán cà phê",
-  "brief": "Thiết kế logo, bảng màu và guideline cơ bản cho một quán cà phê specialty mới tại TP.HCM.",
-  "usagePurpose": "Dùng cho bảng hiệu, menu, social media và bao bì.",
+  "title": "Thiáº¿t káº¿ bá»™ nháº­n diá»‡n quÃ¡n cÃ  phÃª",
+  "brief": "Thiáº¿t káº¿ logo, báº£ng mÃ u vÃ  guideline cÆ¡ báº£n cho má»™t quÃ¡n cÃ  phÃª specialty má»›i táº¡i TP.HCM.",
+  "usagePurpose": "DÃ¹ng cho báº£ng hiá»‡u, menu, social media vÃ  bao bÃ¬.",
   "projectType": "OPEN",
   "budgetAmount": 3000000,
   "currency": "VND",
@@ -585,17 +585,17 @@ Create draft request:
 
 Expected:
 
-- Draft tạo với status `DRAFT`.
-- Publish chuyển status `OPEN`.
-- Project xuất hiện trong Student open project list.
+- Draft táº¡o vá»›i status `DRAFT`.
+- Publish chuyá»ƒn status `OPEN`.
+- Project xuáº¥t hiá»‡n trong Student open project list.
 
 Negative:
 
-- Budget `<= 0` bị chặn.
-- Sketch deadline sau final deadline bị chặn.
-- Final deadline sau total deadline bị chặn.
-- Basic plan không publish quá 5 active open projects.
-- Basic plan không publish project trên `5,000,000 VND`.
+- Budget `<= 0` bá»‹ cháº·n.
+- Sketch deadline sau final deadline bá»‹ cháº·n.
+- Final deadline sau total deadline bá»‹ cháº·n.
+- Basic plan khÃ´ng publish quÃ¡ 5 active open projects.
+- Basic plan khÃ´ng publish project trÃªn `5,000,000 VND`.
 
 SQL:
 
@@ -622,8 +622,8 @@ Request:
 
 Expected:
 
-- Chỉ cancel được `DRAFT`, `OPEN`, `PRIVATE_INVITED`.
-- Status chuyển `CANCELLED`.
+- Chá»‰ cancel Ä‘Æ°á»£c `DRAFT`, `OPEN`, `PRIVATE_INVITED`.
+- Status chuyá»ƒn `CANCELLED`.
 
 ### 5.5. Student List, Detail, Apply
 
@@ -644,23 +644,23 @@ Apply request:
 ```json
 {
   "proposedPrice": 2800000,
-  "coverLetter": "Em đề xuất hướng nhận diện tối giản, ưu tiên khả năng ứng dụng trên bao bì và social media.",
+  "coverLetter": "Em Ä‘á» xuáº¥t hÆ°á»›ng nháº­n diá»‡n tá»‘i giáº£n, Æ°u tiÃªn kháº£ nÄƒng á»©ng dá»¥ng trÃªn bao bÃ¬ vÃ  social media.",
   "estimatedDurationDays": null
 }
 ```
 
 Expected:
 
-- Student verified mới apply được.
-- Quick apply lấy `proposedPrice` bằng budget project và dùng ghi chú xác nhận mặc định.
-- Chỉ khi Student bấm `Đề xuất khác`, UI mới yêu cầu giá mới và giải pháp đề xuất.
+- Student verified má»›i apply Ä‘Æ°á»£c.
+- Quick apply láº¥y `proposedPrice` báº±ng budget project vÃ  dÃ¹ng ghi chÃº xÃ¡c nháº­n máº·c Ä‘á»‹nh.
+- Chá»‰ khi Student báº¥m `Äá» xuáº¥t khÃ¡c`, UI má»›i yÃªu cáº§u giÃ¡ má»›i vÃ  giáº£i phÃ¡p Ä‘á» xuáº¥t.
 - Application status `SUBMITTED`.
-- Open project response có `hasApplied = true`.
+- Open project response cÃ³ `hasApplied = true`.
 
 Negative:
 
-- Apply duplicate cùng project bị chặn.
-- Student chưa verified bị chặn.
+- Apply duplicate cÃ¹ng project bá»‹ cháº·n.
+- Student chÆ°a verified bá»‹ cháº·n.
 
 ### 5.6. SME View Applications And Create Offer
 
@@ -688,12 +688,12 @@ Create offer request:
 
 Expected:
 
-- Offer tạo status `WAITING_ACCEPTANCE`.
-- Với offer gắn application, backend luôn lấy `offeredAmount` từ `project_applications.proposed_price`, kể cả client gửi amount khác.
-- SME chỉ xác nhận gửi offer; server tự đặt hạn phản hồi sau 48 giờ.
-- Private offer không có application vẫn nhận `offeredAmount` từ request.
-- Project chuyển/giữ trạng thái offer selected theo flow backend.
-- Student thấy offer ở `/student/offers`.
+- Offer táº¡o status `WAITING_ACCEPTANCE`.
+- Vá»›i offer gáº¯n application, backend luÃ´n láº¥y `offeredAmount` tá»« `project_applications.proposed_price`, ká»ƒ cáº£ client gá»­i amount khÃ¡c.
+- SME chá»‰ xÃ¡c nháº­n gá»­i offer; server tá»± Ä‘áº·t háº¡n pháº£n há»“i sau 48 giá».
+- Private offer khÃ´ng cÃ³ application váº«n nháº­n `offeredAmount` tá»« request.
+- Project chuyá»ƒn/giá»¯ tráº¡ng thÃ¡i offer selected theo flow backend.
+- Student tháº¥y offer á»Ÿ `/student/offers`.
 
 ### 5.7. Student Accept/Reject Offer
 
@@ -708,27 +708,27 @@ API:
 
 Expected accept:
 
-- Offer chuyển `ACCEPTED`.
-- `paymentDueAt` được set 72 giờ sau khi accept.
-- Project có selected student nhưng chưa `IN_PROGRESS` cho tới khi escrow funded.
+- Offer chuyá»ƒn `ACCEPTED`.
+- `paymentDueAt` Ä‘Æ°á»£c set 72 giá» sau khi accept.
+- Project cÃ³ selected student nhÆ°ng chÆ°a `IN_PROGRESS` cho tá»›i khi escrow funded.
 
 Expected reject:
 
-- Offer chuyển `REJECTED`.
-- Nếu không còn active offer, project được release lại theo rule backend.
+- Offer chuyá»ƒn `REJECTED`.
+- Náº¿u khÃ´ng cÃ²n active offer, project Ä‘Æ°á»£c release láº¡i theo rule backend.
 
-### 5.8. Offer Expiry 48 Giờ
+### 5.8. Offer Expiry 48 Giá»
 
 Background service:
 
 - `OfferPaymentExpiryBackgroundService`
 
-Điều kiện:
+Äiá»u kiá»‡n:
 
-- Offer đang `WAITING_ACCEPTANCE`.
+- Offer Ä‘ang `WAITING_ACCEPTANCE`.
 - `expires_at <= now()`.
 
-Manual DB setup để test nhanh:
+Manual DB setup Ä‘á»ƒ test nhanh:
 
 ```sql
 update project_offers
@@ -738,10 +738,10 @@ where id = '<offer-id>' and status = 'WAITING_ACCEPTANCE';
 
 Expected:
 
-- Offer chuyển `EXPIRED`.
-- `expired_at` được set.
-- Nếu không còn offer active khác, project quay về `OPEN` hoặc `PRIVATE_INVITED`.
-- Có audit log `OFFER_EXPIRED`.
+- Offer chuyá»ƒn `EXPIRED`.
+- `expired_at` Ä‘Æ°á»£c set.
+- Náº¿u khÃ´ng cÃ²n offer active khÃ¡c, project quay vá» `OPEN` hoáº·c `PRIVATE_INVITED`.
+- CÃ³ audit log `OFFER_EXPIRED`.
 
 SQL check:
 
@@ -759,7 +759,7 @@ order by created_at desc;
 
 ## 6. PayOS Escrow Payment
 
-Nếu test local không có PayOS thật, đặt `PAYMENT_PROVIDER=Mock` trong `.env`, chạy lại `docker compose up -d --build`, rồi dùng cùng endpoint payment/webhook bên dưới. Mock provider trả checkout URL/QR giả, không gọi PayOS.
+Náº¿u test local khÃ´ng cÃ³ PayOS tháº­t, Ä‘áº·t `PAYMENT_PROVIDER=Mock` trong `.env`, cháº¡y láº¡i `docker compose up -d --build`, rá»“i dÃ¹ng cÃ¹ng endpoint payment/webhook bÃªn dÆ°á»›i. Mock provider tráº£ checkout URL/QR giáº£, khÃ´ng gá»i PayOS.
 
 ### 6.1. SME Create Offer Payment
 
@@ -773,12 +773,12 @@ API:
 
 Expected:
 
-- Chỉ SME owner tạo payment được.
-- Chỉ offer `ACCEPTED` mới tạo payment được.
-- Tạo hoặc reuse escrow status `PENDING_PAYMENT`.
-- Trả `checkoutUrl` hoặc `qrCode`.
-- Offer chuyển `PENDING_PAYMENT`.
-- Nếu payment webhook fail trước khi hết 72 giờ, offer chuyển `PAYMENT_FAILED` và SME có thể tạo lại payment.
+- Chá»‰ SME owner táº¡o payment Ä‘Æ°á»£c.
+- Chá»‰ offer `ACCEPTED` má»›i táº¡o payment Ä‘Æ°á»£c.
+- Táº¡o hoáº·c reuse escrow status `PENDING_PAYMENT`.
+- Tráº£ `checkoutUrl` hoáº·c `qrCode`.
+- Offer chuyá»ƒn `PENDING_PAYMENT`.
+- Náº¿u payment webhook fail trÆ°á»›c khi háº¿t 72 giá», offer chuyá»ƒn `PAYMENT_FAILED` vÃ  SME cÃ³ thá»ƒ táº¡o láº¡i payment.
 
 SQL:
 
@@ -845,18 +845,18 @@ Mock failure request:
 
 Expected success:
 
-- Chỉ xử lý payment đang `PENDING`.
-- Payment chuyển `SUCCESS`.
-- Escrow chuyển `FUNDED`.
-- Offer chuyển `ACTIVE`.
-- Project chuyển `IN_PROGRESS`.
+- Chá»‰ xá»­ lÃ½ payment Ä‘ang `PENDING`.
+- Payment chuyá»ƒn `SUCCESS`.
+- Escrow chuyá»ƒn `FUNDED`.
+- Offer chuyá»ƒn `ACTIVE`.
+- Project chuyá»ƒn `IN_PROGRESS`.
 
 Expected failure:
 
-- Payment chuyển `FAILED`.
-- Offer chuyển `PAYMENT_FAILED`.
-- Project không chuyển `IN_PROGRESS`.
-- SME có thể tạo payment mới nếu `payment_due_at` vẫn còn hạn.
+- Payment chuyá»ƒn `FAILED`.
+- Offer chuyá»ƒn `PAYMENT_FAILED`.
+- Project khÃ´ng chuyá»ƒn `IN_PROGRESS`.
+- SME cÃ³ thá»ƒ táº¡o payment má»›i náº¿u `payment_due_at` váº«n cÃ²n háº¡n.
 
 ### 6.3. PayOS Webhook Success
 
@@ -866,22 +866,22 @@ API:
 
 Expected:
 
-- Webhook signature hợp lệ mới được xử lý.
-- Payment chuyển `SUCCESS`.
-- Escrow chuyển `FUNDED`.
-- Offer chuyển `ACTIVE`.
-- Project chuyển `IN_PROGRESS`.
-- Client-side success page không tự đánh dấu payment success từ query string. Backend chỉ cập nhật sau webhook hợp lệ hoặc reconcile trusted trực tiếp với PayOS.
+- Webhook signature há»£p lá»‡ má»›i Ä‘Æ°á»£c xá»­ lÃ½.
+- Payment chuyá»ƒn `SUCCESS`.
+- Escrow chuyá»ƒn `FUNDED`.
+- Offer chuyá»ƒn `ACTIVE`.
+- Project chuyá»ƒn `IN_PROGRESS`.
+- Client-side success page khÃ´ng tá»± Ä‘Ã¡nh dáº¥u payment success tá»« query string. Backend chá»‰ cáº­p nháº­t sau webhook há»£p lá»‡ hoáº·c reconcile trusted trá»±c tiáº¿p vá»›i PayOS.
 
-Skip nếu chưa có PayOS credentials hoặc public callback URL.
+Skip náº¿u chÆ°a cÃ³ PayOS credentials hoáº·c public callback URL.
 
-### 6.4. Payment Window Expiry 72 Giờ
+### 6.4. Payment Window Expiry 72 Giá»
 
 Background service:
 
 - `OfferPaymentExpiryBackgroundService`
 
-Manual DB setup để test nhanh:
+Manual DB setup Ä‘á»ƒ test nhanh:
 
 ```sql
 update project_offers
@@ -895,11 +895,11 @@ where escrow_id = '<escrow-id>' and status = 'PENDING';
 
 Expected:
 
-- Offer chuyển `EXPIRED`.
-- Pending payment chuyển `EXPIRED`.
-- Escrow `PENDING_PAYMENT` chuyển `CANCELLED`.
-- Nếu không còn offer active khác, project quay về `OPEN` hoặc `PRIVATE_INVITED`.
-- Webhook success đến muộn cho payment `FAILED`, `CANCELLED`, hoặc `EXPIRED` không được start project.
+- Offer chuyá»ƒn `EXPIRED`.
+- Pending payment chuyá»ƒn `EXPIRED`.
+- Escrow `PENDING_PAYMENT` chuyá»ƒn `CANCELLED`.
+- Náº¿u khÃ´ng cÃ²n offer active khÃ¡c, project quay vá» `OPEN` hoáº·c `PRIVATE_INVITED`.
+- Webhook success Ä‘áº¿n muá»™n cho payment `FAILED`, `CANCELLED`, hoáº·c `EXPIRED` khÃ´ng Ä‘Æ°á»£c start project.
 
 SQL check:
 
@@ -929,21 +929,21 @@ API:
 
 Expected:
 
-- SME owner, selected Student, hoặc Admin xem được escrow.
-- User ngoài project bị chặn.
+- SME owner, selected Student, hoáº·c Admin xem Ä‘Æ°á»£c escrow.
+- User ngoÃ i project bá»‹ cháº·n.
 
 ## 7. Project Execution
 
-Lưu ý: frontend đã có project workspace cho Student và SME; Swagger/API vẫn hữu ích để kiểm tra dữ liệu và các nhánh lỗi.
+LÆ°u Ã½: frontend Ä‘Ã£ cÃ³ project workspace cho Student vÃ  SME; Swagger/API váº«n há»¯u Ã­ch Ä‘á»ƒ kiá»ƒm tra dá»¯ liá»‡u vÃ  cÃ¡c nhÃ¡nh lá»—i.
 
 ### 7.1. Student Submit Sketch
 
-Điều kiện:
+Äiá»u kiá»‡n:
 
 - Project status `IN_PROGRESS`.
 - Escrow status `FUNDED`.
-- User là selected Student.
-- Có file metadata hợp lệ trong bảng `files`.
+- User lÃ  selected Student.
+- CÃ³ file metadata há»£p lá»‡ trong báº£ng `files`.
 
 API:
 
@@ -954,7 +954,7 @@ Request:
 ```json
 {
   "milestoneType": "SKETCH",
-  "description": "Sketch logo và hướng visual đầu tiên.",
+  "description": "Sketch logo vÃ  hÆ°á»›ng visual Ä‘áº§u tiÃªn.",
   "files": [
     {
       "fileId": "<file-id>",
@@ -967,16 +967,16 @@ Request:
 
 Expected:
 
-- Tạo `project_submissions` với `submission_type = SKETCH`, `milestone_type = SKETCH`, `status = SUBMITTED`.
-- Tạo `submission_files`.
-- Project chuyển `SKETCH_REVIEW`.
-- `review_due_at` được set sau 5 business days.
+- Táº¡o `project_submissions` vá»›i `submission_type = SKETCH`, `milestone_type = SKETCH`, `status = SUBMITTED`.
+- Táº¡o `submission_files`.
+- Project chuyá»ƒn `SKETCH_REVIEW`.
+- `review_due_at` Ä‘Æ°á»£c set sau 5 business days.
 
 Negative:
 
-- File ngoài `jpg/png/pdf` bị chặn.
-- Student không phải selected Student bị chặn.
-- Project chưa funded escrow bị chặn.
+- File ngoÃ i `jpg/png/pdf` bá»‹ cháº·n.
+- Student khÃ´ng pháº£i selected Student bá»‹ cháº·n.
+- Project chÆ°a funded escrow bá»‹ cháº·n.
 
 ### 7.2. SME Approve Sketch
 
@@ -994,10 +994,10 @@ Request:
 
 Expected:
 
-- Submission chuyển `APPROVED`.
+- Submission chuyá»ƒn `APPROVED`.
 - Review action `APPROVE_SKETCH`.
-- Project quay về `IN_PROGRESS`.
-- Student có thể submit Final.
+- Project quay vá» `IN_PROGRESS`.
+- Student cÃ³ thá»ƒ submit Final.
 
 ### 7.3. Student Submit Final
 
@@ -1023,23 +1023,23 @@ Request:
 
 Expected:
 
-- Chỉ submit Final sau Sketch approved hoặc auto-approved.
-- Project chuyển `FINAL_REVIEW`.
-- Submission lưu `milestone_type = FINAL`.
+- Chá»‰ submit Final sau Sketch approved hoáº·c auto-approved.
+- Project chuyá»ƒn `FINAL_REVIEW`.
+- Submission lÆ°u `milestone_type = FINAL`.
 
 Negative:
 
-- Submit Final trước Sketch approved bị chặn.
+- Submit Final trÆ°á»›c Sketch approved bá»‹ cháº·n.
 
-### 7.3.1. Workspace Tương Tác Student Và SME
+### 7.3.1. Workspace TÆ°Æ¡ng TÃ¡c Student VÃ  SME
 
-- Student chọn nhiều file vào draft local trước khi bấm `Nộp bài`; file chỉ upload sau modal xác nhận.
-- Workspace tự poll mỗi 5 giây và vẫn giữ nút `Làm mới`.
-- SME dùng panel `Bản đang chờ duyệt` để xử lý submission mới nhất thay vì tìm trong lịch sử.
-- Workspace hiển thị Sketch, Final, Total deadline theo giờ Việt Nam, kèm countdown hoặc trạng thái quá hạn.
-- Timeline tương tác gộp offer, escrow, submission, feedback, approval và release theo thứ tự thời gian.
-- Khi SME báo file lỗi, submission cũ giữ `INVALID_REPORTED`, project chuyển `REVISION_REQUESTED`, Student được upload lại cùng milestone và hệ thống không tăng revision round do lỗi kỹ thuật.
-- Xem kịch bản chi tiết trong `D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md`, mục `7. Bổ Sung Kiểm Tra Workspace Nộp Bài`.
+- Student chá»n nhiá»u file vÃ o draft local trÆ°á»›c khi báº¥m `Ná»™p bÃ i`; file chá»‰ upload sau modal xÃ¡c nháº­n.
+- Workspace tá»± poll má»—i 5 giÃ¢y vÃ  váº«n giá»¯ nÃºt `LÃ m má»›i`.
+- SME dÃ¹ng panel `Báº£n Ä‘ang chá» duyá»‡t` Ä‘á»ƒ xá»­ lÃ½ submission má»›i nháº¥t thay vÃ¬ tÃ¬m trong lá»‹ch sá»­.
+- Workspace hiá»ƒn thá»‹ Sketch, Final, Total deadline theo giá» Viá»‡t Nam, kÃ¨m countdown hoáº·c tráº¡ng thÃ¡i quÃ¡ háº¡n.
+- Timeline tÆ°Æ¡ng tÃ¡c gá»™p offer, escrow, submission, feedback, approval vÃ  release theo thá»© tá»± thá»i gian.
+- Khi SME bÃ¡o file lá»—i, submission cÅ© giá»¯ `INVALID_REPORTED`, project chuyá»ƒn `REVISION_REQUESTED`, Student Ä‘Æ°á»£c upload láº¡i cÃ¹ng milestone vÃ  há»‡ thá»‘ng khÃ´ng tÄƒng revision round do lá»—i ká»¹ thuáº­t.
+- Xem ká»‹ch báº£n chi tiáº¿t trong `D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md`, má»¥c `7. Bá»• Sung Kiá»ƒm Tra Workspace Ná»™p BÃ i`.
 
 ### 7.4. SME Approve Final
 
@@ -1049,14 +1049,14 @@ API:
 
 Expected:
 
-- Submission chuyển `APPROVED`.
+- Submission chuyá»ƒn `APPROVED`.
 - Review action `APPROVE_FINAL`.
-- Project chuyển `COMPLETED`.
-- `projects.completed_at` được set.
-- `projects.rating_due_at = completed_at + 7 ngày`.
-- Escrow `FUNDED` chuyển `RELEASE_PENDING`, sau đó Phase 4A release service chuyển `RELEASED`.
-- Student wallet được credit net amount sau platform fee.
-- Không tự payout ngân hàng; withdrawal vẫn do Admin/Finance xử lý thủ công.
+- Project chuyá»ƒn `COMPLETED`.
+- `projects.completed_at` Ä‘Æ°á»£c set.
+- `projects.rating_due_at = completed_at + 7 ngÃ y`.
+- Escrow `FUNDED` chuyá»ƒn `RELEASE_PENDING`, sau Ä‘Ã³ Phase 4A release service chuyá»ƒn `RELEASED`.
+- Student wallet Ä‘Æ°á»£c credit net amount sau platform fee.
+- KhÃ´ng tá»± payout ngÃ¢n hÃ ng; withdrawal váº«n do Admin/Finance xá»­ lÃ½ thá»§ cÃ´ng.
 
 SQL check:
 
@@ -1081,17 +1081,17 @@ Request:
 
 ```json
 {
-  "requestedChanges": "Vui lòng chỉnh lại bảng màu và typography theo hướng tối giản hơn.",
+  "requestedChanges": "Vui lÃ²ng chá»‰nh láº¡i báº£ng mÃ u vÃ  typography theo hÆ°á»›ng tá»‘i giáº£n hÆ¡n.",
   "dueAt": "2026-06-25T00:00:00Z"
 }
 ```
 
 Expected:
 
-- Submission hiện tại chuyển `REVISION_REQUESTED`.
-- Project chuyển `REVISION_REQUESTED`.
-- `projects.current_revision_round` tăng 1.
-- Tạo `review_actions` action `REQUEST_REVISION`.
+- Submission hiá»‡n táº¡i chuyá»ƒn `REVISION_REQUESTED`.
+- Project chuyá»ƒn `REVISION_REQUESTED`.
+- `projects.current_revision_round` tÄƒng 1.
+- Táº¡o `review_actions` action `REQUEST_REVISION`.
 
 Student submit revision:
 
@@ -1111,12 +1111,12 @@ Student submit revision:
 
 Expected:
 
-- Revision submit dùng `submission_type = REVISION`.
-- Project quay lại `SKETCH_REVIEW` hoặc `FINAL_REVIEW` theo milestone cần revise.
+- Revision submit dÃ¹ng `submission_type = REVISION`.
+- Project quay láº¡i `SKETCH_REVIEW` hoáº·c `FINAL_REVIEW` theo milestone cáº§n revise.
 
-### 7.6. Revision Không Giới Hạn
+### 7.6. Revision KhÃ´ng Giá»›i Háº¡n
 
-SME có thể yêu cầu chỉnh sửa nhiều lần khi cần. Hệ thống vẫn tăng `revision_round` để audit nhưng không chặn theo số lần chỉnh sửa và không chuyển `ADMIN_REVIEW` do hết lượt.
+SME cÃ³ thá»ƒ yÃªu cáº§u chá»‰nh sá»­a nhiá»u láº§n khi cáº§n. Há»‡ thá»‘ng váº«n tÄƒng `revision_round` Ä‘á»ƒ audit nhÆ°ng khÃ´ng cháº·n theo sá»‘ láº§n chá»‰nh sá»­a vÃ  khÃ´ng chuyá»ƒn `ADMIN_REVIEW` do háº¿t lÆ°á»£t.
 
 ### 7.7. SME Report Invalid File
 
@@ -1129,16 +1129,16 @@ Request:
 ```json
 {
   "reason": "CANNOT_OPEN",
-  "description": "File PDF không mở được.",
+  "description": "File PDF khÃ´ng má»Ÿ Ä‘Æ°á»£c.",
   "reuploadDueAt": "2026-06-24T00:00:00Z"
 }
 ```
 
 Expected:
 
-- Submission chuyển `INVALID_REPORTED`.
-- Tạo `review_actions` action `REPORT_INVALID_FILE`.
-- Lưu `invalid_file_reason`, description, `reupload_due_at`.
+- Submission chuyá»ƒn `INVALID_REPORTED`.
+- Táº¡o `review_actions` action `REPORT_INVALID_FILE`.
+- LÆ°u `invalid_file_reason`, description, `reupload_due_at`.
 
 ### 7.8. Auto-Approve Sau 5 Business Days
 
@@ -1148,14 +1148,14 @@ Background service:
 
 Expected:
 
-- Submission `SUBMITTED` có `review_due_at <= now` sẽ auto-approve nếu project đang `SKETCH_REVIEW` hoặc `FINAL_REVIEW`.
-- Sketch auto-approve chuyển project về `IN_PROGRESS`.
-- Final auto-approve chuyển project `COMPLETED`.
-- Final auto-approve dùng cùng completion handoff: set `completed_at`, `rating_due_at`, escrow release sang `RELEASED`, credit Student wallet.
-- Tạo review action `AUTO_APPROVE`.
-- Tạo audit log `PROJECT_STATUS_CHANGED`.
+- Submission `SUBMITTED` cÃ³ `review_due_at <= now` sáº½ auto-approve náº¿u project Ä‘ang `SKETCH_REVIEW` hoáº·c `FINAL_REVIEW`.
+- Sketch auto-approve chuyá»ƒn project vá» `IN_PROGRESS`.
+- Final auto-approve chuyá»ƒn project `COMPLETED`.
+- Final auto-approve dÃ¹ng cÃ¹ng completion handoff: set `completed_at`, `rating_due_at`, escrow release sang `RELEASED`, credit Student wallet.
+- Táº¡o review action `AUTO_APPROVE`.
+- Táº¡o audit log `PROJECT_STATUS_CHANGED`.
 
-Manual DB setup để test nhanh:
+Manual DB setup Ä‘á»ƒ test nhanh:
 
 ```sql
 update project_submissions
@@ -1163,7 +1163,7 @@ set review_due_at = now() - interval '1 minute'
 where id = '<submission-id>';
 ```
 
-Sau đó chờ background service poll, hoặc restart API container:
+Sau Ä‘Ã³ chá» background service poll, hoáº·c restart API container:
 
 ```powershell
 docker compose restart api
@@ -1187,38 +1187,38 @@ where action = 'PROJECT_STATUS_CHANGED'
 order by created_at desc;
 ```
 
-## 8. Wallet, Disbursement Và Withdrawal
+## 8. Wallet, Disbursement VÃ  Withdrawal
 
-### 8.1. Escrow Release Và Wallet Credit
+### 8.1. Escrow Release VÃ  Wallet Credit
 
-Điều kiện:
+Äiá»u kiá»‡n:
 
-- Project đã `COMPLETED`.
-- Escrow đã được handoff sang `RELEASE_PENDING`.
-- Student profile của selected student tồn tại.
+- Project Ä‘Ã£ `COMPLETED`.
+- Escrow Ä‘Ã£ Ä‘Æ°á»£c handoff sang `RELEASE_PENDING`.
+- Student profile cá»§a selected student tá»“n táº¡i.
 
 API retry/idempotency:
 
-- `POST /api/v1/projects/{projectId}/escrow/release` với Admin token.
+- `POST /api/v1/projects/{projectId}/escrow/release` vá»›i Admin token.
 
-Luồng mặc định:
+Luá»“ng máº·c Ä‘á»‹nh:
 
-- SME approve Final hoặc Final auto-approve sẽ thử release escrow ngay.
-- Nếu release tức thời lỗi tạm thời, escrow giữ `RELEASE_PENDING`; hosted worker retry idempotent.
-- Platform fee dùng rate đã đóng băng trên escrow lúc funding. Rate mới chỉ áp dụng cho escrow tạo sau migration: Basic `5%`, Pro `3%`, Premium `2%`.
+- SME approve Final hoáº·c Final auto-approve sáº½ thá»­ release escrow ngay.
+- Náº¿u release tá»©c thá»i lá»—i táº¡m thá»i, escrow giá»¯ `RELEASE_PENDING`; hosted worker retry idempotent.
+- Platform fee dÃ¹ng rate Ä‘Ã£ Ä‘Ã³ng bÄƒng trÃªn escrow lÃºc funding. Rate má»›i chá»‰ Ã¡p dá»¥ng cho escrow táº¡o sau migration: Basic `5%`, Pro `3%`, Premium `2%`.
 
 Expected:
 
-- Escrow chuyển `RELEASED`, set `released_at`.
-- Tạo đúng một `disbursements` record status `COMPLETED`.
+- Escrow chuyá»ƒn `RELEASED`, set `released_at`.
+- Táº¡o Ä‘Ãºng má»™t `disbursements` record status `COMPLETED`.
 - `gross_amount = escrows.amount`.
-- `platform_fee_amount = escrows.platform_fee_amount` hoặc `amount * platform_fee_rate`.
+- `platform_fee_amount = escrows.platform_fee_amount` hoáº·c `amount * platform_fee_rate`.
 - `net_amount = gross_amount - platform_fee_amount`.
-- Student wallet được auto-create nếu chưa có.
-- `wallets.available_balance` tăng đúng `net_amount`.
-- Tạo `wallet_transactions` type `DISBURSEMENT_CREDIT`.
-- Gọi release lại không double credit.
-- Có audit log `ESCROW_RELEASED` và `WALLET_BALANCE_CHANGED`.
+- Student wallet Ä‘Æ°á»£c auto-create náº¿u chÆ°a cÃ³.
+- `wallets.available_balance` tÄƒng Ä‘Ãºng `net_amount`.
+- Táº¡o `wallet_transactions` type `DISBURSEMENT_CREDIT`.
+- Gá»i release láº¡i khÃ´ng double credit.
+- CÃ³ audit log `ESCROW_RELEASED` vÃ  `WALLET_BALANCE_CHANGED`.
 
 SQL check:
 
@@ -1250,12 +1250,12 @@ API:
 
 Expected:
 
-- Student thấy available, pending, locked balance, currency và status.
-- Ledger hiển thị `DISBURSEMENT_CREDIT`, `WITHDRAWAL_DEBIT`, `WITHDRAWAL_FAILED_REVERSAL`.
-- Có thể mở rộng dòng `DISBURSEMENT_CREDIT` để xem gross amount, platform fee và net amount.
-- Non-Student bị chặn bởi role authorization.
+- Student tháº¥y available, pending, locked balance, currency vÃ  status.
+- Ledger hiá»ƒn thá»‹ `DISBURSEMENT_CREDIT`, `WITHDRAWAL_DEBIT`, `WITHDRAWAL_FAILED_REVERSAL`.
+- CÃ³ thá»ƒ má»Ÿ rá»™ng dÃ²ng `DISBURSEMENT_CREDIT` Ä‘á»ƒ xem gross amount, platform fee vÃ  net amount.
+- Non-Student bá»‹ cháº·n bá»Ÿi role authorization.
 
-### 8.3. Payment Method Và Withdrawal Request
+### 8.3. Payment Method VÃ  Withdrawal Request
 
 API:
 
@@ -1287,16 +1287,16 @@ Create withdrawal request:
 
 Expected:
 
-- Payment method lưu `bank_name`, `bank_code`, `masked_account_number` và `account_number_encrypted`; không lưu raw bank account number.
-- Payment method thiếu `bankName` bị chặn khi tạo mới; method cũ thiếu ngân hàng không được dùng để rút tiền.
-- Student API chỉ trả số tài khoản mask; Admin withdrawal API trả số tài khoản đầy đủ và nội dung chuyển khoản.
-- Amount dưới `50,000 VND` bị chặn.
-- Wallet không `ACTIVE` bị chặn.
-- Student `can_withdraw = false` bị chặn.
-- Không đủ available balance bị chặn.
+- Payment method lÆ°u `bank_name`, `bank_code`, `masked_account_number` vÃ  `account_number_encrypted`; khÃ´ng lÆ°u raw bank account number.
+- Payment method thiáº¿u `bankName` bá»‹ cháº·n khi táº¡o má»›i; method cÅ© thiáº¿u ngÃ¢n hÃ ng khÃ´ng Ä‘Æ°á»£c dÃ¹ng Ä‘á»ƒ rÃºt tiá»n.
+- Student API chá»‰ tráº£ sá»‘ tÃ i khoáº£n mask; Admin withdrawal API tráº£ sá»‘ tÃ i khoáº£n Ä‘áº§y Ä‘á»§ vÃ  ná»™i dung chuyá»ƒn khoáº£n.
+- Amount dÆ°á»›i `50,000 VND` bá»‹ cháº·n.
+- Wallet khÃ´ng `ACTIVE` bá»‹ cháº·n.
+- Student `can_withdraw = false` bá»‹ cháº·n.
+- KhÃ´ng Ä‘á»§ available balance bá»‹ cháº·n.
 - Pending withdrawal move `available_balance` sang `locked_balance`.
-- Mỗi wallet chỉ có tối đa một withdrawal `PENDING` hoặc `PROCESSING`.
-- Phí rút tiền MVP là `0 VND`, `net_amount = amount`.
+- Má»—i wallet chá»‰ cÃ³ tá»‘i Ä‘a má»™t withdrawal `PENDING` hoáº·c `PROCESSING`.
+- PhÃ­ rÃºt tiá»n MVP lÃ  `0 VND`, `net_amount = amount`.
 
 SQL check:
 
@@ -1322,7 +1322,7 @@ API:
 - `GET /api/v1/admin/withdrawal-requests`
 - `POST /api/v1/admin/withdrawal-requests/{withdrawalRequestId}/process`
 
-Nhận xử lý:
+Nháº­n xá»­ lÃ½:
 
 ```json
 {
@@ -1333,7 +1333,7 @@ Nhận xử lý:
 }
 ```
 
-Sau khi chuyển khoản ngoài hệ thống, complete request:
+Sau khi chuyá»ƒn khoáº£n ngoÃ i há»‡ thá»‘ng, complete request:
 
 ```json
 {
@@ -1357,49 +1357,49 @@ Failed request:
 
 Expected completed:
 
-- Withdrawal đi qua `PENDING -> PROCESSING -> COMPLETED`.
-- Lưu `processing_started_at`, `processed_by_user_id`, `bank_transaction_reference`, `transferred_at`.
-- Wallet locked balance giảm theo amount.
-- Tạo `wallet_transactions` type `WITHDRAWAL_DEBIT`.
-- Có audit log `WITHDRAWAL_PROCESSED`.
+- Withdrawal Ä‘i qua `PENDING -> PROCESSING -> COMPLETED`.
+- LÆ°u `processing_started_at`, `processed_by_user_id`, `bank_transaction_reference`, `transferred_at`.
+- Wallet locked balance giáº£m theo amount.
+- Táº¡o `wallet_transactions` type `WITHDRAWAL_DEBIT`.
+- CÃ³ audit log `WITHDRAWAL_PROCESSED`.
 
 Expected failed:
 
-- Withdrawal đi qua `PENDING -> PROCESSING -> FAILED`, lưu failure reason.
-- Wallet locked balance giảm, available balance tăng lại theo amount.
-- Tạo `wallet_transactions` type `WITHDRAWAL_FAILED_REVERSAL`.
-- Có audit log `WITHDRAWAL_PROCESSED`.
+- Withdrawal Ä‘i qua `PENDING -> PROCESSING -> FAILED`, lÆ°u failure reason.
+- Wallet locked balance giáº£m, available balance tÄƒng láº¡i theo amount.
+- Táº¡o `wallet_transactions` type `WITHDRAWAL_FAILED_REVERSAL`.
+- CÃ³ audit log `WITHDRAWAL_PROCESSED`.
 
 ## 9. Negative Regression Checklist
 
 | Case | Expected |
 | --- | --- |
-| Login email/password trước account email verification | Bị chặn |
-| Register role `ADMIN` qua public endpoint | Bị chặn |
-| Google login role không phải `STUDENT`/`SME` | Bị chặn |
-| Student verification file `exe` | Bị chặn |
-| EDU email domain không thuộc allowlist | Bị chặn |
-| Project budget `0` hoặc âm | Bị chặn |
-| Sketch deadline sau Final deadline | Bị chặn |
-| Final deadline sau Total deadline | Bị chặn |
-| Basic plan publish project thứ 6 đang `OPEN` | Bị chặn |
-| Basic plan budget trên `5,000,000 VND` | Bị chặn |
-| Student apply trùng project | Bị chặn |
-| Offer `WAITING_ACCEPTANCE` quá 48 giờ | Chuyển `EXPIRED`, project release nếu không còn active offer |
-| SME tạo payment khi offer chưa accepted | Bị chặn |
-| Offer accepted quá 72 giờ chưa paid | Offer `EXPIRED`, pending payment `EXPIRED`, escrow `CANCELLED` |
-| Webhook success đến sau payment `FAILED`/`CANCELLED`/`EXPIRED` | Không start project |
-| Client tự gọi success page payment | Không đổi payment/escrow/project nếu PayOS chưa xác nhận qua webhook hoặc reconcile trusted |
-| Student submit Sketch khi escrow chưa `FUNDED` | Bị chặn |
-| Student submit Final trước Sketch approved | Bị chặn |
-| SME không owner review submission | Bị chặn |
-| Admin force complete project không ở `ADMIN_REVIEW` | Bị chặn |
-| Release escrow đã `RELEASED` lần nữa | Không double credit wallet |
-| Withdrawal dưới `50,000 VND` | Bị chặn |
-| Withdrawal khi `can_withdraw = false` | Bị chặn |
-| Non-Admin process withdrawal | Bị chặn |
+| Login email/password trÆ°á»›c account email verification | Bá»‹ cháº·n |
+| Register role `ADMIN` qua public endpoint | Bá»‹ cháº·n |
+| Google login role khÃ´ng pháº£i `STUDENT`/`SME` | Bá»‹ cháº·n |
+| Student verification file `exe` | Bá»‹ cháº·n |
+| EDU email domain khÃ´ng thuá»™c allowlist | Bá»‹ cháº·n |
+| Project budget `0` hoáº·c Ã¢m | Bá»‹ cháº·n |
+| Sketch deadline sau Final deadline | Bá»‹ cháº·n |
+| Final deadline sau Total deadline | Bá»‹ cháº·n |
+| Basic plan publish project thá»© 6 Ä‘ang `OPEN` | Bá»‹ cháº·n |
+| Basic plan budget trÃªn `5,000,000 VND` | Bá»‹ cháº·n |
+| Student apply trÃ¹ng project | Bá»‹ cháº·n |
+| Offer `WAITING_ACCEPTANCE` quÃ¡ 48 giá» | Chuyá»ƒn `EXPIRED`, project release náº¿u khÃ´ng cÃ²n active offer |
+| SME táº¡o payment khi offer chÆ°a accepted | Bá»‹ cháº·n |
+| Offer accepted quÃ¡ 72 giá» chÆ°a paid | Offer `EXPIRED`, pending payment `EXPIRED`, escrow `CANCELLED` |
+| Webhook success Ä‘áº¿n sau payment `FAILED`/`CANCELLED`/`EXPIRED` | KhÃ´ng start project |
+| Client tá»± gá»i success page payment | KhÃ´ng Ä‘á»•i payment/escrow/project náº¿u PayOS chÆ°a xÃ¡c nháº­n qua webhook hoáº·c reconcile trusted |
+| Student submit Sketch khi escrow chÆ°a `FUNDED` | Bá»‹ cháº·n |
+| Student submit Final trÆ°á»›c Sketch approved | Bá»‹ cháº·n |
+| SME khÃ´ng owner review submission | Bá»‹ cháº·n |
+| Admin force complete project khÃ´ng á»Ÿ `ADMIN_REVIEW` | Bá»‹ cháº·n |
+| Release escrow Ä‘Ã£ `RELEASED` láº§n ná»¯a | KhÃ´ng double credit wallet |
+| Withdrawal dÆ°á»›i `50,000 VND` | Bá»‹ cháº·n |
+| Withdrawal khi `can_withdraw = false` | Bá»‹ cháº·n |
+| Non-Admin process withdrawal | Bá»‹ cháº·n |
 
-## 10. SQL Tổng Hợp Sau E2E
+## 10. SQL Tá»•ng Há»£p Sau E2E
 
 ```sql
 select email, role, status, email_verified_at
@@ -1453,36 +1453,36 @@ order by created_at desc;
 
 ## 11.1. Core Stabilization Regression
 
-### Offer Và Application Expiry
+### Offer VÃ  Application Expiry
 
-- Offer `WAITING_ACCEPTANCE` hết hạn phải chuyển `EXPIRED`.
-- Application liên kết phải trở về `SUBMITTED`, không giữ trạng thái `SELECTED`.
-- Nếu không còn offer active, project trở về `OPEN` hoặc `PRIVATE_INVITED`.
+- Offer `WAITING_ACCEPTANCE` háº¿t háº¡n pháº£i chuyá»ƒn `EXPIRED`.
+- Application liÃªn káº¿t pháº£i trá»Ÿ vá» `SUBMITTED`, khÃ´ng giá»¯ tráº¡ng thÃ¡i `SELECTED`.
+- Náº¿u khÃ´ng cÃ²n offer active, project trá»Ÿ vá» `OPEN` hoáº·c `PRIVATE_INVITED`.
 
 ### Checkout Payment Expiry
 
-- Payment `PENDING` có checkout quá hạn phải chuyển `EXPIRED` độc lập với cửa sổ thanh toán offer 72 giờ.
-- Offer chuyển `PAYMENT_FAILED`; SME được tạo checkout mới nếu `payment_due_at` vẫn còn hạn.
-- Nếu checkout cũ hết hạn nhưng checkout retry mới vẫn còn hạn, offer phải giữ `PENDING_PAYMENT`.
-- Khi cửa sổ 72 giờ hết hạn, offer chuyển `EXPIRED`, escrow pending chuyển `CANCELLED`.
+- Payment `PENDING` cÃ³ checkout quÃ¡ háº¡n pháº£i chuyá»ƒn `EXPIRED` Ä‘á»™c láº­p vá»›i cá»­a sá»• thanh toÃ¡n offer 72 giá».
+- Offer chuyá»ƒn `PAYMENT_FAILED`; SME Ä‘Æ°á»£c táº¡o checkout má»›i náº¿u `payment_due_at` váº«n cÃ²n háº¡n.
+- Náº¿u checkout cÅ© háº¿t háº¡n nhÆ°ng checkout retry má»›i váº«n cÃ²n háº¡n, offer pháº£i giá»¯ `PENDING_PAYMENT`.
+- Khi cá»­a sá»• 72 giá» háº¿t háº¡n, offer chuyá»ƒn `EXPIRED`, escrow pending chuyá»ƒn `CANCELLED`.
 
 ### Submission Upload Hardening
 
-- Chỉ nhận `.jpg`, `.png`, `.pdf`, tối đa 20 MB mỗi file.
-- File giả đuôi bị backend từ chối nếu signature nội dung không khớp extension.
-- File local upload thành công nhưng chưa gắn submission được worker dọn sau 24 giờ.
+- Chá»‰ nháº­n `.jpg`, `.png`, `.pdf`, tá»‘i Ä‘a 20 MB má»—i file.
+- File giáº£ Ä‘uÃ´i bá»‹ backend tá»« chá»‘i náº¿u signature ná»™i dung khÃ´ng khá»›p extension.
+- File local upload thÃ nh cÃ´ng nhÆ°ng chÆ°a gáº¯n submission Ä‘Æ°á»£c worker dá»n sau 24 giá».
 
 ### PayOS Return UX
 
-- Return page chỉ đọc trạng thái backend, poll mỗi 2 giây tối đa 60 giây.
-- Khi payment còn `PENDING`, backend reconcile server-to-server với PayOS tối đa mỗi 5 giây; query string client không được dùng làm bằng chứng thanh toán.
-- Khi timeout, trang hiển thị cảnh báo, nút `Kiểm tra lại`, và CTA về workspace hoặc danh sách offer.
+- Return page chá»‰ Ä‘á»c tráº¡ng thÃ¡i backend, poll má»—i 2 giÃ¢y tá»‘i Ä‘a 60 giÃ¢y.
+- Khi payment cÃ²n `PENDING`, backend reconcile server-to-server vá»›i PayOS tá»‘i Ä‘a má»—i 5 giÃ¢y; query string client khÃ´ng Ä‘Æ°á»£c dÃ¹ng lÃ m báº±ng chá»©ng thanh toÃ¡n.
+- Khi timeout, trang hiá»ƒn thá»‹ cáº£nh bÃ¡o, nÃºt `Kiá»ƒm tra láº¡i`, vÃ  CTA vá» workspace hoáº·c danh sÃ¡ch offer.
 
-## 11. Known Gaps Và Skip Notes
+## 11. Known Gaps VÃ  Skip Notes
 
-- PayOS payment success thật cần credentials thật và webhook callback hợp lệ; nếu không có, dùng `PAYMENT_PROVIDER=Mock` để smoke success/failure webhook local.
-- SMTP thật cần provider hợp lệ; nếu không có, account email OTP không nhận được trong inbox.
-- Google login cần Google OAuth client ID và frontend rebuild.
-- Frontend Phase 3B execution đã có workspace Student/SME; Admin review nâng cao vẫn có thể test qua Swagger/API.
-- Phase 4 refund/cancellation split rules chưa hoàn thành: không kỳ vọng các tỷ lệ refund 100/0, 60/40, 20/80, 70/30 trong guide này.
-- Portfolio, Ratings, Paid Packages, AI Matching, notification đầy đủ chưa thuộc completed feature set trong guide này.
+- PayOS payment success tháº­t cáº§n credentials tháº­t vÃ  webhook callback há»£p lá»‡; náº¿u khÃ´ng cÃ³, dÃ¹ng `PAYMENT_PROVIDER=Mock` Ä‘á»ƒ smoke success/failure webhook local.
+- SMTP tháº­t cáº§n provider há»£p lá»‡; náº¿u khÃ´ng cÃ³, account email OTP khÃ´ng nháº­n Ä‘Æ°á»£c trong inbox.
+- Google login cáº§n Google OAuth client ID vÃ  frontend rebuild.
+- Frontend Phase 3B execution Ä‘Ã£ cÃ³ workspace Student/SME; Admin review nÃ¢ng cao váº«n cÃ³ thá»ƒ test qua Swagger/API.
+- Phase 4 refund/cancellation split rules chÆ°a hoÃ n thÃ nh: khÃ´ng ká»³ vá»ng cÃ¡c tá»· lá»‡ refund 100/0, 60/40, 20/80, 70/30 trong guide nÃ y.
+- Portfolio, Ratings, Paid Packages, AI Matching, notification Ä‘áº§y Ä‘á»§ chÆ°a thuá»™c completed feature set trong guide nÃ y.
