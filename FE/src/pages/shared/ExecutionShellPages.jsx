@@ -113,6 +113,11 @@ export function ProjectExecutionPage() {
     && workspace.nextActionRole === 'SME'
     && workspace.viewerRole === 'SME'
     && latestSubmission;
+  const hasFinalSubmitted = submissions.some((item) => item.milestoneType === 'FINAL');
+  const canAbandon = workspace
+    && workspace.viewerRole === 'STUDENT'
+    && ['IN_PROGRESS', 'SKETCH_REVIEW', 'REVISION_REQUESTED'].includes(workspace.projectStatus)
+    && !hasFinalSubmitted;
 
   useEffect(() => {
     if (!isPaymentReturn || workspace?.viewerRole !== 'SME' || !paymentReturnPaymentId) return;
@@ -327,6 +332,36 @@ export function ProjectExecutionPage() {
     }
   };
 
+  const abandonProject = () => {
+    let reason = '';
+    Modal.confirm({
+      title: 'Bỏ dự án?',
+      content: (
+        <div>
+          <p>D4U sẽ xử lý chia escrow theo tiến trình nộp bài hiện tại. Sau khi đã nộp Final, Student không thể bỏ dự án.</p>
+          <Input.TextArea rows={3} placeholder="Lý do bỏ dự án..." onChange={(event) => { reason = event.target.value; }} />
+        </div>
+      ),
+      okText: 'Bỏ dự án',
+      okButtonProps: { danger: true },
+      cancelText: 'Đóng',
+      async onOk() {
+        setActing(true);
+        try {
+          await projectApi.abandonProject(projectId, reason || 'Abandoned by Student.');
+          message.success('Đã ghi nhận bỏ dự án và xử lý chia escrow.');
+          setDraftFiles([]);
+          submissionForm.resetFields();
+          await loadWorkspace();
+        } catch (requestError) {
+          message.error(getApiErrorMessage(requestError, 'Không thể bỏ dự án.'));
+        } finally {
+          setActing(false);
+        }
+      }
+    });
+  };
+
   const submitReviewDecision = async () => {
     const values = await reviewForm.validateFields();
     setActing(true);
@@ -381,9 +416,11 @@ export function ProjectExecutionPage() {
               form={submissionForm}
               draftFiles={draftFiles}
               acting={acting}
+              canAbandon={canAbandon}
               onAddFile={addDraftFile}
               onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
               onSubmit={openSubmitConfirmation}
+              onAbandon={abandonProject}
             />
           ) : (
             <SmeReviewWorkspace

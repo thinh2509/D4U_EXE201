@@ -1,6 +1,7 @@
-namespace D4U.Api.Application.Features.MoneyMovement;
+﻿namespace D4U.Api.Application.Features.MoneyMovement;
 
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Common.Exceptions;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
@@ -15,7 +16,7 @@ public sealed class MoneyMovementService(
     private readonly IDataProtector accountNumberProtector =
         dataProtectionProvider.CreateProtector("D4U.PaymentMethods.AccountNumber.v1");
     private const decimal MinimumWithdrawalAmount = 50000m;
-    private const decimal WithdrawalFeeAmount = 0m;
+    private const decimal WithdrawalFeeAmount = 5000m;
     private const string WithdrawalPending = "PENDING";
     private const string WithdrawalProcessing = "PROCESSING";
     private const string WithdrawalCompleted = "COMPLETED";
@@ -53,6 +54,151 @@ public sealed class MoneyMovementService(
 
             return ToDisbursementResponse(existingDisbursement);
         }
+    }
+
+    public async Task<RefundResponse> CreateStudentAbandonRefundAsync(
+        Guid projectId,
+        Guid studentUserId,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var response = await CreateStudentAbandonRefundCoreAsync(
+                projectId,
+                studentUserId,
+                reason,
+                cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return response;
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var existingRefund = await (
+                from refund in unitOfWork.Repository<Refund>().Query()
+                join escrow in unitOfWork.Repository<Escrow>().Query() on refund.EscrowId equals escrow.Id
+                where escrow.ProjectId == projectId
+                orderby refund.CreatedAt descending
+                select refund)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingRefund is null)
+            {
+                throw;
+            }
+
+            return await ToRefundResponseAsync(existingRefund, cancellationToken);
+        }
+    }
+
+    public async Task<IReadOnlyList<RefundResponse>> ListAdminRefundsAsync(
+        Guid adminUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await RequireAdminAsync(adminUserId, cancellationToken);
+
+        var refunds = await unitOfWork.Repository<Refund>().Query()
+            .OrderByDescending(refund => refund.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return await ToRefundResponsesAsync(refunds, cancellationToken);
+    }
+
+    public async Task<RefundResponse> MarkRefundCompletedAsync(
+        Guid adminUserId,
+        Guid refundId,
+        ProcessRefundRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await RequireAdminAsync(adminUserId, cancellationToken);
+
+        var refund = await unitOfWork.Repository<Refund>().GetByIdAsync(refundId, cancellationToken)
+            ?? throw new NotFoundException("Refund was not found.");
+
+        if (!string.Equals(refund.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConflictException("Only pending refunds can be marked as completed.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ManualRefundReference))
+        {
+            throw new ValidationException("Manual refund reference is required.");
+        }
+
+        var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(refund.EscrowId, cancellationToken)
+            ?? throw new NotFoundException("Escrow was not found.");
+        var now = DateTimeOffset.UtcNow;
+
+        refund.Status = "REFUNDED_MANUALLY";
+        refund.ProviderRefundId = request.ManualRefundReference.Trim();
+        refund.CompletedAt = request.ProcessedAt ?? now;
+        escrow.Status = EscrowStatus.REFUNDED;
+        escrow.RefundedAt = refund.CompletedAt;
+        escrow.UpdatedAt = now;
+
+        await AddAuditLogAsync(
+            adminUserId,
+            "ESCROW_REFUNDED",
+            nameof(Refund),
+            refund.Id,
+            $$"""{"status":"PENDING","escrowStatus":"{{EscrowStatus.REFUND_PENDING}}"}""",
+            $$"""{"status":"{{refund.Status}}","escrowStatus":"{{EscrowStatus.REFUNDED}}","amount":{{refund.Amount}}}""",
+            now,
+            cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return await ToRefundResponseAsync(refund, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<RefundResponse>> ToRefundResponsesAsync(
+        IReadOnlyList<Refund> refunds,
+        CancellationToken cancellationToken)
+    {
+        var escrowIds = refunds.Select(refund => refund.EscrowId).Distinct().ToList();
+        var escrows = await unitOfWork.Repository<Escrow>().Query()
+            .Where(escrow => escrowIds.Contains(escrow.Id))
+            .ToDictionaryAsync(escrow => escrow.Id, cancellationToken);
+        var projectIds = escrows.Values.Select(escrow => escrow.ProjectId).Distinct().ToList();
+        var projects = await unitOfWork.Repository<Project>().Query()
+            .Where(project => projectIds.Contains(project.Id))
+            .ToDictionaryAsync(project => project.Id, cancellationToken);
+        var smeProfileIds = projects.Values.Select(project => project.SmeProfileId).Distinct().ToList();
+        var studentProfileIds = escrows.Values.Select(escrow => escrow.StudentProfileId).Distinct().ToList();
+        var smeUsers = await (
+            from profile in unitOfWork.Repository<SmeProfile>().Query()
+            join user in unitOfWork.Repository<User>().Query() on profile.UserId equals user.Id
+            where smeProfileIds.Contains(profile.Id)
+            select new { profile.Id, user.FullName })
+            .ToDictionaryAsync(value => value.Id, value => value.FullName, cancellationToken);
+        var studentUsers = await (
+            from profile in unitOfWork.Repository<StudentProfile>().Query()
+            join user in unitOfWork.Repository<User>().Query() on profile.UserId equals user.Id
+            where studentProfileIds.Contains(profile.Id)
+            select new { profile.Id, user.FullName })
+            .ToDictionaryAsync(value => value.Id, value => value.FullName, cancellationToken);
+
+        return refunds
+            .Select(refund =>
+            {
+                escrows.TryGetValue(refund.EscrowId, out var escrow);
+                var project = escrow is null
+                    ? null
+                    : projects.GetValueOrDefault(escrow.ProjectId);
+                var smeName = project is not null && smeUsers.TryGetValue(project.SmeProfileId, out var smeFullName)
+                    ? smeFullName
+                    : null;
+                var studentName = escrow is not null && studentUsers.TryGetValue(escrow.StudentProfileId, out var studentFullName)
+                    ? studentFullName
+                    : null;
+
+                return ToRefundResponse(refund, escrow, project, smeName, studentName);
+            })
+            .ToList();
     }
 
     private async Task<DisbursementResponse?> ReleaseProjectEscrowCoreAsync(
@@ -176,8 +322,8 @@ public sealed class MoneyMovementService(
             studentProfile.UserId,
             actorUserId,
             "ESCROW_RELEASED",
-            "Tiền dự án đã được cộng vào ví",
-            $"Bạn đã nhận {netAmount:N0} {escrow.Currency} sau khi trừ phí nền tảng {platformFeeAmount:N0} {escrow.Currency}.",
+            "Tiá»n dá»± Ã¡n Ä‘Ã£ Ä‘Æ°á»£c cá»™ng vÃ o vÃ­",
+            $"Báº¡n Ä‘Ã£ nháº­n {netAmount:N0} {escrow.Currency} sau khi trá»« phÃ­ ná»n táº£ng {platformFeeAmount:N0} {escrow.Currency}.",
             nameof(Disbursement),
             disbursement.Id,
             now,
@@ -185,6 +331,113 @@ public sealed class MoneyMovementService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ToDisbursementResponse(disbursement);
+    }
+
+    private async Task<RefundResponse> CreateStudentAbandonRefundCoreAsync(
+        Guid projectId,
+        Guid studentUserId,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        var existingRefund = await (
+            from refundValue in unitOfWork.Repository<Refund>().Query()
+            join escrowValue in unitOfWork.Repository<Escrow>().Query() on refundValue.EscrowId equals escrowValue.Id
+            where escrowValue.ProjectId == projectId
+            orderby refundValue.CreatedAt descending
+            select refundValue)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingRefund is not null)
+        {
+            return await ToRefundResponseAsync(existingRefund, cancellationToken);
+        }
+
+        var actor = await unitOfWork.Repository<User>().GetByIdAsync(studentUserId, cancellationToken)
+            ?? throw new ForbiddenException("User was not found.");
+
+        if (actor.Role != UserRole.STUDENT)
+        {
+            throw new ForbiddenException("Only Student users can abandon projects.");
+        }
+
+        var project = await dbContext.Projects
+            .FromSqlInterpolated($"""SELECT * FROM public.projects WHERE id = {projectId} FOR UPDATE""")
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException("Project was not found.");
+
+        if (project.Status != ProjectStatus.IN_PROGRESS)
+        {
+            throw new ConflictException("Student can abandon only in-progress projects before any submission.");
+        }
+
+        var studentProfile = await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
+            profile => profile.UserId == studentUserId,
+            cancellationToken) ?? throw new NotFoundException("Student profile must be created first.");
+
+        if (project.SelectedStudentProfileId != studentProfile.Id)
+        {
+            throw new ForbiddenException("Only the selected student can abandon this project.");
+        }
+
+        var escrow = await dbContext.Escrows
+            .FromSqlInterpolated($"""SELECT * FROM public.escrows WHERE project_id = {projectId} FOR UPDATE""")
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException("Escrow was not found.");
+
+        if (escrow.Status != EscrowStatus.FUNDED)
+        {
+            throw new ConflictException("Only funded escrow can be moved to refund pending.");
+        }
+
+        var hasSubmission = await unitOfWork.Repository<ProjectSubmission>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+
+        if (hasSubmission)
+        {
+            throw new ConflictException("Student cannot abandon after submitting any file.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var refund = new Refund
+        {
+            Id = Guid.NewGuid(),
+            EscrowId = escrow.Id,
+            PaymentId = await unitOfWork.Repository<Payment>().Query()
+                .Where(payment => payment.EscrowId == escrow.Id && payment.Status == PaymentStatus.SUCCESS)
+                .OrderByDescending(payment => payment.PaidAt ?? payment.CreatedAt)
+                .Select(payment => (Guid?)payment.Id)
+                .FirstOrDefaultAsync(cancellationToken),
+            Amount = escrow.Amount,
+            Currency = escrow.Currency,
+            Reason = "STUDENT_ABANDONED",
+            Status = "PENDING",
+            CreatedByUserId = studentUserId,
+            CreatedAt = now
+        };
+
+        var previousProjectStatus = project.Status;
+        project.Status = ProjectStatus.STUDENT_ABANDONED;
+        project.CancelledAt = now;
+        project.CancellationReason = reason.Trim();
+        project.UpdatedAt = now;
+
+        escrow.Status = EscrowStatus.REFUND_PENDING;
+        escrow.UpdatedAt = now;
+
+        await unitOfWork.Repository<Refund>().AddAsync(refund, cancellationToken);
+        await AddAuditLogAsync(
+            studentUserId,
+            "PROJECT_STATUS_CHANGED",
+            nameof(Project),
+            project.Id,
+            $$"""{"projectStatus":"{{previousProjectStatus}}","escrowStatus":"{{EscrowStatus.FUNDED}}"}""",
+            $$"""{"projectStatus":"{{ProjectStatus.STUDENT_ABANDONED}}","escrowStatus":"{{EscrowStatus.REFUND_PENDING}}","refundAmount":{{refund.Amount}}}""",
+            now,
+            cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return await ToRefundResponseAsync(refund, cancellationToken);
     }
 
     public async Task<WalletResponse> GetMyWalletAsync(
@@ -524,8 +777,8 @@ public sealed class MoneyMovementService(
                 withdrawal.RequestedByUserId,
                 adminUserId,
                 "WITHDRAWAL_COMPLETED",
-                "Yêu cầu rút tiền đã hoàn tất",
-                $"D4U đã xác nhận chuyển {withdrawal.NetAmount:N0} VND tới tài khoản ngân hàng của bạn.",
+                "YÃªu cáº§u rÃºt tiá»n Ä‘Ã£ hoÃ n táº¥t",
+                $"D4U Ä‘Ã£ xÃ¡c nháº­n chuyá»ƒn {withdrawal.NetAmount:N0} VND tá»›i tÃ i khoáº£n ngÃ¢n hÃ ng cá»§a báº¡n.",
                 nameof(WithdrawalRequest),
                 withdrawal.Id,
                 now,
@@ -575,8 +828,8 @@ public sealed class MoneyMovementService(
                 withdrawal.RequestedByUserId,
                 adminUserId,
                 "WITHDRAWAL_FAILED",
-                "Yêu cầu rút tiền chưa thành công",
-                $"Số tiền {withdrawal.Amount:N0} VND đã được trả lại số dư khả dụng. Lý do: {withdrawal.FailureReason}",
+                "YÃªu cáº§u rÃºt tiá»n chÆ°a thÃ nh cÃ´ng",
+                $"Sá»‘ tiá»n {withdrawal.Amount:N0} VND Ä‘Ã£ Ä‘Æ°á»£c tráº£ láº¡i sá»‘ dÆ° kháº£ dá»¥ng. LÃ½ do: {withdrawal.FailureReason}",
                 nameof(WithdrawalRequest),
                 withdrawal.Id,
                 now,
@@ -763,7 +1016,7 @@ public sealed class MoneyMovementService(
         }
         catch (Exception exception)
         {
-            throw new InvalidOperationException("Không thể giải mã số tài khoản.", exception);
+            throw new InvalidOperationException("KhÃ´ng thá»ƒ giáº£i mÃ£ sá»‘ tÃ i khoáº£n.", exception);
         }
     }
 
@@ -948,5 +1201,62 @@ public sealed class MoneyMovementService(
             disbursement.Status,
             disbursement.CreatedAt,
             disbursement.CompletedAt);
+    }
+
+    private async Task<RefundResponse> ToRefundResponseAsync(
+        Refund refund,
+        CancellationToken cancellationToken)
+    {
+        var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(refund.EscrowId, cancellationToken);
+        Project? project = null;
+        string? smeFullName = null;
+        string? studentFullName = null;
+
+        if (escrow is not null)
+        {
+            project = await unitOfWork.Repository<Project>().GetByIdAsync(escrow.ProjectId, cancellationToken);
+
+            if (project is not null)
+            {
+                smeFullName = await (
+                    from profile in unitOfWork.Repository<SmeProfile>().Query()
+                    join user in unitOfWork.Repository<User>().Query() on profile.UserId equals user.Id
+                    where profile.Id == project.SmeProfileId
+                    select user.FullName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            studentFullName = await (
+                from profile in unitOfWork.Repository<StudentProfile>().Query()
+                join user in unitOfWork.Repository<User>().Query() on profile.UserId equals user.Id
+                where profile.Id == escrow.StudentProfileId
+                select user.FullName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return ToRefundResponse(refund, escrow, project, smeFullName, studentFullName);
+    }
+
+    private static RefundResponse ToRefundResponse(
+        Refund refund,
+        Escrow? escrow,
+        Project? project,
+        string? smeFullName,
+        string? studentFullName)
+    {
+        return new RefundResponse(
+            refund.Id,
+            refund.EscrowId,
+            escrow?.ProjectId ?? Guid.Empty,
+            project?.Title,
+            smeFullName,
+            studentFullName,
+            refund.Amount,
+            refund.Currency,
+            refund.Reason,
+            refund.Status,
+            refund.CreatedAt,
+            refund.CompletedAt,
+            refund.ProviderRefundId);
     }
 }

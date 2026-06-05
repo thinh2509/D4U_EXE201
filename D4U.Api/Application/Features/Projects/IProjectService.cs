@@ -24,6 +24,12 @@ public interface IProjectService
         CancelProjectRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ProjectResponse> AbandonAsync(
+        Guid userId,
+        Guid projectId,
+        CancelProjectRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ProjectResponse>> ListOpenProjectsAsync(
         Guid userId,
         CancellationToken cancellationToken = default);

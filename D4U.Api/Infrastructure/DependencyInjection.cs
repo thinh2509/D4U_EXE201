@@ -6,9 +6,11 @@ using D4U.Api.Application.Common.Security;
 using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
 using D4U.Api.Application.Features.MoneyMovement;
+using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Application.Features.Payments;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
+using D4U.Api.Application.Features.Ratings;
 using D4U.Api.Infrastructure.Ai;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.BackgroundServices;
@@ -68,6 +70,8 @@ public static class DependencyInjection
         services.AddScoped<ISubmissionFileService, SubmissionFileService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IMoneyMovementService, MoneyMovementService>();
+        services.AddScoped<IRatingService, RatingService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
@@ -75,6 +79,7 @@ public static class DependencyInjection
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
         services.AddHostedService<EscrowReleaseBackgroundService>();
+        services.AddHostedService<StudentAbandonmentBackgroundService>();
         services.AddHostedService<SubmissionOrphanCleanupBackgroundService>();
         services.AddScoped<MockPaymentProvider>();
         services.AddHttpClient<PayOsPaymentProvider>((serviceProvider, client) =>

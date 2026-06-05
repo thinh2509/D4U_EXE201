@@ -8,5 +8,8 @@ export const walletApi = {
   createWithdrawalRequest: (payload) => apiClient.post('/withdrawal-requests', payload),
   listWithdrawalRequests: () => apiClient.get('/withdrawal-requests/me'),
   listAdminWithdrawalRequests: () => apiClient.get('/admin/withdrawal-requests'),
-  processWithdrawal: (withdrawalId, payload) => apiClient.post(`/admin/withdrawal-requests/${withdrawalId}/process`, payload)
+  processWithdrawal: (withdrawalId, payload) => apiClient.post(`/admin/withdrawal-requests/${withdrawalId}/process`, payload),
+  listAdminRefunds: () => apiClient.get('/admin/refunds'),
+  markRefundCompleted: (refundId, payload) =>
+    apiClient.post(`/admin/refunds/${refundId}/mark-completed`, payload)
 };

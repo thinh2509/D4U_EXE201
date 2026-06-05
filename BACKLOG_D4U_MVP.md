@@ -161,10 +161,10 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] Create wallet transaction `DISBURSEMENT_CREDIT`.
 - [x] Escrow moves to `RELEASED`.
 - [x] Project rating due date is set to 7 days after completion.
-- [ ] Mid-project cancellation before Sketch refunds 100% to SME and 0% to Student.
-- [ ] Mid-project cancellation after Sketch approved refunds 60% to SME and pays 40% to Student.
-- [ ] Mid-project cancellation after Final submitted refunds 20% to SME and pays 80% to Student.
-- [ ] Student abandon past deadline refunds 70% to SME and pays 30% to Student.
+- [x] Student can abandon an in-progress project before any submission and move escrow to `REFUND_PENDING`.
+- [x] Auto-abandon marks projects past Sketch deadline with no submission as `STUDENT_ABANDONED`.
+- [x] Admin can list pending SME refunds and mark manual refund completed.
+- [ ] Mid-project cancellation and partial refund split rules are deferred beyond Outcome 1.
 
 ### Wallet and Withdrawal
 
@@ -175,7 +175,7 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 - [x] Withdrawal requires wallet `ACTIVE`.
 - [x] Withdrawal requires student `can_withdraw = true`.
 - [x] Withdrawal minimum amount is 50,000 VND.
-- [x] Withdrawal fee is 0 VND in MVP.
+- [x] Withdrawal fee is 5,000 VND in Outcome 1.
 - [x] Admin/Finance can manually process withdrawal request after external bank transfer.
 - [x] Successful withdrawal creates debit transaction.
 - [x] Failed withdrawal creates reversal transaction.
@@ -200,37 +200,39 @@ This backlog is derived from `MVP_D4U.md` and keeps the first build limited to t
 
 ### Ratings
 
-- [ ] Rating is available only after project completed.
-- [ ] Student can rate SME.
-- [ ] SME can rate Student.
-- [ ] Enforce one rating per rater, rated user, and project.
-- [ ] Rating value must be 1 to 5.
-- [ ] Rating comment maximum is 500 characters.
-- [ ] Rating is allowed only within 7 days after completion.
-- [ ] Rating updates profile average rating and completed project count.
+- [x] Rating is available only after project completed.
+- [x] Student can rate SME.
+- [x] SME can rate Student.
+- [x] Enforce one rating per rater, rated user, and project.
+- [x] Rating value must be 1 to 5.
+- [x] Rating comment maximum is 500 characters.
+- [x] Rating is allowed only within 7 days after completion.
+- [x] Rating updates profile average rating.
+- [ ] Rating updates completed project count.
 
 ### Notifications and Audit
 
 - [ ] Create in-app notification for verification approved/rejected.
 - [ ] Create in-app notification for project published.
 - [ ] Create in-app notification for new application.
-- [ ] Create in-app notification for new offer.
-- [ ] Create in-app notification for payment success/failed.
+- [x] Create in-app notification for new offer.
+- [x] Create in-app notification for payment success.
+- [ ] Create in-app notification for payment failed.
 - [ ] Create in-app notification for offer accepted/rejected.
-- [ ] Create in-app notification for new submission.
-- [ ] Create in-app notification for review action.
-- [ ] Create in-app notification for revision request.
-- [ ] Create in-app notification for invalid file report.
+- [x] Create in-app notification for new submission.
+- [x] Create in-app notification for review action.
+- [x] Create in-app notification for revision request.
+- [x] Create in-app notification for invalid file report.
 - [x] Create in-app notification for escrow released.
 - [x] Create in-app notification for withdrawal request status changes.
 - [ ] Create in-app notification for rating received.
-- [ ] Mark notification as read.
+- [x] Mark notification as read.
 - [ ] Record audit log for admin verification decisions.
 - [ ] Record audit log for SME publish/cancel project.
 - [ ] Record audit log for project status changes.
 - [ ] Use audit logs as the primary source for project status transition history in the optimized MVP model.
 - [ ] Record audit log for payment webhook success/failed.
-- [ ] Record audit log for escrow funded/released/refunded.
+- [x] Record audit log for escrow funded/released/refunded.
 - [x] Record audit log for wallet balance changes.
 - [x] Record audit log for withdrawal processing.
 - [ ] Record audit log for user suspended/banned.

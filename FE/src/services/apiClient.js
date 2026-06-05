@@ -25,7 +25,15 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const payload = response.data;
+
+    if (payload && typeof payload === 'object' && 'success' in payload && 'data' in payload) {
+      return payload.data;
+    }
+
+    return payload;
+  },
   async (error) => {
     const originalRequest = error.config;
 
@@ -36,9 +44,10 @@ apiClient.interceptors.response.use(
       if (refreshToken) {
         try {
           const response = await axios.post('/api/v1/auth/refresh', { refreshToken });
-          localStorage.setItem('accessToken', response.data.accessToken);
-          localStorage.setItem('refreshToken', response.data.refreshToken);
-          originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+          const refreshPayload = response.data?.data ?? response.data;
+          localStorage.setItem('accessToken', refreshPayload.accessToken);
+          localStorage.setItem('refreshToken', refreshPayload.refreshToken);
+          originalRequest.headers.Authorization = `Bearer ${refreshPayload.accessToken}`;
           return apiClient(originalRequest);
         } catch (refreshError) {
           localStorage.removeItem('accessToken');

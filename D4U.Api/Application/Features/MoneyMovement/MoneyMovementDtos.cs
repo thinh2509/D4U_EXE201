@@ -81,6 +81,25 @@ public sealed record ProcessWithdrawalRequest(
     string? BankTransactionReference,
     DateTimeOffset? TransferredAt);
 
+public sealed record RefundResponse(
+    Guid Id,
+    Guid EscrowId,
+    Guid ProjectId,
+    string? ProjectTitle,
+    string? SmeFullName,
+    string? StudentFullName,
+    decimal Amount,
+    string Currency,
+    string Reason,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? CompletedAt,
+    string? ManualRefundReference);
+
+public sealed record ProcessRefundRequest(
+    string? ManualRefundReference,
+    DateTimeOffset? ProcessedAt);
+
 public sealed record DisbursementResponse(
     Guid Id,
     Guid EscrowId,
