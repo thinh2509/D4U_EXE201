@@ -1,5 +1,5 @@
 import { BellOutlined, CheckOutlined, ReloadOutlined } from '@ant-design/icons';
-import { App, Badge, Button, Dropdown, List, Space, Tag, Typography } from 'antd';
+import { App, Badge, Button, Dropdown, List, Space, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationApi } from '../services/notificationApi.js';
@@ -7,32 +7,6 @@ import { getApiErrorMessage } from '../utils/apiError.js';
 import { formatDate } from '../utils/format.js';
 
 const { Text } = Typography;
-
-const notificationTypeColors = {
-  NEW_OFFER: 'cyan',
-  PAYMENT_SUCCESS: 'green',
-  NEW_SUBMISSION: 'blue',
-  REVIEW_ACTION: 'gold',
-  ESCROW_RELEASED: 'green',
-  WITHDRAWAL_COMPLETED: 'green',
-  WITHDRAWAL_FAILED: 'red',
-  PROJECT_DEADLINES_UPDATED: 'orange',
-  PROJECT_ADMIN_REVIEW: 'volcano',
-  SUBMISSION_AUTO_APPROVED: 'green'
-};
-
-const notificationTypeLabels = {
-  NEW_OFFER: 'Offer',
-  PAYMENT_SUCCESS: 'Thanh toán',
-  NEW_SUBMISSION: 'Bài nộp',
-  REVIEW_ACTION: 'Review',
-  ESCROW_RELEASED: 'Giải ngân',
-  WITHDRAWAL_COMPLETED: 'Rút tiền',
-  WITHDRAWAL_FAILED: 'Rút tiền',
-  PROJECT_DEADLINES_UPDATED: 'Deadline',
-  PROJECT_ADMIN_REVIEW: 'Admin review',
-  SUBMISSION_AUTO_APPROVED: 'Tự động duyệt'
-};
 
 export function NotificationBell() {
   const { message } = App.useApp();
@@ -137,14 +111,7 @@ export function NotificationBell() {
             onClick={() => openNotification(item)}
           >
             <List.Item.Meta
-              title={(
-                <Space wrap>
-                  <Text strong={item.status === 'UNREAD'}>{item.title}</Text>
-                  <Tag color={notificationTypeColors[item.type] || 'default'}>
-                    {notificationTypeLabels[item.type] || item.type}
-                  </Tag>
-                </Space>
-              )}
+              title={<Text strong={item.status === 'UNREAD'}>{item.title}</Text>}
               description={(
                 <div>
                   <div>{item.body}</div>
