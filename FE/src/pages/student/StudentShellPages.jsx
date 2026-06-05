@@ -1,7 +1,7 @@
 import { FileDoneOutlined, FolderOpenOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
 import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table, Tag } from 'antd';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
@@ -10,6 +10,7 @@ import { walletApi } from '../../services/walletApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
+import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
 export function StudentApplicationsPage() {
   const navigate = useNavigate();
@@ -157,6 +158,16 @@ export function StudentOffersPage() {
     { title: 'Offer', dataIndex: 'offerStatus', render: (value) => <StatusBadge status={value} /> },
     { title: 'Payment', dataIndex: 'paymentStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
     { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    {
+      title: 'Deadline',
+      render: (_, row) => (
+        <div>
+          <div>Sketch: {formatDate(row.sketchDeadlineAt)}</div>
+          <div>Final: {formatDate(row.finalDeadlineAt)}</div>
+          <div className="muted-text">Hoàn tất review: {formatDate(row.totalDeadlineAt)}</div>
+        </div>
+      )
+    },
     { title: 'Ngày tạo', dataIndex: 'createdAt', render: formatDate },
     {
       title: 'Hành động',
@@ -241,7 +252,7 @@ export function StudentMyProjectsPage() {
     { title: 'Trạng thái', dataIndex: 'projectStatus', render: (value) => <StatusBadge status={value} /> },
     { title: 'Ngân sách', dataIndex: 'budgetAmount', render: (value, row) => formatCurrency(value, row.currency) },
     { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Deadline', dataIndex: 'totalDeadlineAt', render: formatDate },
+    { title: 'Hạn hoàn tất review', dataIndex: 'totalDeadlineAt', render: formatDate },
     {
       title: 'Hành động',
       render: (_, row) => (
@@ -323,6 +334,7 @@ const getPaymentMethodLabel = (method) => [
 
 export function StudentWalletPage() {
   const { message } = App.useApp();
+  const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [withdrawalForm] = Form.useForm();
   const withdrawalAmount = Number(Form.useWatch('amount', withdrawalForm) ?? 0);
@@ -337,10 +349,12 @@ export function StudentWalletPage() {
   const [error, setError] = useState(null);
   const [sectionErrors, setSectionErrors] = useState({});
 
-  const loadWallet = async () => {
-    setLoading(true);
-    setError(null);
-    setSectionErrors({});
+  const loadWallet = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+      setSectionErrors({});
+    }
     try {
       const [walletResult, transactionResult, methodResult, withdrawalResult] = await Promise.allSettled([
         walletApi.getMyWallet(),
@@ -369,14 +383,39 @@ export function StudentWalletPage() {
           : null
       });
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể tải ví D4U.'));
+      if (!silent) {
+        setError(getApiErrorMessage(requestError, 'Không thể tải ví D4U.'));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadWallet();
+  }, []);
+
+  useEffect(() => {
+    const hasActiveRequest = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
+    if (!hasActiveRequest) return undefined;
+
+    const timerId = window.setInterval(() => loadWallet({ silent: true }), 30000);
+    return () => window.clearInterval(timerId);
+  }, [withdrawals]);
+
+  useEffect(() => {
+    const refreshVisibleWallet = () => {
+      if (document.visibilityState === 'visible') {
+        loadWallet({ silent: true });
+      }
+    };
+
+    window.addEventListener('focus', refreshVisibleWallet);
+    document.addEventListener('visibilitychange', refreshVisibleWallet);
+    return () => {
+      window.removeEventListener('focus', refreshVisibleWallet);
+      document.removeEventListener('visibilitychange', refreshVisibleWallet);
+    };
   }, []);
 
   useEffect(() => {
@@ -438,7 +477,11 @@ export function StudentWalletPage() {
   ];
 
   const withdrawalColumns = [
-    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      render: (value) => value === 'COMPLETED' ? <Tag color="success">Đã chuyển khoản</Tag> : <StatusBadge status={value} />
+    },
     { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
     { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
     { title: 'Thực nhận', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
@@ -454,10 +497,12 @@ export function StudentWalletPage() {
     },
     { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
     { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
+    { title: 'Thời gian chuyển', dataIndex: 'transferredAt', render: formatDate },
     { title: 'Mã giao dịch NH', dataIndex: 'bankTransactionReference' },
     { title: 'Lý do thất bại', dataIndex: 'failureReason' }
   ];
   const hasActiveWithdrawal = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
+  const highlightedWithdrawalId = searchParams.get('withdrawalId');
   const validPaymentMethods = paymentMethods.filter(isValidPaymentMethod);
   const invalidPaymentMethods = paymentMethods.filter((method) => !isValidPaymentMethod(method));
   const selectedPaymentMethod = validPaymentMethods.find((method) => method.id === selectedPaymentMethodId);
@@ -473,8 +518,8 @@ export function StudentWalletPage() {
     }))
   ];
   const minimumWithdrawalAmount = 50000;
-  const withdrawalFee = 0;
-  const withdrawalNetAmount = Math.max(0, withdrawalAmount);
+  const withdrawalFee = 5000;
+  const withdrawalNetAmount = Math.max(0, withdrawalAmount - withdrawalFee);
   const hasEnoughBalance = wallet ? wallet.availableBalance >= withdrawalAmount : false;
   const canRequestWithdrawal = validPaymentMethods.length > 0 &&
     Boolean(selectedPaymentMethod) &&
@@ -610,7 +655,7 @@ export function StudentWalletPage() {
               <div className="muted-text form-alert">
                 <div>Phí rút tiền: <strong>{formatCurrency(withdrawalFee, wallet?.currency)}</strong></div>
                 <div>Thực nhận: <strong>{formatCurrency(withdrawalNetAmount, wallet?.currency)}</strong></div>
-                <div>{withdrawalBlockingMessage ?? 'D4U không thu phí rút tiền trong MVP.'}</div>
+                <div>{withdrawalBlockingMessage ?? 'Phí rút tiền cố định là 5,000 VND cho mỗi yêu cầu.'}</div>
               </div>
               <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={!canRequestWithdrawal}>
                 Gửi yêu cầu
@@ -622,7 +667,14 @@ export function StudentWalletPage() {
 
       <Card className="table-card" title="Yêu cầu rút tiền">
         {sectionErrors.withdrawals ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.withdrawals} /> : null}
-        <Table rowKey="id" loading={loading} columns={withdrawalColumns} dataSource={withdrawals} scroll={{ x: 900 }} />
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={withdrawalColumns}
+          dataSource={withdrawals}
+          scroll={{ x: 1040 }}
+          rowClassName={(row) => row.id === highlightedWithdrawalId ? 'withdrawal-row-highlight' : ''}
+        />
       </Card>
       <Card className="table-card" title="Ledger">
         {sectionErrors.transactions ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.transactions} /> : null}
@@ -649,14 +701,5 @@ export function StudentWalletPage() {
 }
 
 export function StudentRatingsPage() {
-  return (
-    <FeatureShellPage
-      icon={<StarOutlined />}
-      title="Đánh giá"
-      description="Đánh giá SME sau khi dự án hoàn thành trong thời hạn cho phép."
-      role="Student"
-      endpoint="GET /api/v1/ratings/me"
-      backTo="/student/dashboard"
-    />
-  );
+  return <MyRatingsPage role="STUDENT" />;
 }

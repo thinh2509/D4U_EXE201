@@ -85,6 +85,7 @@ export function SmeProjectDetailPage() {
   if (error) return <ErrorState description={error} onRetry={loadProject} />;
   const canOpenWorkspace = ['OFFER_SELECTED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW', 'COMPLETED', 'CANCELLED'].includes(project.status);
   const canCancelProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW'].includes(project.status);
+  const canEditProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'OFFER_SELECTED'].includes(project.status);
 
   return (
     <>
@@ -106,7 +107,7 @@ export function SmeProjectDetailPage() {
               <Descriptions.Item label="Loại dự án">{project.projectType}</Descriptions.Item>
               <Descriptions.Item label="Hạn nộp Sketch">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
               <Descriptions.Item label="Hạn nộp Final">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
-              <Descriptions.Item label="Deadline tổng">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
+              <Descriptions.Item label="Hạn hoàn tất review dự án">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
               <Descriptions.Item label="Publish lúc">{formatDate(project.publishedAt)}</Descriptions.Item>
               <Descriptions.Item label="Mục đích sử dụng" span={2}>{project.usagePurpose || 'Chưa có'}</Descriptions.Item>
             </Descriptions>
@@ -116,7 +117,9 @@ export function SmeProjectDetailPage() {
         <aside className="project-side-panel">
           <Card title="Thao tác">
             <Space direction="vertical" className="full-width">
-              <Button block icon={<EditOutlined />} onClick={() => navigate(`/sme/projects/${projectId}/edit`)}>Sửa dự án</Button>
+              <Button block icon={<EditOutlined />} disabled={!canEditProject} onClick={() => navigate(`/sme/projects/${projectId}/edit`)}>
+                {project.status === 'DRAFT' ? 'Sửa dự án' : 'Điều chỉnh deadline'}
+              </Button>
               <Button block icon={<FileSearchOutlined />} onClick={() => navigate(`/sme/projects/${projectId}/applications`)}>Xem ứng tuyển</Button>
               {canOpenWorkspace ? <Button block type="primary" icon={<FileDoneOutlined />} onClick={() => navigate(`/projects/${projectId}/execution`)}>Workspace & escrow</Button> : null}
               <Button block type="primary" icon={<RocketOutlined />} loading={acting} onClick={publish} disabled={project.status !== 'DRAFT'}>Publish</Button>

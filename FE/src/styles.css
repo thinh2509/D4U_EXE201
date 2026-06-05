@@ -204,6 +204,17 @@ a {
   width: 220px;
 }
 
+.auth-logo-link {
+  display: inline-flex;
+  border-radius: 14px;
+  text-decoration: none;
+}
+
+.auth-logo-link:focus-visible {
+  outline: 3px solid rgba(18, 174, 234, 0.32);
+  outline-offset: 5px;
+}
+
 .auth-brand-copy {
   display: grid;
   gap: 16px;
@@ -566,6 +577,48 @@ a {
 
 .mobile-menu-button {
   display: none;
+}
+
+.notification-button {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+}
+
+.notification-panel {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 110px));
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-lg);
+}
+
+.notification-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notification-item {
+  cursor: pointer;
+  padding-inline: 8px !important;
+  border-radius: 8px;
+}
+
+.notification-item.unread {
+  background: var(--primary-soft);
 }
 
 .user-menu-button {
@@ -1914,6 +1967,33 @@ html {
   background: var(--primary);
   color: #fff !important;
   box-shadow: none;
+}
+
+.project-form-layout.deadline-only {
+  grid-template-columns: minmax(0, 760px);
+  justify-content: center;
+}
+
+.withdrawal-row-highlight > td {
+  background: #eaf8ff !important;
+}
+
+.landing-header-actions .ant-btn-primary,
+.landing-mobile-nav .ant-btn-primary {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+.landing-header-actions .ant-btn-primary:hover,
+.landing-header-actions .ant-btn-primary:focus-visible,
+.landing-header-actions .ant-btn-primary:active,
+.landing-mobile-nav .ant-btn-primary:hover,
+.landing-mobile-nav .ant-btn-primary:focus-visible,
+.landing-mobile-nav .ant-btn-primary:active {
+  border-color: var(--primary-700) !important;
+  background: var(--primary-700) !important;
+  color: #fff !important;
 }
 
 .landing-page .ant-btn-primary:hover,

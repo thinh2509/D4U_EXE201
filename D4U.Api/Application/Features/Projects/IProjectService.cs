@@ -13,6 +13,12 @@ public interface IProjectService
         UpsertProjectDraftRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ProjectResponse> UpdateDeadlinesAsync(
+        Guid userId,
+        Guid projectId,
+        UpdateProjectDeadlinesRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<ProjectResponse> PublishAsync(
         Guid userId,
         Guid projectId,

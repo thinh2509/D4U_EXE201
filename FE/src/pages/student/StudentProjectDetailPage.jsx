@@ -133,7 +133,7 @@ export function StudentProjectDetailPage() {
               <div className="side-metric">
                 <CalendarOutlined />
                 <div>
-                  <span>Deadline tổng</span>
+                  <span>Hạn hoàn tất review</span>
                   <strong>{formatDate(project.totalDeadlineAt)}</strong>
                 </div>
               </div>
@@ -174,7 +174,7 @@ export function StudentProjectDetailPage() {
           <Descriptions.Item label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</Descriptions.Item>
           <Descriptions.Item label="Hạn Sketch">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
           <Descriptions.Item label="Hạn Final">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
-          <Descriptions.Item label="Deadline cuối">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
+          <Descriptions.Item label="Hạn hoàn tất review">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
         </Descriptions>
       </Modal>
 

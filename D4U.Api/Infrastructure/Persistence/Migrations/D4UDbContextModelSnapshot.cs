@@ -1617,11 +1617,11 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
                             Code = "BASIC",
                             IsActive = true,
-                            MaxActiveOpenProjects = 5,
+                            MaxActiveOpenProjects = 2,
                             MaxProjectBudget = 5000000m,
                             MonthlyPrice = 0m,
                             Name = "Basic",
-                            PlatformFeeRate = 0.05m
+                            PlatformFeeRate = 0.10m
                         },
                         new
                         {
@@ -1632,7 +1632,7 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                             MaxProjectBudget = 20000000m,
                             MonthlyPrice = 199000m,
                             Name = "Pro",
-                            PlatformFeeRate = 0.03m
+                            PlatformFeeRate = 0.07m
                         },
                         new
                         {
@@ -1641,7 +1641,7 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                             IsActive = true,
                             MonthlyPrice = 499000m,
                             Name = "Premium",
-                            PlatformFeeRate = 0.02m
+                            PlatformFeeRate = 0.05m
                         });
                 });
 

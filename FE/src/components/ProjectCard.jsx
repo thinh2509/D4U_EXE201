@@ -31,7 +31,7 @@ export function ProjectCard({ project, onOpen, actionLabel = 'Xem chi tiết' })
             <span className="project-meta-item">
               <CalendarOutlined />
               <span>
-                <small>Deadline</small>
+                <small>Hoàn tất review</small>
                 <strong>{formatDate(project.totalDeadlineAt)}</strong>
               </span>
             </span>

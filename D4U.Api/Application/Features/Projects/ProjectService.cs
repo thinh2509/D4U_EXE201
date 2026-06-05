@@ -4,6 +4,7 @@ using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Exceptions;
 using D4U.Api.Application.Common.Files;
 using D4U.Api.Application.Features.MoneyMovement;
+using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +12,13 @@ using Microsoft.EntityFrameworkCore;
 public sealed class ProjectService(
     IUnitOfWork unitOfWork,
     IMoneyMovementService moneyMovementService,
+    INotificationPublisher notificationPublisher,
     ILogger<ProjectService> logger) : IProjectService
 {
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
     private const int ReviewBusinessDays = 5;
+    private static readonly TimeSpan MinimumOfferLeadTime = TimeSpan.FromHours(120);
 
     public async Task<ProjectResponse> CreateDraftAsync(
         Guid userId,
@@ -74,6 +77,106 @@ public sealed class ProjectService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        return ToProjectResponse(project, category);
+    }
+
+    public async Task<ProjectResponse> UpdateDeadlinesAsync(
+        Guid userId,
+        Guid projectId,
+        UpdateProjectDeadlinesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.SmeProfileId != smeProfile.Id)
+        {
+            throw new UnauthorizedAccessException("Only the owner SME can update project deadlines.");
+        }
+
+        if (project.Status is not (
+            ProjectStatus.DRAFT or
+            ProjectStatus.OPEN or
+            ProjectStatus.PRIVATE_INVITED or
+            ProjectStatus.OFFER_SELECTED))
+        {
+            throw new ConflictException("Project deadlines are locked after the offer is accepted.");
+        }
+
+        var blockingOfferExists = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+            offer => offer.ProjectId == projectId &&
+                (offer.Status == OfferStatus.ACCEPTED ||
+                    offer.Status == OfferStatus.PENDING_PAYMENT ||
+                    offer.Status == OfferStatus.PAYMENT_FAILED ||
+                    offer.Status == OfferStatus.ACTIVE),
+            cancellationToken);
+
+        if (blockingOfferExists)
+        {
+            throw new ConflictException("Project deadlines are locked after the offer is accepted.");
+        }
+
+        ValidateDeadlineRules(
+            request.SketchDeadlineAt,
+            request.FinalDeadlineAt,
+            request.TotalDeadlineAt);
+
+        var waitingOffers = await unitOfWork.Repository<ProjectOffer>().Query()
+            .Where(offer => offer.ProjectId == projectId && offer.Status == OfferStatus.WAITING_ACCEPTANCE)
+            .ToListAsync(cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+
+        if (waitingOffers.Count > 0 && request.SketchDeadlineAt - now < MinimumOfferLeadTime)
+        {
+            throw new ConflictException(
+                "Sketch deadline quá gần. Cần ít nhất 5 ngày để Student xác nhận offer và SME hoàn tất thanh toán.");
+        }
+
+        var previousSketchDeadlineAt = project.SketchDeadlineAt;
+        var previousFinalDeadlineAt = project.FinalDeadlineAt;
+        var previousTotalDeadlineAt = project.TotalDeadlineAt;
+        project.SketchDeadlineAt = request.SketchDeadlineAt;
+        project.FinalDeadlineAt = request.FinalDeadlineAt;
+        project.TotalDeadlineAt = request.TotalDeadlineAt;
+        project.UpdatedAt = now;
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                ActorUserId = userId,
+                Action = "PROJECT_DEADLINES_UPDATED",
+                EntityType = nameof(Project),
+                EntityId = project.Id,
+                BeforeJson = $$"""{"sketchDeadlineAt":"{{previousSketchDeadlineAt:O}}","finalDeadlineAt":"{{previousFinalDeadlineAt:O}}","totalDeadlineAt":"{{previousTotalDeadlineAt:O}}"}""",
+                AfterJson = $$"""{"sketchDeadlineAt":"{{project.SketchDeadlineAt:O}}","finalDeadlineAt":"{{project.FinalDeadlineAt:O}}","totalDeadlineAt":"{{project.TotalDeadlineAt:O}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        foreach (var waitingOffer in waitingOffers)
+        {
+            var studentUserId = await unitOfWork.Repository<StudentProfile>().Query()
+                .Where(profile => profile.Id == waitingOffer.StudentProfileId)
+                .Select(profile => profile.UserId)
+                .FirstAsync(cancellationToken);
+
+            await notificationPublisher.PublishAsync(
+                studentUserId,
+                userId,
+                "PROJECT_DEADLINES_UPDATED",
+                "Deadline dự án đã được cập nhật",
+                $"SME đã cập nhật deadline dự án {project.Title}. Vui lòng kiểm tra lại trước khi chấp nhận offer.",
+                nameof(ProjectOffer),
+                waitingOffer.Id,
+                now,
+                cancellationToken);
+        }
+
+        var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
         return ToProjectResponse(project, category);
     }
 
@@ -663,6 +766,12 @@ public sealed class ProjectService(
         }
 
         var now = DateTimeOffset.UtcNow;
+        if (project.SketchDeadlineAt - now < MinimumOfferLeadTime)
+        {
+            throw new ConflictException(
+                "Sketch deadline quá gần. Cần ít nhất 5 ngày để Student xác nhận offer và SME hoàn tất thanh toán.");
+        }
+
         var offer = new ProjectOffer
         {
             Id = Guid.NewGuid(),
@@ -687,7 +796,10 @@ public sealed class ProjectService(
         project.Status = ProjectStatus.OFFER_SELECTED;
         project.UpdatedAt = now;
         await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.OFFER_SELECTED, userId, "Project offer created.", cancellationToken);
-        await AddNotificationAsync(
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationPublisher.PublishAsync(
             studentProfile.UserId,
             userId,
             "NEW_OFFER",
@@ -697,8 +809,6 @@ public sealed class ProjectService(
             offer.Id,
             now,
             cancellationToken);
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToOfferResponse(offer);
     }
@@ -817,6 +927,12 @@ public sealed class ProjectService(
         var submissionType = milestoneType == SubmissionStage.SKETCH ? SubmissionType.SKETCH : SubmissionType.FINAL;
         var revisionRound = project.CurrentRevisionRound;
 
+        if (now >= project.TotalDeadlineAt)
+        {
+            throw new ConflictException(
+                "Hạn hoàn tất dự án đã qua. Dự án cần được Admin xem xét trước khi nhận thêm bản nộp.");
+        }
+
         if (project.Status == ProjectStatus.REVISION_REQUESTED)
         {
             var previousSubmission = await GetLatestResubmissionRequiredSubmissionAsync(project.Id, cancellationToken)
@@ -871,7 +987,9 @@ public sealed class ProjectService(
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             Status = SubmissionStatus.SUBMITTED,
             SubmittedAt = now,
-            ReviewDueAt = AddBusinessDays(now, ReviewBusinessDays)
+            ReviewDueAt = milestoneType == SubmissionStage.FINAL
+                ? Min(AddBusinessDays(now, ReviewBusinessDays), project.TotalDeadlineAt)
+                : AddBusinessDays(now, ReviewBusinessDays)
         };
 
         var files = await BuildSubmissionFilesAsync(submission.Id, userId, request.Files, now, cancellationToken);
@@ -893,7 +1011,9 @@ public sealed class ProjectService(
             .Where(profile => profile.Id == project.SmeProfileId)
             .Select(profile => profile.UserId)
             .FirstAsync(cancellationToken);
-        await AddNotificationAsync(
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationPublisher.PublishAsync(
             smeOwnerUserId,
             userId,
             "NEW_SUBMISSION",
@@ -903,7 +1023,6 @@ public sealed class ProjectService(
             submission.Id,
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToSubmissionResponse(submission, files);
     }
@@ -954,15 +1073,15 @@ public sealed class ProjectService(
             cancellationToken);
 
         await AddStatusHistoryAsync(project.Id, previousProjectStatus, project.Status, userId, $"{submission.MilestoneType} approved by SME.", cancellationToken);
-        await AddReviewNotificationAsync(
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await PublishReviewNotificationAsync(
             submission,
             userId,
             submission.MilestoneType == SubmissionStage.FINAL ? "Final đã được duyệt" : "Sketch đã được duyệt",
             $"SME đã duyệt {submission.MilestoneType} cho dự án {project.Title}.",
             now,
             cancellationToken);
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (submission.MilestoneType == SubmissionStage.FINAL)
         {
@@ -995,7 +1114,10 @@ public sealed class ProjectService(
         var previousProjectStatus = project.Status;
 
         project.CurrentRevisionRound += 1;
-        project.Status = ProjectStatus.REVISION_REQUESTED;
+        var nextProjectStatus = project.CurrentRevisionRound >= project.MaxRevisionRounds
+            ? ProjectStatus.ADMIN_REVIEW
+            : ProjectStatus.REVISION_REQUESTED;
+        project.Status = nextProjectStatus;
         project.UpdatedAt = now;
         submission.Status = SubmissionStatus.REVISION_REQUESTED;
 
@@ -1014,16 +1136,24 @@ public sealed class ProjectService(
             },
             cancellationToken);
 
-        await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME requested revision.", cancellationToken);
-        await AddReviewNotificationAsync(
+        await AddStatusHistoryAsync(
+            project.Id,
+            previousProjectStatus,
+            nextProjectStatus,
+            userId,
+            nextProjectStatus == ProjectStatus.ADMIN_REVIEW
+                ? "Revision limit reached; project moved to Admin review."
+                : "SME requested revision.",
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await PublishReviewNotificationAsync(
             submission,
             userId,
             "SME yêu cầu chỉnh sửa",
             $"SME đã yêu cầu chỉnh sửa {submission.MilestoneType} cho dự án {project.Title}.",
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
         return await ToSubmissionResponseAsync(submission, cancellationToken);
     }
 
@@ -1064,14 +1194,15 @@ public sealed class ProjectService(
             cancellationToken);
 
         await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME reported invalid file.", cancellationToken);
-        await AddReviewNotificationAsync(
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await PublishReviewNotificationAsync(
             submission,
             userId,
             "File nộp không hợp lệ",
             $"SME đã báo file {submission.MilestoneType} không hợp lệ cho dự án {project.Title}.",
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await ToSubmissionResponseAsync(submission, cancellationToken);
     }
@@ -1219,7 +1350,10 @@ public sealed class ProjectService(
                     escrow?.Id,
                     escrow?.Status,
                     payment?.CheckoutUrl,
-                    payment?.ExpiresAt);
+                    payment?.ExpiresAt,
+                    project?.SketchDeadlineAt ?? default,
+                    project?.FinalDeadlineAt ?? default,
+                    project?.TotalDeadlineAt ?? default);
             })
             .ToList();
     }
@@ -1733,7 +1867,7 @@ public sealed class ProjectService(
             cancellationToken);
     }
 
-    private async Task AddReviewNotificationAsync(
+    private async Task PublishReviewNotificationAsync(
         ProjectSubmission submission,
         Guid actorUserId,
         string title,
@@ -1746,7 +1880,7 @@ public sealed class ProjectService(
             .Select(profile => profile.UserId)
             .FirstAsync(cancellationToken);
 
-        await AddNotificationAsync(
+        await notificationPublisher.PublishAsync(
             studentUserId,
             actorUserId,
             "REVIEW_ACTION",
@@ -1755,46 +1889,6 @@ public sealed class ProjectService(
             nameof(ProjectSubmission),
             submission.Id,
             now,
-            cancellationToken);
-    }
-
-    private async Task AddNotificationAsync(
-        Guid recipientUserId,
-        Guid? actorUserId,
-        string type,
-        string title,
-        string body,
-        string referenceType,
-        Guid referenceId,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        var exists = await unitOfWork.Repository<Notification>().AnyAsync(
-            notification => notification.RecipientUserId == recipientUserId &&
-                notification.Type == type &&
-                notification.ReferenceType == referenceType &&
-                notification.ReferenceId == referenceId,
-            cancellationToken);
-
-        if (exists)
-        {
-            return;
-        }
-
-        await unitOfWork.Repository<Notification>().AddAsync(
-            new Notification
-            {
-                Id = Guid.NewGuid(),
-                RecipientUserId = recipientUserId,
-                ActorUserId = actorUserId,
-                Type = type,
-                Title = title,
-                Body = body,
-                ReferenceType = referenceType,
-                ReferenceId = referenceId,
-                Status = NotificationStatus.UNREAD,
-                CreatedAt = now
-            },
             cancellationToken);
     }
 
@@ -1812,15 +1906,31 @@ public sealed class ProjectService(
             throw new InvalidOperationException("Project budget must be greater than zero.");
         }
 
-        if (request.SketchDeadlineAt > request.FinalDeadlineAt)
+        ValidateDeadlineRules(
+            request.SketchDeadlineAt,
+            request.FinalDeadlineAt,
+            request.TotalDeadlineAt);
+    }
+
+    private static void ValidateDeadlineRules(
+        DateTimeOffset sketchDeadlineAt,
+        DateTimeOffset finalDeadlineAt,
+        DateTimeOffset totalDeadlineAt)
+    {
+        if (sketchDeadlineAt > finalDeadlineAt)
         {
             throw new InvalidOperationException("Sketch deadline must be before or equal to final deadline.");
         }
 
-        if (request.FinalDeadlineAt > request.TotalDeadlineAt)
+        if (finalDeadlineAt > totalDeadlineAt)
         {
             throw new InvalidOperationException("Final deadline must be before or equal to total deadline.");
         }
+    }
+
+    private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right)
+    {
+        return left <= right ? left : right;
     }
 
     private static void ApplyDraft(Project project, UpsertProjectDraftRequest request)

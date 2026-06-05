@@ -23,6 +23,7 @@ import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { D4ULogo } from './D4ULogo.jsx';
+import { NotificationBell } from './NotificationBell.jsx';
 import { UserMenu } from './UserMenu.jsx';
 
 const { Header, Sider, Content } = Layout;
@@ -197,6 +198,7 @@ export function AppLayout() {
             <strong>{title}</strong>
           </div>
           <Tag className="header-chip" icon={<BuildOutlined />}>MVP workspace</Tag>
+          <NotificationBell />
           <UserMenu user={user} onLogout={handleLogout} />
         </Header>
 

@@ -5,6 +5,7 @@ import {
   SafetyCertificateOutlined,
   TeamOutlined
 } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import { D4ULogo } from '../../components/D4ULogo.jsx';
 
 const FEATURES = [
@@ -38,7 +39,9 @@ export function AuthBrandPanel() {
 
       <div className="auth-brand-stack">
         <div className="auth-logo-card">
-          <D4ULogo />
+          <Link className="auth-logo-link" to="/" aria-label="Về trang chủ D4U">
+            <D4ULogo />
+          </Link>
         </div>
 
         <div className="auth-brand-copy">

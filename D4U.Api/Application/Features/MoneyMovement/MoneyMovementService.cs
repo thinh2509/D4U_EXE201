@@ -2,6 +2,7 @@
 
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Exceptions;
+using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 public sealed class MoneyMovementService(
     IUnitOfWork unitOfWork,
     D4UDbContext dbContext,
+    INotificationPublisher notificationPublisher,
     IDataProtectionProvider dataProtectionProvider) : IMoneyMovementService
 {
     private readonly IDataProtector accountNumberProtector =
@@ -33,6 +35,15 @@ public sealed class MoneyMovementService(
         {
             var response = await ReleaseProjectEscrowCoreAsync(projectId, actorUserId, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            if (response is not null)
+            {
+                await PublishEscrowReleasedNotificationAsync(
+                    projectId,
+                    response,
+                    actorUserId,
+                    cancellationToken);
+            }
+
             return response;
         }
         catch (DbUpdateException)
@@ -318,17 +329,6 @@ public sealed class MoneyMovementService(
             now,
             cancellationToken);
 
-        await AddNotificationAsync(
-            studentProfile.UserId,
-            actorUserId,
-            "ESCROW_RELEASED",
-            "Tiá»n dá»± Ã¡n Ä‘Ã£ Ä‘Æ°á»£c cá»™ng vÃ o vÃ­",
-            $"Báº¡n Ä‘Ã£ nháº­n {netAmount:N0} {escrow.Currency} sau khi trá»« phÃ­ ná»n táº£ng {platformFeeAmount:N0} {escrow.Currency}.",
-            nameof(Disbursement),
-            disbursement.Id,
-            now,
-            cancellationToken);
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ToDisbursementResponse(disbursement);
     }
@@ -438,6 +438,40 @@ public sealed class MoneyMovementService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return await ToRefundResponseAsync(refund, cancellationToken);
+    }
+
+    private async Task PublishEscrowReleasedNotificationAsync(
+        Guid projectId,
+        DisbursementResponse disbursement,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var data = await (
+            from escrow in dbContext.Escrows
+            join studentProfile in dbContext.StudentProfiles on escrow.StudentProfileId equals studentProfile.Id
+            where escrow.ProjectId == projectId && escrow.Id == disbursement.EscrowId
+            select new
+            {
+                studentProfile.UserId,
+                escrow.Currency
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (data is null)
+        {
+            return;
+        }
+
+        await notificationPublisher.PublishAsync(
+            data.UserId,
+            actorUserId,
+            "ESCROW_RELEASED",
+            "Project payout credited to wallet",
+            $"You received {disbursement.NetAmount:N0} {data.Currency} after the {disbursement.PlatformFeeAmount:N0} {data.Currency} platform fee.",
+            nameof(Disbursement),
+            disbursement.Id,
+            disbursement.CompletedAt ?? DateTimeOffset.UtcNow,
+            cancellationToken);
     }
 
     public async Task<WalletResponse> GetMyWalletAsync(
@@ -777,8 +811,8 @@ public sealed class MoneyMovementService(
                 withdrawal.RequestedByUserId,
                 adminUserId,
                 "WITHDRAWAL_COMPLETED",
-                "YÃªu cáº§u rÃºt tiá»n Ä‘Ã£ hoÃ n táº¥t",
-                $"D4U Ä‘Ã£ xÃ¡c nháº­n chuyá»ƒn {withdrawal.NetAmount:N0} VND tá»›i tÃ i khoáº£n ngÃ¢n hÃ ng cá»§a báº¡n.",
+                "Yêu cầu rút tiền đã hoàn tất",
+                $"D4U đã xác nhận chuyển {withdrawal.NetAmount:N0} VND. Mã giao dịch: {withdrawal.BankTransactionReference}.",
                 nameof(WithdrawalRequest),
                 withdrawal.Id,
                 now,
@@ -828,8 +862,8 @@ public sealed class MoneyMovementService(
                 withdrawal.RequestedByUserId,
                 adminUserId,
                 "WITHDRAWAL_FAILED",
-                "YÃªu cáº§u rÃºt tiá»n chÆ°a thÃ nh cÃ´ng",
-                $"Sá»‘ tiá»n {withdrawal.Amount:N0} VND Ä‘Ã£ Ä‘Æ°á»£c tráº£ láº¡i sá»‘ dÆ° kháº£ dá»¥ng. LÃ½ do: {withdrawal.FailureReason}",
+                "Yêu cầu rút tiền chưa thành công",
+                $"Số tiền {withdrawal.Amount:N0} VND đã được trả lại số dư khả dụng. Lý do: {withdrawal.FailureReason}",
                 nameof(WithdrawalRequest),
                 withdrawal.Id,
                 now,
@@ -1016,7 +1050,7 @@ public sealed class MoneyMovementService(
         }
         catch (Exception exception)
         {
-            throw new InvalidOperationException("KhÃ´ng thá»ƒ giáº£i mÃ£ sá»‘ tÃ i khoáº£n.", exception);
+            throw new InvalidOperationException("Không thể giải mã số tài khoản.", exception);
         }
     }
 

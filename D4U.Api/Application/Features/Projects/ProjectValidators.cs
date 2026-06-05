@@ -70,6 +70,22 @@ public sealed class CancelProjectRequestValidator : AbstractValidator<CancelProj
     }
 }
 
+public sealed class UpdateProjectDeadlinesRequestValidator : AbstractValidator<UpdateProjectDeadlinesRequest>
+{
+    public UpdateProjectDeadlinesRequestValidator()
+    {
+        RuleFor(request => request.SketchDeadlineAt)
+            .GreaterThan(DateTimeOffset.UtcNow)
+            .WithMessage("Sketch deadline must be in the future.")
+            .LessThanOrEqualTo(request => request.FinalDeadlineAt)
+            .WithMessage("Sketch deadline must be before or equal to final deadline.");
+
+        RuleFor(request => request.FinalDeadlineAt)
+            .LessThanOrEqualTo(request => request.TotalDeadlineAt)
+            .WithMessage("Final deadline must be before or equal to total deadline.");
+    }
+}
+
 public sealed class CreateProjectOfferRequestValidator : AbstractValidator<CreateProjectOfferRequest>
 {
     public CreateProjectOfferRequestValidator()
