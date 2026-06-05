@@ -24,12 +24,14 @@ public sealed class NotificationPublisher(
         {
             using var scope = serviceScopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
-            var exists = await dbContext.Notifications.AnyAsync(
-                notification => notification.RecipientUserId == recipientUserId &&
-                    notification.Type == type &&
-                    notification.ReferenceType == referenceType &&
-                    notification.ReferenceId == referenceId,
-                cancellationToken);
+            var exists = type == "PROJECT_DEADLINES_UPDATED"
+                ? false
+                : await dbContext.Notifications.AnyAsync(
+                    notification => notification.RecipientUserId == recipientUserId &&
+                        notification.Type == type &&
+                        notification.ReferenceType == referenceType &&
+                        notification.ReferenceId == referenceId,
+                    cancellationToken);
 
             if (exists)
             {

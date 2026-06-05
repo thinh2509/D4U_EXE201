@@ -63,6 +63,9 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Application captures proposed price, cover letter/solution note, and optional estimated duration.
 - [x] SME can view applications for own project.
 - [x] SME can select an application and create offer.
+- [x] Offer creation requires at least 120 hours before the Sketch deadline.
+- [x] SME can update project deadlines before offer acceptance; deadlines lock after acceptance.
+- [x] Waiting Student receives notification when SME updates project deadlines.
 - [x] Offer starts as `WAITING_ACCEPTANCE`.
 - [x] Student can accept offer before SME funds escrow.
 - [x] Student can reject offer.
@@ -112,6 +115,8 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Project moves to Final submitted/in-review status.
 - [x] SME can approve Final.
 - [x] System auto-approves Final after 5 business days without SME review.
+- [x] Final review due date is capped by the project total deadline.
+- [x] Total deadline auto-approves a reviewable Final; projects without a reviewable Final move to `ADMIN_REVIEW`.
 - [x] Final approval moves project to `COMPLETED`.
 - [x] Escrow moves to `RELEASE_PENDING`.
 - [x] Calculate platform fee from escrow amount and stored fee rate.
@@ -163,6 +168,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Wallet non-negative balance is enforced by database constraint as well as service validation.
 - [x] Automatic bank payout and direct bank balance synchronization are out of Outcome 1.
 - [x] Frontend Student wallet displays withdrawal fee as 5,000 VND and net amount as `amount - 5,000 VND`.
+- [x] Frontend Student wallet auto-refreshes active withdrawal requests and links completed withdrawal notifications to the matching row.
 
 ### Rating
 

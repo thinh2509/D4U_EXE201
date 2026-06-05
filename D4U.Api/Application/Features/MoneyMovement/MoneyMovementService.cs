@@ -811,8 +811,8 @@ public sealed class MoneyMovementService(
                 withdrawal.RequestedByUserId,
                 adminUserId,
                 "WITHDRAWAL_COMPLETED",
-                "YÃªu cáº§u rÃºt tiá»n Ä‘Ã£ hoÃ n táº¥t",
-                $"D4U Ä‘Ã£ xÃ¡c nháº­n chuyá»ƒn {withdrawal.NetAmount:N0} VND tá»›i tÃ i khoáº£n ngÃ¢n hÃ ng cá»§a báº¡n.",
+                "Yêu cầu rút tiền đã hoàn tất",
+                $"D4U đã xác nhận chuyển {withdrawal.NetAmount:N0} VND. Mã giao dịch: {withdrawal.BankTransactionReference}.",
                 nameof(WithdrawalRequest),
                 withdrawal.Id,
                 now,
@@ -862,8 +862,8 @@ public sealed class MoneyMovementService(
                 withdrawal.RequestedByUserId,
                 adminUserId,
                 "WITHDRAWAL_FAILED",
-                "YÃªu cáº§u rÃºt tiá»n chÆ°a thÃ nh cÃ´ng",
-                $"Sá»‘ tiá»n {withdrawal.Amount:N0} VND Ä‘Ã£ Ä‘Æ°á»£c tráº£ láº¡i sá»‘ dÆ° kháº£ dá»¥ng. LÃ½ do: {withdrawal.FailureReason}",
+                "Yêu cầu rút tiền chưa thành công",
+                $"Số tiền {withdrawal.Amount:N0} VND đã được trả lại số dư khả dụng. Lý do: {withdrawal.FailureReason}",
                 nameof(WithdrawalRequest),
                 withdrawal.Id,
                 now,
@@ -1050,7 +1050,7 @@ public sealed class MoneyMovementService(
         }
         catch (Exception exception)
         {
-            throw new InvalidOperationException("KhÃ´ng thá»ƒ giáº£i mÃ£ sá»‘ tÃ i khoáº£n.", exception);
+            throw new InvalidOperationException("Không thể giải mã số tài khoản.", exception);
         }
     }
 

@@ -80,6 +80,22 @@ public sealed class ProjectsController(
         return Ok(response);
     }
 
+    [HttpPatch("{projectId:guid}/deadlines")]
+    [Authorize(Roles = nameof(UserRole.SME))]
+    public async Task<ActionResult<ProjectResponse>> UpdateDeadlines(
+        Guid projectId,
+        UpdateProjectDeadlinesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await projectService.UpdateDeadlinesAsync(
+            GetRequiredUserId(),
+            projectId,
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPost("{projectId:guid}/publish")]
     [Authorize(Roles = nameof(UserRole.SME))]
     public async Task<ActionResult<ProjectResponse>> Publish(

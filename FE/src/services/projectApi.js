@@ -14,6 +14,7 @@ export const projectApi = {
   listSubmissions: (projectId) => apiClient.get(`/projects/${projectId}/submissions`),
   createDraft: (payload) => apiClient.post('/projects', payload),
   updateDraft: (projectId, payload) => apiClient.put(`/projects/${projectId}`, payload),
+  updateDeadlines: (projectId, payload) => apiClient.patch(`/projects/${projectId}/deadlines`, payload),
   publishProject: (projectId) => apiClient.post(`/projects/${projectId}/publish`),
   cancelProject: (projectId, cancellationReason) =>
     apiClient.post(`/projects/${projectId}/cancel`, { cancellationReason }),

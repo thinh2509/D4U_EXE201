@@ -1,6 +1,7 @@
 namespace D4U.Api.Infrastructure.BackgroundServices;
 
 using D4U.Api.Application.Features.MoneyMovement;
+using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
@@ -41,10 +42,12 @@ public sealed class SubmissionAutoApprovalBackgroundService(
         var dbContext = scope.ServiceProvider.GetRequiredService<D4UDbContext>();
         var now = DateTimeOffset.UtcNow;
         var completedProjectIds = new HashSet<Guid>();
+        var approvedItems = new List<(Project Project, ProjectSubmission Submission)>();
 
         var dueSubmissions = await dbContext.ProjectSubmissions
             .Where(submission =>
-                submission.Status == SubmissionStatus.SUBMITTED &&
+                (submission.Status == SubmissionStatus.SUBMITTED ||
+                    submission.Status == SubmissionStatus.VALID) &&
                 submission.ReviewDueAt.HasValue &&
                 submission.ReviewDueAt <= now)
             .OrderBy(submission => submission.SubmittedAt)
@@ -87,6 +90,8 @@ public sealed class SubmissionAutoApprovalBackgroundService(
                 }
             }
 
+            approvedItems.Add((project, submission));
+
             await dbContext.ReviewActions.AddAsync(
                 new ReviewAction
                 {
@@ -117,6 +122,41 @@ public sealed class SubmissionAutoApprovalBackgroundService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var notificationPublisher = scope.ServiceProvider.GetRequiredService<INotificationPublisher>();
+        foreach (var item in approvedItems)
+        {
+            var smeUserId = await dbContext.SmeProfiles
+                .Where(profile => profile.Id == item.Project.SmeProfileId)
+                .Select(profile => profile.UserId)
+                .FirstAsync(cancellationToken);
+            var studentUserId = await dbContext.StudentProfiles
+                .Where(profile => profile.Id == item.Submission.SubmittedByStudentId)
+                .Select(profile => profile.UserId)
+                .FirstAsync(cancellationToken);
+            var milestoneLabel = item.Submission.MilestoneType == SubmissionStage.FINAL ? "Final" : "Sketch";
+
+            await notificationPublisher.PublishAsync(
+                studentUserId,
+                null,
+                "SUBMISSION_AUTO_APPROVED",
+                $"{milestoneLabel} đã được tự động duyệt",
+                $"{milestoneLabel} của dự án {item.Project.Title} đã được tự động duyệt khi hết hạn review.",
+                nameof(ProjectSubmission),
+                item.Submission.Id,
+                now,
+                cancellationToken);
+            await notificationPublisher.PublishAsync(
+                smeUserId,
+                null,
+                "SUBMISSION_AUTO_APPROVED",
+                $"{milestoneLabel} đã được tự động duyệt",
+                $"Hệ thống đã tự động duyệt {milestoneLabel} của dự án {item.Project.Title} khi hết hạn review.",
+                nameof(ProjectSubmission),
+                item.Submission.Id,
+                now,
+                cancellationToken);
+        }
 
         if (completedProjectIds.Count == 0)
         {

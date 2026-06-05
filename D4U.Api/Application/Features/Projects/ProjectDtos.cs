@@ -43,6 +43,11 @@ public sealed record ProjectResponse(
 public sealed record CancelProjectRequest(
     string? CancellationReason);
 
+public sealed record UpdateProjectDeadlinesRequest(
+    DateTimeOffset SketchDeadlineAt,
+    DateTimeOffset FinalDeadlineAt,
+    DateTimeOffset TotalDeadlineAt);
+
 public sealed record SubmitProjectApplicationRequest(
     decimal ProposedPrice,
     string CoverLetter,
@@ -109,7 +114,10 @@ public sealed record ProjectOfferFlowResponse(
     Guid? EscrowId,
     EscrowStatus? EscrowStatus,
     string? CheckoutUrl,
-    DateTimeOffset? PaymentExpiresAt);
+    DateTimeOffset? PaymentExpiresAt,
+    DateTimeOffset SketchDeadlineAt,
+    DateTimeOffset FinalDeadlineAt,
+    DateTimeOffset TotalDeadlineAt);
 
 public sealed record StudentProjectSummaryResponse(
     Guid ProjectId,

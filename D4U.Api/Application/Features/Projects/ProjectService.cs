@@ -18,6 +18,7 @@ public sealed class ProjectService(
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
     private const int ReviewBusinessDays = 5;
+    private static readonly TimeSpan MinimumOfferLeadTime = TimeSpan.FromHours(120);
 
     public async Task<ProjectResponse> CreateDraftAsync(
         Guid userId,
@@ -76,6 +77,106 @@ public sealed class ProjectService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        return ToProjectResponse(project, category);
+    }
+
+    public async Task<ProjectResponse> UpdateDeadlinesAsync(
+        Guid userId,
+        Guid projectId,
+        UpdateProjectDeadlinesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.SmeProfileId != smeProfile.Id)
+        {
+            throw new UnauthorizedAccessException("Only the owner SME can update project deadlines.");
+        }
+
+        if (project.Status is not (
+            ProjectStatus.DRAFT or
+            ProjectStatus.OPEN or
+            ProjectStatus.PRIVATE_INVITED or
+            ProjectStatus.OFFER_SELECTED))
+        {
+            throw new ConflictException("Project deadlines are locked after the offer is accepted.");
+        }
+
+        var blockingOfferExists = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+            offer => offer.ProjectId == projectId &&
+                (offer.Status == OfferStatus.ACCEPTED ||
+                    offer.Status == OfferStatus.PENDING_PAYMENT ||
+                    offer.Status == OfferStatus.PAYMENT_FAILED ||
+                    offer.Status == OfferStatus.ACTIVE),
+            cancellationToken);
+
+        if (blockingOfferExists)
+        {
+            throw new ConflictException("Project deadlines are locked after the offer is accepted.");
+        }
+
+        ValidateDeadlineRules(
+            request.SketchDeadlineAt,
+            request.FinalDeadlineAt,
+            request.TotalDeadlineAt);
+
+        var waitingOffers = await unitOfWork.Repository<ProjectOffer>().Query()
+            .Where(offer => offer.ProjectId == projectId && offer.Status == OfferStatus.WAITING_ACCEPTANCE)
+            .ToListAsync(cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+
+        if (waitingOffers.Count > 0 && request.SketchDeadlineAt - now < MinimumOfferLeadTime)
+        {
+            throw new ConflictException(
+                "Sketch deadline quá gần. Cần ít nhất 5 ngày để Student xác nhận offer và SME hoàn tất thanh toán.");
+        }
+
+        var previousSketchDeadlineAt = project.SketchDeadlineAt;
+        var previousFinalDeadlineAt = project.FinalDeadlineAt;
+        var previousTotalDeadlineAt = project.TotalDeadlineAt;
+        project.SketchDeadlineAt = request.SketchDeadlineAt;
+        project.FinalDeadlineAt = request.FinalDeadlineAt;
+        project.TotalDeadlineAt = request.TotalDeadlineAt;
+        project.UpdatedAt = now;
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                ActorUserId = userId,
+                Action = "PROJECT_DEADLINES_UPDATED",
+                EntityType = nameof(Project),
+                EntityId = project.Id,
+                BeforeJson = $$"""{"sketchDeadlineAt":"{{previousSketchDeadlineAt:O}}","finalDeadlineAt":"{{previousFinalDeadlineAt:O}}","totalDeadlineAt":"{{previousTotalDeadlineAt:O}}"}""",
+                AfterJson = $$"""{"sketchDeadlineAt":"{{project.SketchDeadlineAt:O}}","finalDeadlineAt":"{{project.FinalDeadlineAt:O}}","totalDeadlineAt":"{{project.TotalDeadlineAt:O}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        foreach (var waitingOffer in waitingOffers)
+        {
+            var studentUserId = await unitOfWork.Repository<StudentProfile>().Query()
+                .Where(profile => profile.Id == waitingOffer.StudentProfileId)
+                .Select(profile => profile.UserId)
+                .FirstAsync(cancellationToken);
+
+            await notificationPublisher.PublishAsync(
+                studentUserId,
+                userId,
+                "PROJECT_DEADLINES_UPDATED",
+                "Deadline dự án đã được cập nhật",
+                $"SME đã cập nhật deadline dự án {project.Title}. Vui lòng kiểm tra lại trước khi chấp nhận offer.",
+                nameof(ProjectOffer),
+                waitingOffer.Id,
+                now,
+                cancellationToken);
+        }
+
+        var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
         return ToProjectResponse(project, category);
     }
 
@@ -665,6 +766,12 @@ public sealed class ProjectService(
         }
 
         var now = DateTimeOffset.UtcNow;
+        if (project.SketchDeadlineAt - now < MinimumOfferLeadTime)
+        {
+            throw new ConflictException(
+                "Sketch deadline quá gần. Cần ít nhất 5 ngày để Student xác nhận offer và SME hoàn tất thanh toán.");
+        }
+
         var offer = new ProjectOffer
         {
             Id = Guid.NewGuid(),
@@ -820,6 +927,12 @@ public sealed class ProjectService(
         var submissionType = milestoneType == SubmissionStage.SKETCH ? SubmissionType.SKETCH : SubmissionType.FINAL;
         var revisionRound = project.CurrentRevisionRound;
 
+        if (now >= project.TotalDeadlineAt)
+        {
+            throw new ConflictException(
+                "Hạn hoàn tất dự án đã qua. Dự án cần được Admin xem xét trước khi nhận thêm bản nộp.");
+        }
+
         if (project.Status == ProjectStatus.REVISION_REQUESTED)
         {
             var previousSubmission = await GetLatestResubmissionRequiredSubmissionAsync(project.Id, cancellationToken)
@@ -874,7 +987,9 @@ public sealed class ProjectService(
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             Status = SubmissionStatus.SUBMITTED,
             SubmittedAt = now,
-            ReviewDueAt = AddBusinessDays(now, ReviewBusinessDays)
+            ReviewDueAt = milestoneType == SubmissionStage.FINAL
+                ? Min(AddBusinessDays(now, ReviewBusinessDays), project.TotalDeadlineAt)
+                : AddBusinessDays(now, ReviewBusinessDays)
         };
 
         var files = await BuildSubmissionFilesAsync(submission.Id, userId, request.Files, now, cancellationToken);
@@ -1235,7 +1350,10 @@ public sealed class ProjectService(
                     escrow?.Id,
                     escrow?.Status,
                     payment?.CheckoutUrl,
-                    payment?.ExpiresAt);
+                    payment?.ExpiresAt,
+                    project?.SketchDeadlineAt ?? default,
+                    project?.FinalDeadlineAt ?? default,
+                    project?.TotalDeadlineAt ?? default);
             })
             .ToList();
     }
@@ -1788,15 +1906,31 @@ public sealed class ProjectService(
             throw new InvalidOperationException("Project budget must be greater than zero.");
         }
 
-        if (request.SketchDeadlineAt > request.FinalDeadlineAt)
+        ValidateDeadlineRules(
+            request.SketchDeadlineAt,
+            request.FinalDeadlineAt,
+            request.TotalDeadlineAt);
+    }
+
+    private static void ValidateDeadlineRules(
+        DateTimeOffset sketchDeadlineAt,
+        DateTimeOffset finalDeadlineAt,
+        DateTimeOffset totalDeadlineAt)
+    {
+        if (sketchDeadlineAt > finalDeadlineAt)
         {
             throw new InvalidOperationException("Sketch deadline must be before or equal to final deadline.");
         }
 
-        if (request.FinalDeadlineAt > request.TotalDeadlineAt)
+        if (finalDeadlineAt > totalDeadlineAt)
         {
             throw new InvalidOperationException("Final deadline must be before or equal to total deadline.");
         }
+    }
+
+    private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right)
+    {
+        return left <= right ? left : right;
     }
 
     private static void ApplyDraft(Project project, UpsertProjectDraftRequest request)

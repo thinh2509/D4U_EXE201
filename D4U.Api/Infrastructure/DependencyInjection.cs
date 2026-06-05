@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
+        services.AddHostedService<ProjectTotalDeadlineBackgroundService>();
         services.AddHostedService<EscrowReleaseBackgroundService>();
         services.AddHostedService<StudentAbandonmentBackgroundService>();
         services.AddHostedService<SubmissionOrphanCleanupBackgroundService>();

@@ -204,6 +204,17 @@ a {
   width: 220px;
 }
 
+.auth-logo-link {
+  display: inline-flex;
+  border-radius: 14px;
+  text-decoration: none;
+}
+
+.auth-logo-link:focus-visible {
+  outline: 3px solid rgba(18, 174, 234, 0.32);
+  outline-offset: 5px;
+}
+
 .auth-brand-copy {
   display: grid;
   gap: 16px;
@@ -1956,6 +1967,33 @@ html {
   background: var(--primary);
   color: #fff !important;
   box-shadow: none;
+}
+
+.project-form-layout.deadline-only {
+  grid-template-columns: minmax(0, 760px);
+  justify-content: center;
+}
+
+.withdrawal-row-highlight > td {
+  background: #eaf8ff !important;
+}
+
+.landing-header-actions .ant-btn-primary,
+.landing-mobile-nav .ant-btn-primary {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+.landing-header-actions .ant-btn-primary:hover,
+.landing-header-actions .ant-btn-primary:focus-visible,
+.landing-header-actions .ant-btn-primary:active,
+.landing-mobile-nav .ant-btn-primary:hover,
+.landing-mobile-nav .ant-btn-primary:focus-visible,
+.landing-mobile-nav .ant-btn-primary:active {
+  border-color: var(--primary-700) !important;
+  background: var(--primary-700) !important;
+  color: #fff !important;
 }
 
 .landing-page .ant-btn-primary:hover,

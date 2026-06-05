@@ -1,7 +1,7 @@
 import { SolutionOutlined } from '@ant-design/icons';
 import { App, Alert, Button, Card, Descriptions, Modal, Space, Table } from 'antd';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
@@ -11,8 +11,10 @@ import { formatCurrency, formatDate } from '../../utils/format.js';
 
 export function SmeProjectApplicationsPage() {
   const { message } = App.useApp();
+  const navigate = useNavigate();
   const { projectId } = useParams();
   const [rows, setRows] = useState([]);
+  const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [offering, setOffering] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -22,7 +24,12 @@ export function SmeProjectApplicationsPage() {
     setLoading(true);
     setError(null);
     try {
-      setRows(await projectApi.listApplications(projectId));
+      const [applications, projectResult] = await Promise.all([
+        projectApi.listApplications(projectId),
+        projectApi.getProject(projectId)
+      ]);
+      setRows(applications);
+      setProject(projectResult);
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
     } finally {
@@ -78,6 +85,10 @@ export function SmeProjectApplicationsPage() {
   ];
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
+  const offerLeadTimeHours = project
+    ? (new Date(project.sketchDeadlineAt).getTime() - Date.now()) / 3600000
+    : 0;
+  const deadlineTooClose = offerLeadTimeHours < 120;
 
   return (
     <>
@@ -101,19 +112,30 @@ export function SmeProjectApplicationsPage() {
       </Card>
       <Modal title="Xác nhận gửi offer" open={Boolean(selected)} footer={null} onCancel={() => setSelected(null)}>
         <Alert
-          type="info"
+          type={deadlineTooClose ? 'error' : 'info'}
           showIcon
           className="form-alert"
-          message="Student có 48 giờ để chấp nhận hoặc từ chối. Sau khi Student chấp nhận, SME mới thanh toán escrow qua PayOS."
+          message={deadlineTooClose
+            ? 'Hạn Sketch còn dưới 5 ngày nên chưa thể gửi offer.'
+            : 'Student có 48 giờ để chấp nhận. Sau đó SME có tối đa 72 giờ để hoàn tất thanh toán.'}
+          description={deadlineTooClose
+            ? 'Hãy điều chỉnh deadline trước khi gửi offer để tránh project bắt đầu sau hạn Sketch.'
+            : 'Deadline sẽ bị khóa ngay khi Student chấp nhận offer.'}
         />
         <Descriptions column={1} bordered size="small">
           <Descriptions.Item label="Student">{selected?.studentFullName}</Descriptions.Item>
           <Descriptions.Item label="Giá offer">{formatCurrency(selected?.proposedPrice)}</Descriptions.Item>
           <Descriptions.Item label="Giải pháp hoặc xác nhận">{selected?.coverLetter}</Descriptions.Item>
           <Descriptions.Item label="Hạn phản hồi">48 giờ kể từ khi gửi offer</Descriptions.Item>
+          <Descriptions.Item label="Hạn nộp Sketch">{formatDate(project?.sketchDeadlineAt)}</Descriptions.Item>
+          <Descriptions.Item label="Hạn nộp Final">{formatDate(project?.finalDeadlineAt)}</Descriptions.Item>
+          <Descriptions.Item label="Hạn hoàn tất review">{formatDate(project?.totalDeadlineAt)}</Descriptions.Item>
         </Descriptions>
         <Space className="workspace-primary-action">
-          <Button type="primary" loading={offering} onClick={createOffer}>Gửi offer</Button>
+          <Button type="primary" loading={offering} disabled={deadlineTooClose} onClick={createOffer}>Gửi offer</Button>
+          {deadlineTooClose ? (
+            <Button onClick={() => navigate(`/sme/projects/${projectId}/edit`)}>Điều chỉnh deadline</Button>
+          ) : null}
           <Button onClick={() => setSelected(null)}>Hủy</Button>
         </Space>
       </Modal>
