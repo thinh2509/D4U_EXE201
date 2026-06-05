@@ -4,6 +4,7 @@ using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Exceptions;
 using D4U.Api.Application.Common.Files;
 using D4U.Api.Application.Features.MoneyMovement;
+using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 public sealed class ProjectService(
     IUnitOfWork unitOfWork,
     IMoneyMovementService moneyMovementService,
+    INotificationPublisher notificationPublisher,
     ILogger<ProjectService> logger) : IProjectService
 {
     private const string BasicPlanCode = "BASIC";
@@ -687,7 +689,10 @@ public sealed class ProjectService(
         project.Status = ProjectStatus.OFFER_SELECTED;
         project.UpdatedAt = now;
         await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.OFFER_SELECTED, userId, "Project offer created.", cancellationToken);
-        await AddNotificationAsync(
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationPublisher.PublishAsync(
             studentProfile.UserId,
             userId,
             "NEW_OFFER",
@@ -697,8 +702,6 @@ public sealed class ProjectService(
             offer.Id,
             now,
             cancellationToken);
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToOfferResponse(offer);
     }
@@ -893,7 +896,9 @@ public sealed class ProjectService(
             .Where(profile => profile.Id == project.SmeProfileId)
             .Select(profile => profile.UserId)
             .FirstAsync(cancellationToken);
-        await AddNotificationAsync(
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationPublisher.PublishAsync(
             smeOwnerUserId,
             userId,
             "NEW_SUBMISSION",
@@ -903,7 +908,6 @@ public sealed class ProjectService(
             submission.Id,
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToSubmissionResponse(submission, files);
     }
@@ -954,15 +958,15 @@ public sealed class ProjectService(
             cancellationToken);
 
         await AddStatusHistoryAsync(project.Id, previousProjectStatus, project.Status, userId, $"{submission.MilestoneType} approved by SME.", cancellationToken);
-        await AddReviewNotificationAsync(
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await PublishReviewNotificationAsync(
             submission,
             userId,
             submission.MilestoneType == SubmissionStage.FINAL ? "Final đã được duyệt" : "Sketch đã được duyệt",
             $"SME đã duyệt {submission.MilestoneType} cho dự án {project.Title}.",
             now,
             cancellationToken);
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (submission.MilestoneType == SubmissionStage.FINAL)
         {
@@ -995,7 +999,10 @@ public sealed class ProjectService(
         var previousProjectStatus = project.Status;
 
         project.CurrentRevisionRound += 1;
-        project.Status = ProjectStatus.REVISION_REQUESTED;
+        var nextProjectStatus = project.CurrentRevisionRound >= project.MaxRevisionRounds
+            ? ProjectStatus.ADMIN_REVIEW
+            : ProjectStatus.REVISION_REQUESTED;
+        project.Status = nextProjectStatus;
         project.UpdatedAt = now;
         submission.Status = SubmissionStatus.REVISION_REQUESTED;
 
@@ -1014,16 +1021,24 @@ public sealed class ProjectService(
             },
             cancellationToken);
 
-        await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME requested revision.", cancellationToken);
-        await AddReviewNotificationAsync(
+        await AddStatusHistoryAsync(
+            project.Id,
+            previousProjectStatus,
+            nextProjectStatus,
+            userId,
+            nextProjectStatus == ProjectStatus.ADMIN_REVIEW
+                ? "Revision limit reached; project moved to Admin review."
+                : "SME requested revision.",
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await PublishReviewNotificationAsync(
             submission,
             userId,
             "SME yêu cầu chỉnh sửa",
             $"SME đã yêu cầu chỉnh sửa {submission.MilestoneType} cho dự án {project.Title}.",
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
         return await ToSubmissionResponseAsync(submission, cancellationToken);
     }
 
@@ -1064,14 +1079,15 @@ public sealed class ProjectService(
             cancellationToken);
 
         await AddStatusHistoryAsync(project.Id, previousProjectStatus, ProjectStatus.REVISION_REQUESTED, userId, "SME reported invalid file.", cancellationToken);
-        await AddReviewNotificationAsync(
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await PublishReviewNotificationAsync(
             submission,
             userId,
             "File nộp không hợp lệ",
             $"SME đã báo file {submission.MilestoneType} không hợp lệ cho dự án {project.Title}.",
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await ToSubmissionResponseAsync(submission, cancellationToken);
     }
@@ -1733,7 +1749,7 @@ public sealed class ProjectService(
             cancellationToken);
     }
 
-    private async Task AddReviewNotificationAsync(
+    private async Task PublishReviewNotificationAsync(
         ProjectSubmission submission,
         Guid actorUserId,
         string title,
@@ -1746,7 +1762,7 @@ public sealed class ProjectService(
             .Select(profile => profile.UserId)
             .FirstAsync(cancellationToken);
 
-        await AddNotificationAsync(
+        await notificationPublisher.PublishAsync(
             studentUserId,
             actorUserId,
             "REVIEW_ACTION",
@@ -1755,46 +1771,6 @@ public sealed class ProjectService(
             nameof(ProjectSubmission),
             submission.Id,
             now,
-            cancellationToken);
-    }
-
-    private async Task AddNotificationAsync(
-        Guid recipientUserId,
-        Guid? actorUserId,
-        string type,
-        string title,
-        string body,
-        string referenceType,
-        Guid referenceId,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        var exists = await unitOfWork.Repository<Notification>().AnyAsync(
-            notification => notification.RecipientUserId == recipientUserId &&
-                notification.Type == type &&
-                notification.ReferenceType == referenceType &&
-                notification.ReferenceId == referenceId,
-            cancellationToken);
-
-        if (exists)
-        {
-            return;
-        }
-
-        await unitOfWork.Repository<Notification>().AddAsync(
-            new Notification
-            {
-                Id = Guid.NewGuid(),
-                RecipientUserId = recipientUserId,
-                ActorUserId = actorUserId,
-                Type = type,
-                Title = title,
-                Body = body,
-                ReferenceType = referenceType,
-                ReferenceId = referenceId,
-                Status = NotificationStatus.UNREAD,
-                CreatedAt = now
-            },
             cancellationToken);
     }
 

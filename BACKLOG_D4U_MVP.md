@@ -33,7 +33,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Admin can reject student verification with rejection reason.
 - [x] Student profile verification status updates after admin decision.
 - [x] Bootstrap an initial Admin account.
-- [ ] Seed demo accounts for Outcome 1: one Admin, one SME, and one verified Student.
+- [x] Seed demo accounts for Outcome 1: one Admin, one SME, and one verified Student.
 
 ### File Metadata and Seed Data
 
@@ -41,7 +41,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Enforce allowed file extensions in service layer: `jpg`, `png`, `pdf`.
 - [x] Seed initial active design categories.
 - [x] Seed Basic, Pro, and Premium subscription plans.
-- [ ] Subscription seed and publish rules match Outcome 1: Basic `10%`, max 2 active open projects, max 5,000,000 VND; Pro `7%`, max 10 active open projects, max 20,000,000 VND; Premium `5%`, unlimited project count and budget.
+- [x] Subscription seed and publish rules match Outcome 1: Basic `10%`, max 2 active open projects, max 5,000,000 VND; Pro `7%`, max 10 active open projects, max 20,000,000 VND; Premium `5%`, unlimited project count and budget.
 
 ### Project, Marketplace, Application, and Offer
 
@@ -53,7 +53,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] SME can publish open project.
 - [x] Publish enforces subscription active open project limit.
 - [x] Publish enforces subscription max budget.
-- [ ] Basic plan cannot publish more than 2 active open projects.
+- [x] Basic plan cannot publish more than 2 active open projects.
 - [x] Basic plan cannot publish project over 5,000,000 VND.
 - [x] Create project status history for important transitions.
 - [x] SME can cancel own draft/open/private-invited project before execution.
@@ -127,7 +127,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] SME can report invalid file through `review_actions`.
 - [x] Invalid file review action captures reason, description, status, and reupload due date.
 - [x] Admin can force complete or cancel a project in `ADMIN_REVIEW`.
-- [ ] Revision over `maxRevisionRounds` moves project to `ADMIN_REVIEW`.
+- [x] Revision over `maxRevisionRounds` moves project to `ADMIN_REVIEW`.
 
 ### Student Abandoned and SME Refund
 
@@ -141,7 +141,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Auto-detect job moves escrow to `REFUND_PENDING` and creates pending refund request.
 - [x] Admin can list pending SME refunds.
 - [x] Admin can mark manual SME refund completed and move escrow to `REFUNDED`.
-- [ ] Refund admin flow matches Outcome 1 expectation or documents accepted deviation: master doc describes refund in withdrawal list with `isRefund=true`, current code uses separate `/admin/refunds`.
+- [x] Refund admin flow matches Outcome 1 expectation or documents accepted deviation: accepted Outcome 1 deviation keeps current separate `/admin/refunds` flow instead of mixing refunds into withdrawal list with `isRefund=true`.
 - [x] Mid-project cancellation and partial refund split rules are deferred beyond Outcome 1.
 - [x] PayOS refund API is out of Outcome 1; Admin manual refund is sufficient.
 
@@ -162,7 +162,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Wallet balance must never go negative.
 - [x] Wallet non-negative balance is enforced by database constraint as well as service validation.
 - [x] Automatic bank payout and direct bank balance synchronization are out of Outcome 1.
-- [ ] Frontend Student wallet displays withdrawal fee as 5,000 VND and net amount as `amount - 5,000 VND`.
+- [x] Frontend Student wallet displays withdrawal fee as 5,000 VND and net amount as `amount - 5,000 VND`.
 
 ### Rating
 
@@ -174,8 +174,8 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Rating comment maximum is 500 characters.
 - [x] Rating is allowed only within 7 days after completion.
 - [x] Rating updates profile average rating.
-- [ ] Real rating UI exists for Student and SME instead of placeholder pages.
-- [ ] Rating window expired response matches Outcome 1 acceptance or documents accepted deviation: master doc expects `410`, current backend returns conflict-style response.
+- [x] Real rating UI exists for Student and SME instead of placeholder pages.
+- [x] Rating window expired response matches Outcome 1 acceptance or documents accepted deviation: backend returns `410 Gone` for expired rating windows.
 
 ### Notifications
 
@@ -187,9 +187,9 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] List notifications newest-first.
 - [x] Mark notification as read.
 - [x] Mark all notifications as read.
-- [ ] Add unread count endpoint or document accepted API deviation from `GET /notifications/unread-count`.
-- [ ] Add frontend notification UI for Outcome 1 demo.
-- [ ] Notification creation is non-blocking and does not rollback the main business transaction if notification creation fails.
+- [x] Add unread count endpoint or document accepted API deviation from `GET /notifications/unread-count`.
+- [x] Add frontend notification UI for Outcome 1 demo.
+- [x] Notification creation is non-blocking and does not rollback the main business transaction if notification creation fails.
 
 ### Audit Logs
 
@@ -199,9 +199,9 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Record audit log for wallet balance changes during disbursement.
 - [x] Record audit log for withdrawal processing.
 - [x] Record audit log for auto-approval and Admin review decisions with machine-readable reasons.
-- [ ] Record audit log for `PAYMENT_WEBHOOK_SUCCESS`.
-- [ ] Record audit log for `PAYMENT_WEBHOOK_FAILED`.
-- [ ] Record audit log for `ESCROW_FUNDED`.
+- [x] Record audit log for `PAYMENT_WEBHOOK_SUCCESS`.
+- [x] Record audit log for `PAYMENT_WEBHOOK_FAILED`.
+- [x] Record audit log for `ESCROW_FUNDED`.
 
 ### Demo Readiness
 
@@ -209,8 +209,8 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Core interaction guide exists for SME/Student happy path.
 - [x] Completed feature E2E guide exists.
 - [ ] Outcome 1 demo script runs all 8 steps end-to-end without blocking error.
-- [ ] Seed demo data includes ready-to-use Admin, SME, and verified Student accounts.
-- [ ] Frontend build passes.
+- [x] Seed demo data includes ready-to-use Admin, SME, and verified Student accounts.
+- [x] Frontend build passes.
 - [ ] Desktop and mobile demo routes have no blocking overflow.
 - [ ] API response time for ordinary demo actions is under 2 seconds in staging/demo environment.
 

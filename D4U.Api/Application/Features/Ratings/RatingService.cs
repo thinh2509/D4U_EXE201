@@ -29,7 +29,7 @@ public sealed class RatingService(D4UDbContext dbContext) : IRatingService
 
         if (DateTimeOffset.UtcNow > project.CompletedAt.Value.AddDays(7))
         {
-            throw new ConflictException("Project rating window has expired.");
+            throw new GoneException("Project rating window has expired.");
         }
 
         var user = await dbContext.Users.FirstOrDefaultAsync(value => value.Id == userId, cancellationToken)

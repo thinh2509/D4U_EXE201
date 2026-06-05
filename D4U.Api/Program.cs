@@ -34,6 +34,7 @@ if (app.Configuration.GetValue<bool>("D4U_APPLY_MIGRATIONS"))
 }
 
 await app.Services.SeedD4UAdminAsync();
+await app.Services.SeedD4UDemoAccountsAsync();
 
 // Configure the HTTP request pipeline.
 app.UseMiddleware<ExceptionHandlingMiddleware>();

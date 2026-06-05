@@ -20,6 +20,17 @@ public sealed class NotificationService(D4UDbContext dbContext) : INotificationS
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<NotificationUnreadCountResponse> GetUnreadCountAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var unreadCount = await dbContext.Notifications.CountAsync(
+            value => value.RecipientUserId == userId && value.Status == NotificationStatus.UNREAD,
+            cancellationToken);
+
+        return new NotificationUnreadCountResponse(unreadCount);
+    }
+
     public async Task<NotificationResponse> MarkReadAsync(
         Guid userId,
         Guid notificationId,

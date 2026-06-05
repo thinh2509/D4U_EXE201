@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<IMoneyMovementService, MoneyMovementService>();
         services.AddScoped<IRatingService, RatingService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INotificationPublisher, NotificationPublisher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
@@ -183,6 +184,7 @@ public static class DependencyInjection
         services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
         services.Configure<OAuth2Options>(configuration.GetSection(OAuth2Options.SectionName));
         services.Configure<AdminBootstrapOptions>(configuration.GetSection(AdminBootstrapOptions.SectionName));
+        services.Configure<DemoSeedOptions>(configuration.GetSection(DemoSeedOptions.SectionName));
 
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 

@@ -10,6 +10,7 @@ import { walletApi } from '../../services/walletApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
+import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
 export function StudentApplicationsPage() {
   const navigate = useNavigate();
@@ -473,8 +474,8 @@ export function StudentWalletPage() {
     }))
   ];
   const minimumWithdrawalAmount = 50000;
-  const withdrawalFee = 0;
-  const withdrawalNetAmount = Math.max(0, withdrawalAmount);
+  const withdrawalFee = 5000;
+  const withdrawalNetAmount = Math.max(0, withdrawalAmount - withdrawalFee);
   const hasEnoughBalance = wallet ? wallet.availableBalance >= withdrawalAmount : false;
   const canRequestWithdrawal = validPaymentMethods.length > 0 &&
     Boolean(selectedPaymentMethod) &&
@@ -610,7 +611,7 @@ export function StudentWalletPage() {
               <div className="muted-text form-alert">
                 <div>Phí rút tiền: <strong>{formatCurrency(withdrawalFee, wallet?.currency)}</strong></div>
                 <div>Thực nhận: <strong>{formatCurrency(withdrawalNetAmount, wallet?.currency)}</strong></div>
-                <div>{withdrawalBlockingMessage ?? 'D4U không thu phí rút tiền trong MVP.'}</div>
+                <div>{withdrawalBlockingMessage ?? 'Phí rút tiền cố định là 5,000 VND cho mỗi yêu cầu.'}</div>
               </div>
               <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={!canRequestWithdrawal}>
                 Gửi yêu cầu
@@ -649,14 +650,5 @@ export function StudentWalletPage() {
 }
 
 export function StudentRatingsPage() {
-  return (
-    <FeatureShellPage
-      icon={<StarOutlined />}
-      title="Đánh giá"
-      description="Đánh giá SME sau khi dự án hoàn thành trong thời hạn cho phép."
-      role="Student"
-      endpoint="GET /api/v1/ratings/me"
-      backTo="/student/dashboard"
-    />
-  );
+  return <MyRatingsPage role="STUDENT" />;
 }

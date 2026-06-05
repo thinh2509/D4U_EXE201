@@ -6,6 +6,10 @@ public interface INotificationService
         Guid userId,
         CancellationToken cancellationToken = default);
 
+    Task<NotificationUnreadCountResponse> GetUnreadCountAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task<NotificationResponse> MarkReadAsync(
         Guid userId,
         Guid notificationId,

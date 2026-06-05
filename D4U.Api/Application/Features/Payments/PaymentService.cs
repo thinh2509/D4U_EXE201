@@ -2,6 +2,7 @@ namespace D4U.Api.Application.Features.Payments;
 
 using System.Security.Cryptography;
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Application.Features.Projects;
@@ -12,6 +13,7 @@ public sealed class PaymentService(
     IUnitOfWork unitOfWork,
     IPaymentProvider paymentProvider,
     IOptions<PaymentOptions> paymentOptions,
+    INotificationPublisher notificationPublisher,
     ILogger<PaymentService> logger) : IPaymentService
 {
     private const string BasicPlanCode = "BASIC";
@@ -230,6 +232,19 @@ public sealed class PaymentService(
             payment.Status = PaymentStatus.FAILED;
             payment.UpdatedAt = failedAt;
 
+            await unitOfWork.Repository<AuditLog>().AddAsync(
+                new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    Action = "PAYMENT_WEBHOOK_FAILED",
+                    EntityType = nameof(Payment),
+                    EntityId = payment.Id,
+                    BeforeJson = $$"""{"status":"{{PaymentStatus.PENDING}}"}""",
+                    AfterJson = $$"""{"status":"{{PaymentStatus.FAILED}}","provider":"{{payment.Provider}}","code":"{{request.Code}}","dataCode":"{{request.Data.Code}}"}""",
+                    CreatedAt = failedAt
+                },
+                cancellationToken);
+
             if (payment.EscrowId.HasValue)
             {
                 var failedEscrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken);
@@ -395,9 +410,36 @@ public sealed class PaymentService(
         payment.PaidAt = now;
         payment.UpdatedAt = now;
 
+        var previousEscrowStatus = escrow.Status;
         escrow.Status = EscrowStatus.FUNDED;
         escrow.FundedAt ??= now;
         escrow.UpdatedAt = now;
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "PAYMENT_WEBHOOK_SUCCESS",
+                EntityType = nameof(Payment),
+                EntityId = payment.Id,
+                BeforeJson = $$"""{"status":"{{PaymentStatus.PENDING}}"}""",
+                AfterJson = $$"""{"status":"{{PaymentStatus.SUCCESS}}","provider":"{{payment.Provider}}","providerTransactionId":"{{providerTransactionId}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "ESCROW_FUNDED",
+                EntityType = nameof(Escrow),
+                EntityId = escrow.Id,
+                BeforeJson = $$"""{"status":"{{previousEscrowStatus}}"}""",
+                AfterJson = $$"""{"status":"{{EscrowStatus.FUNDED}}","amount":{{escrow.Amount}},"paymentId":"{{payment.Id}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
 
         if (offer.Status == OfferStatus.PENDING_PAYMENT)
         {
@@ -428,7 +470,10 @@ public sealed class PaymentService(
             .Where(profile => profile.Id == escrow.StudentProfileId)
             .Select(profile => profile.UserId)
             .FirstAsync(cancellationToken);
-        await AddNotificationAsync(
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationPublisher.PublishAsync(
             studentUserId,
             null,
             "PAYMENT_SUCCESS",
@@ -438,8 +483,6 @@ public sealed class PaymentService(
             payment.Id,
             now,
             cancellationToken);
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<Escrow> GetOrCreateEscrowAsync(
@@ -691,46 +734,6 @@ public sealed class PaymentService(
     {
         var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
         return $"{url}{separator}paymentId={paymentId}&offerId={offerId}&projectId={projectId}";
-    }
-
-    private async Task AddNotificationAsync(
-        Guid recipientUserId,
-        Guid? actorUserId,
-        string type,
-        string title,
-        string body,
-        string referenceType,
-        Guid referenceId,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
-    {
-        var exists = await unitOfWork.Repository<Notification>().AnyAsync(
-            notification => notification.RecipientUserId == recipientUserId &&
-                notification.Type == type &&
-                notification.ReferenceType == referenceType &&
-                notification.ReferenceId == referenceId,
-            cancellationToken);
-
-        if (exists)
-        {
-            return;
-        }
-
-        await unitOfWork.Repository<Notification>().AddAsync(
-            new Notification
-            {
-                Id = Guid.NewGuid(),
-                RecipientUserId = recipientUserId,
-                ActorUserId = actorUserId,
-                Type = type,
-                Title = title,
-                Body = body,
-                ReferenceType = referenceType,
-                ReferenceId = referenceId,
-                Status = NotificationStatus.UNREAD,
-                CreatedAt = now
-            },
-            cancellationToken);
     }
 
     private static PaymentResponse ToPaymentResponse(

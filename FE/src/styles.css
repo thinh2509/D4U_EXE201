@@ -568,6 +568,48 @@ a {
   display: none;
 }
 
+.notification-button {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+}
+
+.notification-panel {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 110px));
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-lg);
+}
+
+.notification-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notification-item {
+  cursor: pointer;
+  padding-inline: 8px !important;
+  border-radius: 8px;
+}
+
+.notification-item.unread {
+  background: var(--primary-soft);
+}
+
 .user-menu-button {
   height: 48px;
   padding: 5px 12px 5px 6px;

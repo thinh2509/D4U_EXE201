@@ -14,3 +14,5 @@ public sealed record NotificationResponse(
     NotificationStatus Status,
     DateTimeOffset? ReadAt,
     DateTimeOffset CreatedAt);
+
+public sealed record NotificationUnreadCountResponse(int UnreadCount);

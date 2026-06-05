@@ -1,4 +1,4 @@
-import { BulbOutlined, CreditCardOutlined, FileDoneOutlined, MessageOutlined, StarOutlined, TeamOutlined } from '@ant-design/icons';
+import { BulbOutlined, CreditCardOutlined, FileDoneOutlined, MessageOutlined, TeamOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Space, Table } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
+import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
 export function SmeApplicationsPage() {
   const navigate = useNavigate();
@@ -288,14 +289,5 @@ export function SmeBillingPage() {
 }
 
 export function SmeRatingsPage() {
-  return (
-    <FeatureShellPage
-      icon={<StarOutlined />}
-      title="Đánh giá"
-      description="Đánh giá sinh viên sau khi dự án hoàn thành."
-      role="SME"
-      endpoint="GET /api/v1/ratings/me"
-      backTo="/sme/dashboard"
-    />
-  );
+  return <MyRatingsPage role="SME" />;
 }

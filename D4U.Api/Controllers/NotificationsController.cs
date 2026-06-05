@@ -17,6 +17,13 @@ public sealed class NotificationsController(INotificationService notificationSer
         return Ok(response);
     }
 
+    [HttpGet("unread-count")]
+    public async Task<ActionResult<NotificationUnreadCountResponse>> GetUnreadCount(CancellationToken cancellationToken)
+    {
+        var response = await notificationService.GetUnreadCountAsync(GetRequiredUserId(), cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("{notificationId:guid}/read")]
     public async Task<ActionResult<NotificationResponse>> MarkRead(
         Guid notificationId,
