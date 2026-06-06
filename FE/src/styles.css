@@ -2264,10 +2264,6 @@ html {
   min-height: 680px;
   border-bottom: 1px solid var(--border);
   background-color: var(--surface-soft);
-  background-image: url('/brand/hero-laptops.png');
-  background-repeat: no-repeat;
-  background-position: right 2vw center;
-  background-size: min(760px, 57vw) auto;
 }
 
 .landing-hero-inner {
@@ -2277,6 +2273,10 @@ html {
   justify-content: center;
   align-items: flex-start;
   padding: 84px 0 112px;
+  background-image: url('/brand/hero-laptops.png');
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: min(600px, 48vw) auto;
 }
 
 .landing-eyebrow {
@@ -2289,15 +2289,15 @@ html {
 }
 
 .landing-hero h1 {
-  max-width: 720px;
+  max-width: 600px;
   margin: 0;
   color: var(--ink);
-  font-size: clamp(44px, 5.4vw, 70px);
+  font-size: clamp(40px, 4.8vw, 64px);
   line-height: 1.05;
 }
 
 .landing-hero-copy {
-  max-width: 640px;
+  max-width: 540px;
   margin: 22px 0 0;
   color: var(--muted-strong);
   font-size: 19px;
@@ -2311,7 +2311,7 @@ html {
 }
 
 .landing-hero-note {
-  max-width: 610px;
+  max-width: 540px;
   margin: 18px 0 0;
   padding: 12px 14px;
   border: 1px solid var(--border-soft);
@@ -2628,7 +2628,7 @@ html {
     min-height: 620px;
   }
 
-  .landing-hero {
+  .landing-hero-inner {
     background-position: right -130px center;
     background-size: 730px auto;
   }
@@ -2666,7 +2666,7 @@ html {
     min-height: 730px;
   }
 
-  .landing-hero {
+  .landing-hero-inner {
     background-position: center bottom 18px;
     background-size: min(460px, 92vw) auto;
   }
