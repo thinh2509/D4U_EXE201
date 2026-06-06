@@ -106,23 +106,11 @@ export function LandingPage() {
               </>
             )}
           </div>
-          <Button
-            className="landing-mobile-menu"
-            aria-label="Mở menu"
-            icon={<MenuOutlined />}
-            onClick={() => setMobileNavOpen(true)}
-          />
+          <Button className="landing-mobile-menu" aria-label="Mở menu" icon={<MenuOutlined />} onClick={() => setMobileNavOpen(true)} />
         </div>
       </header>
 
-      <Drawer
-        className="landing-mobile-drawer"
-        title={<D4ULogo />}
-        placement="right"
-        width={288}
-        open={mobileNavOpen}
-        onClose={closeMobileNav}
-      >
+      <Drawer className="landing-mobile-drawer" title={<D4ULogo />} placement="right" width={288} open={mobileNavOpen} onClose={closeMobileNav}>
         <nav className="landing-mobile-nav" aria-label="Điều hướng homepage mobile">
           {NAV_ITEMS.map(([label, href]) => <a key={href} href={href} onClick={closeMobileNav}>{label}</a>)}
           {user ? (
