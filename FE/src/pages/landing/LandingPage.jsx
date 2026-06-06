@@ -27,7 +27,7 @@ const ROLE_ITEMS = [
   {
     icon: BankOutlined,
     eyebrow: 'Dành cho SME',
-    title: 'Biến nhu cầu thiết kế thành brief có thể triển khai',
+    title: 'Từ ý tưởng thô đến brief có thể triển khai',
     copy: 'Tạo dự án, nhận proposal, gửi offer và theo dõi Sketch/Final trong một workspace thống nhất.',
     action: 'Bắt đầu với vai trò SME',
     points: ['Brief, ngân sách và deadline rõ ràng', 'Chọn proposal phù hợp trước khi gửi offer', 'Thanh toán escrow qua PayOS', 'Duyệt Sketch, Revision và Final'],
@@ -43,7 +43,7 @@ const ROLE_ITEMS = [
 ];
 
 const PROCESS_ITEMS = [
-  ['01', 'SME đăng dự án', 'Brief, ngân sách, category và deadline được SME nhập rõ ngay từ đầu.'],
+  ['01', 'SME đăng dự án', 'Brief, ngân sách, category và deadline được nhập rõ ngay từ đầu.'],
   ['02', 'Student gửi proposal', 'Student nêu giải pháp, thời gian và mức giá trong phạm vi project.'],
   ['03', 'Hai bên xác nhận offer', 'SME chọn ứng viên, Student accept trước khi bước thanh toán mở ra.'],
   ['04', 'SME thanh toán escrow', 'PayOS và backend xác nhận giao dịch trước khi dự án bắt đầu.'],
@@ -127,22 +127,44 @@ export function LandingPage() {
       <main>
         <section className="landing-hero">
           <div className="landing-container landing-hero-inner">
-            <p className="landing-eyebrow">D4U Outcome 1 marketplace</p>
-            <h1>Kết nối SME với Student Designer qua escrow và milestone rõ ràng</h1>
-            <p className="landing-hero-copy">
-              SME đăng brief, Student ứng tuyển, hai bên xác nhận offer và làm việc trong workspace có Sketch, Final, review và ví D4U.
-            </p>
-            <div className="landing-hero-actions">
-              <Button type="primary" size="large" onClick={goToDestination}>
-                Tạo tài khoản SME <ArrowRightOutlined />
-              </Button>
-              <Button size="large" href="#roles">
-                Xem vai trò Student <SearchOutlined />
-              </Button>
+            <div className="landing-hero-copy-block">
+              <p className="landing-eyebrow">D4U Outcome 1 marketplace</p>
+              <h1>Kết nối SME với Student Designer qua escrow và milestone rõ ràng</h1>
+              <p className="landing-hero-copy">
+                SME đăng brief, Student ứng tuyển, hai bên xác nhận offer và làm việc trong workspace có Sketch, Final, review và ví D4U.
+              </p>
+              <div className="landing-hero-actions">
+                <Button type="primary" size="large" onClick={goToDestination}>
+                  Tạo tài khoản <ArrowRightOutlined />
+                </Button>
+                <Button size="large" href="#roles">
+                  Xem hai vai trò <SearchOutlined />
+                </Button>
+              </div>
+              <p className="landing-hero-note">
+                D4U không tự chọn Student, không tự publish dự án và chỉ ghi nhận thanh toán khi backend hoặc provider xác nhận.
+              </p>
             </div>
-            <p className="landing-hero-note">
-              D4U không tự chọn Student, không tự publish dự án và chỉ ghi nhận thanh toán khi backend hoặc provider xác nhận.
-            </p>
+
+            <div className="landing-demo-panel" aria-label="Tóm tắt flow D4U">
+              <div className="landing-demo-header">
+                <span>Project flow</span>
+                <strong>Escrow funded</strong>
+              </div>
+              <div className="landing-demo-steps">
+                {['Brief', 'Proposal', 'Offer', 'PayOS', 'Sketch', 'Final'].map((item, index) => (
+                  <div className={index < 4 ? 'is-done' : 'is-current'} key={item}>
+                    <CheckCircleOutlined />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="landing-demo-card">
+                <span>Next action</span>
+                <strong>Student nộp Sketch trước deadline</strong>
+                <p>SME theo dõi tiến trình và review trong workspace.</p>
+              </div>
+            </div>
           </div>
         </section>
 

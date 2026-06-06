@@ -44,9 +44,9 @@ function DeadlineValue({ value, now, align = 'right' }) {
   const countdown = formatCountdown(value, now);
   return (
     <div className={`grid gap-0.5 ${align === 'left' ? 'justify-items-start text-left' : 'justify-items-end text-right'}`}>
-      <strong className="text-[13px] font-bold text-[#1D2428]">{formatWorkspaceDate(value)}</strong>
+      <strong className="workspace-date-value">{formatWorkspaceDate(value)}</strong>
       {countdown ? (
-        <span className={`text-xs font-extrabold ${countdown.startsWith('Quá hạn') ? 'text-red-600' : 'text-[#0B9BD3]'}`}>
+        <span className={`workspace-countdown ${countdown.startsWith('Quá hạn') ? 'is-overdue' : 'is-active'}`}>
           {countdown}
         </span>
       ) : null}
@@ -80,11 +80,11 @@ export function WorkspaceDeadlinePanel({ workspace, now }) {
     ['Hoàn tất review', workspace.totalDeadlineAt]
   ];
   return (
-    <Card className="rounded-lg border border-[#D7E5EC] shadow-none" title="Mốc thời gian">
+    <Card className="workspace-side-card" title="Mốc thời gian">
       <div className="grid gap-4">
         {deadlines.map(([label, value], index) => (
-          <div className={`grid gap-1 ${index < deadlines.length - 1 ? 'border-b border-[#EAF3F7] pb-4' : ''}`} key={label}>
-            <span className="text-xs font-bold uppercase tracking-wide text-[#667985]">{label}</span>
+          <div className={`workspace-deadline-row ${index < deadlines.length - 1 ? 'has-divider' : ''}`} key={label}>
+            <span className="workspace-label">{label}</span>
             <DeadlineValue value={value} now={now} align="left" />
           </div>
         ))}
@@ -122,27 +122,19 @@ export function WorkspaceProgressTimeline({ workspace, submissions }) {
       : { tone: 'pending', label: 'Chờ bàn giao' }]
   ];
   return (
-    <section className="mb-5 rounded-lg border border-[#D7E5EC] bg-white px-5 py-4">
+    <section className="workspace-timeline">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-0">
         {steps.map(([title, Icon, state], index) => (
-          <div className={`relative flex min-w-0 items-center gap-3 rounded-lg py-2 sm:rounded-none sm:py-0 sm:pr-4 ${
-            state.tone === 'active' ? 'bg-[#F2FBFF] px-2 sm:bg-transparent sm:px-0' : ''
-          }`} key={title}>
+          <div className={`workspace-timeline-step ${state.tone === 'active' ? 'is-active' : ''}`} key={title}>
             {index < steps.length - 1 ? (
-              <span className={`absolute left-9 right-0 top-4 hidden h-0.5 sm:block ${state.tone === 'complete' ? 'bg-emerald-500' : 'bg-[#D7E5EC]'}`} />
+              <span className={`workspace-timeline-line ${state.tone === 'complete' ? 'is-complete' : ''}`} />
             ) : null}
-            <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border bg-white text-xs font-extrabold ${
-              state.tone === 'complete'
-                ? 'border-emerald-500 text-emerald-600'
-                : state.tone === 'active'
-                  ? 'border-[#12AEEA] text-[#0B9BD3]'
-                  : 'border-[#D7E5EC] text-[#8EA0AA]'
-            }`}>
+            <span className={`workspace-timeline-icon is-${state.tone}`}>
               {state.tone === 'complete' ? <CheckCircleOutlined /> : <Icon />}
             </span>
-            <div className={`relative z-10 min-w-0 pr-3 ${state.tone === 'active' ? 'bg-[#F2FBFF] sm:bg-white' : 'bg-white'}`}>
-              <strong className="block text-sm font-extrabold text-[#1D2428]">{title}</strong>
-              <span className={`block text-xs font-semibold ${state.tone === 'active' ? 'text-[#0B9BD3]' : 'text-[#667985]'}`}>{state.label}</span>
+            <div className="workspace-timeline-copy">
+              <strong>{title}</strong>
+              <span className={state.tone === 'active' ? 'is-active' : ''}>{state.label}</span>
             </div>
           </div>
         ))}
@@ -158,7 +150,7 @@ function getSubmissionFeedback(submission, reviewActions) {
 }
 
 function SubmissionFiles({ files, onDownload }) {
-  if (!files.length) return <span className="text-xs text-[#8EA0AA]">Không có file đính kèm</span>;
+  if (!files.length) return <span className="workspace-muted">Không có file đính kèm</span>;
   return (
     <div className="flex flex-wrap gap-2">
       {files.map((file) => (
@@ -176,31 +168,31 @@ function SubmissionRecord({ submission, reviewActions, onDownload, isLatestWaiti
     ? `Bản chỉnh sửa #${submission.revisionRound}`
     : `Bản ${submission.milestoneType}`;
   return (
-    <article className={`rounded-lg border p-4 ${isLatestWaiting ? 'border-[#12AEEA] bg-[#F2FBFF]' : 'border-[#EAF3F7] bg-white'}`}>
+    <article className={`workspace-submission-record ${isLatestWaiting ? 'is-waiting' : ''}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="m-0 text-sm font-extrabold text-[#1D2428]">{title}</h4>
+            <h4 className="workspace-submission-title">{title}</h4>
             <StatusBadge status={submission.status} />
             {isLatestWaiting ? <Tag color="processing">Đang chờ SME duyệt</Tag> : null}
           </div>
-          <p className="mb-0 mt-1 text-xs text-[#667985]">Student nộp lúc {formatWorkspaceDate(submission.submittedAt)}</p>
+          <p className="workspace-submission-meta">Student nộp lúc {formatWorkspaceDate(submission.submittedAt)}</p>
           {submission.approvedAt || submission.autoApprovedAt ? (
             <p className="mb-0 mt-1 text-xs text-emerald-700">Duyệt lúc {formatWorkspaceDate(submission.approvedAt || submission.autoApprovedAt)}</p>
           ) : null}
         </div>
       </div>
-      <p className="mb-3 mt-3 text-sm leading-6 text-[#425864]">{submission.description || 'Không có mô tả.'}</p>
+      <p className="workspace-submission-description">{submission.description || 'Không có mô tả.'}</p>
       <SubmissionFiles files={submission.files} onDownload={onDownload} />
       {feedback.length ? (
-        <div className="mt-4 grid gap-2 border-t border-[#D7E5EC] pt-3">
+        <div className="workspace-feedback-list">
           {feedback.map((item) => (
-            <div className="rounded-md bg-[#F8FBFE] px-3 py-2 text-xs text-[#425864]" key={item.id}>
+            <div className="workspace-feedback-item" key={item.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <strong className={approvedActions.has(item.action) ? 'text-emerald-700' : 'text-amber-700'}>
                   {approvedActions.has(item.action) ? 'SME đã duyệt bài' : item.action === 'REPORT_INVALID_FILE' ? 'SME báo file lỗi' : 'SME yêu cầu chỉnh sửa'}
                 </strong>
-                <span className="text-[#8EA0AA]">{formatWorkspaceDate(item.createdAt)}</span>
+                <span>{formatWorkspaceDate(item.createdAt)}</span>
               </div>
               {item.requestedChanges || item.comment || item.invalidFileReason ? (
                 <p className="mb-0 mt-1">{item.requestedChanges || item.comment || item.invalidFileReason}</p>
@@ -221,10 +213,10 @@ export function SubmissionMilestoneBoard({ submissions, reviewActions, onDownloa
     .sort((left, right) => new Date(right.submittedAt) - new Date(left.submittedAt))
     .find((item) => ['SUBMITTED', 'VALID'].includes(item.status))?.id;
   return (
-    <section className="rounded-lg border border-[#D7E5EC] bg-white">
-      <div className="border-b border-[#EAF3F7] px-5 py-4">
-        <h2 className="m-0 text-base font-extrabold text-[#1D2428]">Bài Student đã nộp</h2>
-        <p className="mb-0 mt-1 text-sm text-[#667985]">Sketch, các lần chỉnh sửa và Final được nhóm theo milestone để dễ kiểm tra file.</p>
+    <section className="workspace-submission-board">
+      <div className="workspace-board-header">
+        <h2>Bài Student đã nộp</h2>
+        <p>Sketch, các lần chỉnh sửa và Final được nhóm theo milestone để dễ kiểm tra file.</p>
       </div>
       <div className="grid gap-4 p-4 lg:grid-cols-2">
         {['SKETCH', 'FINAL'].map((milestoneType) => {
@@ -232,10 +224,10 @@ export function SubmissionMilestoneBoard({ submissions, reviewActions, onDownloa
             .filter((item) => item.milestoneType === milestoneType)
             .sort((left, right) => new Date(left.submittedAt) - new Date(right.submittedAt));
           return (
-            <div className="min-w-0 rounded-lg border border-[#D7E5EC] bg-[#F8FBFE] p-4" key={milestoneType}>
+            <div className="workspace-milestone-column" key={milestoneType}>
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="m-0 text-sm font-extrabold text-[#075D78]">{milestoneType}</h3>
-                <span className="text-xs font-bold text-[#667985]">{milestoneSubmissions.length} lần nộp</span>
+                <h3 className="workspace-milestone-title">{milestoneType}</h3>
+                <span className="workspace-muted">{milestoneSubmissions.length} lần nộp</span>
               </div>
               {milestoneSubmissions.length ? (
                 <div className="grid gap-3">
@@ -266,16 +258,16 @@ export function StudentSubmissionWorkspace({
 }) {
   const deadline = resolveActiveDeadline(workspace, latestSubmission, latestReviewAction);
   return (
-    <Card className="rounded-lg border border-[#12AEEA]/50 shadow-none" title="Việc cần làm tiếp theo">
+    <Card className="workspace-action-card" title="Việc cần làm tiếp theo">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Tag color={canSubmit ? 'processing' : 'success'}>{canSubmit ? milestoneType : 'ĐANG THEO DÕI'}</Tag>
-          <h2 className="mb-0 mt-2 text-xl font-extrabold text-[#1D2428]">
+          <h2 className="workspace-action-title">
             {canSubmit ? `Nộp ${milestoneType === 'SKETCH' ? 'Sketch' : milestoneType === 'FINAL' ? 'Final' : 'bản chỉnh sửa'}` : 'Đang chờ SME duyệt bài'}
           </h2>
         </div>
         <div>
-          <span className="block text-xs font-bold text-[#667985]">{deadline.label}</span>
+          <span className="workspace-label">{deadline.label}</span>
           <DeadlineValue value={deadline.value} now={now} align="left" />
         </div>
       </div>
@@ -300,11 +292,11 @@ export function StudentSubmissionWorkspace({
           </Upload>
           <div className="my-3 grid gap-2">
             {draftFiles.map((file) => (
-              <div className="flex items-center gap-3 rounded-md border border-[#EAF3F7] bg-[#F8FBFE] px-3 py-2" key={file.uid}>
-                <FileTextOutlined className="text-[#0B9BD3]" />
+              <div className="workspace-file-row" key={file.uid}>
+                <FileTextOutlined />
                 <div className="grid min-w-0 flex-1 gap-0.5">
-                  <strong className="truncate text-sm text-[#1D2428]">{file.name}</strong>
-                  <span className="text-xs text-[#667985]">{getFileExtension(file.name).toUpperCase()} · {formatFileSize(file.size)}</span>
+                  <strong>{file.name}</strong>
+                  <span>{getFileExtension(file.name).toUpperCase()} · {formatFileSize(file.size)}</span>
                 </div>
                 <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Xóa ${file.name}`} onClick={() => onRemoveFile(file.uid)} />
               </div>
@@ -344,7 +336,7 @@ export function SmeReviewWorkspace({
     const hasCheckoutUrl = Boolean(workspace.payment?.checkoutUrl);
 
     return (
-      <Card className="rounded-lg border border-[#12AEEA]/50 shadow-none" title="Việc cần làm tiếp theo">
+      <Card className="workspace-action-card" title="Việc cần làm tiếp theo">
         <Alert
           type={paymentReturnTimedOut ? 'warning' : 'info'}
           showIcon
@@ -365,12 +357,12 @@ export function SmeReviewWorkspace({
     );
   }
   if (!canReview) {
-    return <Card className="rounded-lg border border-[#12AEEA]/50 shadow-none" title="Bản đang chờ duyệt"><Alert type="info" showIcon message="Chưa có bản mới cần xử lý" description="Workspace tự cập nhật sau mỗi 5 giây." /></Card>;
+    return <Card className="workspace-action-card" title="Bản đang chờ duyệt"><Alert type="info" showIcon message="Chưa có bản mới cần xử lý" description="Workspace tự cập nhật sau mỗi 5 giây." /></Card>;
   }
   return (
-    <Card className="rounded-lg border border-[#12AEEA]/50 shadow-none" title="Bản đang chờ duyệt">
+    <Card className="workspace-action-card" title="Bản đang chờ duyệt">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div><Tag color="processing">{latestSubmission.milestoneType}</Tag><h2 className="mb-0 mt-2 text-xl font-extrabold text-[#1D2428]">{latestSubmission.submissionType === 'REVISION' ? 'Bản chỉnh sửa mới nhất' : `Bản ${latestSubmission.milestoneType} mới nhất`}</h2></div>
+        <div><Tag color="processing">{latestSubmission.milestoneType}</Tag><h2 className="workspace-action-title">{latestSubmission.submissionType === 'REVISION' ? 'Bản chỉnh sửa mới nhất' : `Bản ${latestSubmission.milestoneType} mới nhất`}</h2></div>
         <DeadlineValue value={latestSubmission.reviewDueAt} now={now} />
       </div>
       <Descriptions column={{ xs: 1, sm: 2 }} size="small">
@@ -390,7 +382,7 @@ export function SmeReviewWorkspace({
 
 export function WorkspaceSummaryPanel({ workspace }) {
   return (
-    <Card className="rounded-lg border border-[#D7E5EC] shadow-none" title="Tổng quan dự án">
+    <Card className="workspace-side-card" title="Tổng quan dự án">
       <Descriptions column={1} size="small">
         <Descriptions.Item label="Project"><StatusBadge status={workspace.projectStatus} /></Descriptions.Item>
         <Descriptions.Item label="Vai trò">{workspace.viewerRole}</Descriptions.Item>

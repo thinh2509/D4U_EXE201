@@ -154,6 +154,12 @@ function getRoleText(role) {
   return 'Admin console';
 }
 
+function getRoleCaption(role) {
+  if (role === 'STUDENT') return 'Tìm dự án, nộp bài, quản lý ví';
+  if (role === 'SME') return 'Đăng brief, chọn Student, theo dõi escrow';
+  return 'Vận hành xác thực, ví và audit';
+}
+
 export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -164,6 +170,7 @@ export function AppLayout() {
   const selectedKey = getSelectedKey(flatItems, location.pathname);
   const title = pageTitleByPath[selectedKey] || 'D4U';
   const roleText = getRoleText(user?.role);
+  const roleCaption = getRoleCaption(user?.role);
 
   const handleLogout = async () => {
     await logout();
@@ -172,10 +179,13 @@ export function AppLayout() {
 
   return (
     <Layout className="app-layout">
-      <Sider className="app-sider" width={260} breakpoint="lg" collapsedWidth="0">
+      <Sider className="app-sider" width={280} breakpoint="lg" collapsedWidth="0">
         <div className="sider-brand">
           <D4ULogo />
-          <Tag className="role-pill">{roleText}</Tag>
+          <div className="sider-role-card">
+            <Tag className="role-pill">{roleText}</Tag>
+            <span>{roleCaption}</span>
+          </div>
         </div>
         <AppMenu items={items} selectedKey={selectedKey} />
       </Sider>
@@ -185,21 +195,25 @@ export function AppLayout() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="left"
-        width={304}
+        width={316}
         title={<D4ULogo />}
       >
-        <Tag className="role-pill mobile-role-pill">{roleText}</Tag>
+        <div className="sider-role-card mobile-role-card">
+          <Tag className="role-pill mobile-role-pill">{roleText}</Tag>
+          <span>{roleCaption}</span>
+        </div>
         <AppMenu items={items} selectedKey={selectedKey} onClick={() => setDrawerOpen(false)} />
       </Drawer>
 
-      <Layout>
+      <Layout className="app-main-layout">
         <Header className="app-header">
           <Button className="mobile-menu-button" aria-label="Mở menu" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />
           <div className="header-context">
-            <span>D4U public demo</span>
+            <span>D4U Outcome 1</span>
             <strong>{title}</strong>
           </div>
-          <Tag className="header-chip" icon={<BuildOutlined />}>Outcome 1</Tag>
+          <div className="header-spacer" />
+          <Tag className="header-chip" icon={<BuildOutlined />}>Public demo</Tag>
           <NotificationBell />
           <UserMenu user={user} onLogout={handleLogout} />
         </Header>
