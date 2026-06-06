@@ -464,7 +464,7 @@ export function ProjectExecutionPage() {
         <p>{submissionForm.getFieldValue('description') || 'Không có mô tả.'}</p>
         <div className="mt-3 grid gap-2">
           {draftFiles.map((file) => (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-[#EAF3F7] bg-[#F8FBFE] px-3 py-2" key={file.uid}>
+            <div className="workspace-file-row" key={file.uid}>
               <strong>{file.name}</strong>
               <span className="muted-text">{formatFileSize(file.size)}</span>
             </div>
@@ -489,7 +489,7 @@ export function ProjectExecutionPage() {
               </Form.Item>
               <Form.Item label="Hạn nộp lại" name="dueAt" rules={[{ required: true, message: 'Chọn hạn nộp lại.' }]}>
                 <Input type="datetime-local" />
-                <div className="mt-1 text-xs text-[#667985]">Thời gian nhập theo múi giờ Việt Nam.</div>
+                <div className="workspace-helper-text">Thời gian nhập theo múi giờ Việt Nam.</div>
               </Form.Item>
             </>
           ) : (
@@ -502,7 +502,7 @@ export function ProjectExecutionPage() {
               </Form.Item>
               <Form.Item label="Hạn upload lại" name="reuploadDueAt" rules={[{ required: true, message: 'Chọn hạn upload lại.' }]}>
                 <Input type="datetime-local" />
-                <div className="mt-1 text-xs text-[#667985]">Thời gian nhập theo múi giờ Việt Nam.</div>
+                <div className="workspace-helper-text">Thời gian nhập theo múi giờ Việt Nam.</div>
               </Form.Item>
             </>
           )}
