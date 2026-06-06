@@ -6,6 +6,7 @@
   background: #F8FAFC;
   --primary: #12AEEA;
   --primary-strong: #0B9BD3;
+  --primary-700: #087EA8;
   --primary-soft: #E7F8FE;
   --cyan: #12AEEA;
   --cyan-bright: #48C8F2;
@@ -1400,6 +1401,15 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.ai-suggestion-preview {
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+}
+
+.preserve-lines {
+  white-space: pre-line;
 }
 
 .project-detail-main,

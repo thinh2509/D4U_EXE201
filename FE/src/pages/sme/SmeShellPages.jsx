@@ -249,10 +249,10 @@ export function SmeAiBriefPage() {
     <FeatureShellPage
       icon={<BulbOutlined />}
       title="AI Brief Assistant"
-      description="AI brief hiện nằm trong form tạo dự án để SME review và chỉnh sửa trước khi lưu."
+      description="AI Brief dùng OpenAI để biến ý tưởng thô thành brief tiếng Việt có cấu trúc, sau đó SME review và chỉnh sửa trước khi lưu."
       role="SME"
       endpoint="POST /api/v1/ai/project-brief-assistant"
-      notes={['AI không publish dự án tự động.', 'AI không định giá cuối cùng hoặc chọn sinh viên.']}
+      notes={['AI không publish dự án tự động.', 'AI không định giá cuối cùng hoặc chọn sinh viên.', 'Nếu OpenAI lỗi, hệ thống dùng fallback tiếng Việt để không chặn SME.']}
       backTo="/sme/dashboard"
     >
       <Button type="primary" onClick={() => navigate('/sme/projects/new')}>Tạo dự án với AI</Button>

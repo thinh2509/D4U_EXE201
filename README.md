@@ -147,6 +147,17 @@ PAYMENT_PAYOS_API_KEY=your-payos-api-key
 PAYMENT_PAYOS_CHECKSUM_KEY=your-payos-checksum-key
 ```
 
+For SME AI Brief generation, keep `AI_PROVIDER=Mock` for local offline development or set OpenAI credentials for real generated Vietnamese briefs:
+
+```env
+AI_PROVIDER=OpenAI
+AI_API_KEY=your-openai-api-key
+AI_MODEL=gpt-5-mini
+AI_TIMEOUT_SECONDS=30
+AI_FALLBACK_TO_MOCK=true
+AI_BASE_URL=https://api.openai.com/v1
+```
+
 Paid feature package purchases and escrow funding both use this payment-in provider. Student withdrawals remain manual in MVP: Admin/Finance transfers money externally, then updates the withdrawal status in D4U.
 
 For Google OAuth, add these local frontend origins in Google Cloud Console:

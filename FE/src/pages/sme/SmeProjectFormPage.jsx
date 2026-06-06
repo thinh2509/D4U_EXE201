@@ -1,5 +1,5 @@
 import { BulbOutlined, ProjectOutlined, RobotOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Card, Form, Input, InputNumber, Select, Space } from 'antd';
+import { Alert, App, Button, Card, Divider, Form, Input, InputNumber, List, Select, Space, Tag, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
@@ -8,6 +8,8 @@ import { aiApi } from '../../services/aiApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { normalizeDateInput, toDateTimeLocalValue } from '../../utils/format.js';
+
+const { Paragraph, Text, Title } = Typography;
 
 function toPayload(values) {
   return {
@@ -35,6 +37,35 @@ function fromProject(project) {
   };
 }
 
+function normalizeSearch(value = '') {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function findCategoryIdFromSuggestion(categories, categoryHint) {
+  const normalizedHint = normalizeSearch(categoryHint);
+  if (!normalizedHint) return undefined;
+
+  return categories.find((category) => {
+    const normalizedName = normalizeSearch(category.name);
+    return normalizedName === normalizedHint ||
+      normalizedName.includes(normalizedHint) ||
+      normalizedHint.includes(normalizedName);
+  })?.id;
+}
+
+function buildBriefWithDeliverables(suggestion) {
+  const deliverables = suggestion.suggestedDeliverables
+    .map((item) => `- ${item}`)
+    .join('\n');
+
+  return `${suggestion.suggestedBrief}\n\nSản phẩm bàn giao:\n${deliverables}`;
+}
+
 export function SmeProjectFormPage({ mode }) {
   const { message } = App.useApp();
   const { projectId } = useParams();
@@ -46,6 +77,7 @@ export function SmeProjectFormPage({ mode }) {
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null);
   const [error, setError] = useState(null);
   const [loadedProject, setLoadedProject] = useState(null);
 
@@ -90,8 +122,9 @@ export function SmeProjectFormPage({ mode }) {
     loadProject();
   }, [form, mode, projectId]);
 
-  const applyAiSuggestion = async (values) => {
+  const generateAiSuggestion = async (values) => {
     setAiLoading(true);
+    setAiSuggestion(null);
     try {
       const suggestion = await aiApi.suggestProjectBrief({
         rawIdea: values.rawIdea,
@@ -101,19 +134,34 @@ export function SmeProjectFormPage({ mode }) {
         budgetAmount: values.budgetAmount ? Number(values.budgetAmount) : null,
         totalDeadline: values.totalDeadline ? normalizeDateInput(values.totalDeadline) : null
       });
-      form.setFieldsValue({
-        title: suggestion.suggestedTitle,
-        brief: `${suggestion.suggestedBrief}\n\nDeliverables:\n${suggestion.suggestedDeliverables.map((item) => `- ${item}`).join('\n')}`,
-        usagePurpose: suggestion.suggestedUsagePurpose,
-        sketchDeadlineAt: toDateTimeLocalValue(suggestion.suggestedSketchDeadline),
-        finalDeadlineAt: toDateTimeLocalValue(suggestion.suggestedFinalDeadline)
-      });
-      message.success('Đã áp dụng gợi ý AI vào form. Vui lòng review trước khi lưu.');
+      setAiSuggestion(suggestion);
+      message.success('Đã tạo gợi ý AI. Vui lòng xem lại trước khi áp dụng vào form.');
     } catch (requestError) {
       message.error(getApiErrorMessage(requestError, 'Không thể gọi AI assistant.'));
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const applyAiSuggestionToForm = () => {
+    if (!aiSuggestion) return;
+
+    const matchedCategoryId = findCategoryIdFromSuggestion(categories, aiSuggestion.suggestedCategoryHint);
+    form.setFieldsValue({
+      designCategoryId: matchedCategoryId,
+      title: aiSuggestion.suggestedTitle,
+      brief: buildBriefWithDeliverables(aiSuggestion),
+      usagePurpose: aiSuggestion.suggestedUsagePurpose,
+      sketchDeadlineAt: toDateTimeLocalValue(aiSuggestion.suggestedSketchDeadline),
+      finalDeadlineAt: toDateTimeLocalValue(aiSuggestion.suggestedFinalDeadline)
+    });
+
+    if (!matchedCategoryId) {
+      message.warning('AI chưa tự khớp được danh mục thiết kế. Vui lòng chọn danh mục trước khi lưu.');
+      return;
+    }
+
+    message.success('Đã áp dụng gợi ý AI vào form. SME cần review trước khi lưu hoặc publish.');
   };
 
   const saveProject = async (values) => {
@@ -156,28 +204,99 @@ export function SmeProjectFormPage({ mode }) {
           ? deadlineLocked
             ? 'Deadline đã bị khóa vì offer đã được chấp nhận hoặc dự án đã bắt đầu.'
             : 'Deadline chỉ có thể thay đổi trước khi Student chấp nhận offer.'
-          : 'Dùng AI để khởi tạo brief nhanh, sau đó SME review trước khi lưu hoặc publish.'}
+          : 'Dùng AI để khởi tạo brief tiếng Việt rõ ràng, sau đó SME review trước khi lưu hoặc publish.'}
       />
 
       <div className={`project-form-layout ${deadlineOnly ? 'deadline-only' : ''}`}>
-        {!deadlineOnly ? <Card className="ai-panel" title={<span><BulbOutlined /> Trợ lý AI viết brief</span>}>
-          <Alert className="page-alert" type="info" showIcon message="AI chỉ hỗ trợ prefill nội dung. SME vẫn quyết định brief, ngân sách và deadline cuối cùng." />
-          <Form form={aiForm} layout="vertical" onFinish={applyAiSuggestion} requiredMark={false}>
-            <Form.Item name="rawIdea" label="Ý tưởng thô" rules={[{ required: true, message: 'Vui lòng nhập ý tưởng.' }, { min: 20, message: 'Tối thiểu 20 ký tự.' }]}>
-              <Input.TextArea rows={5} maxLength={3000} showCount placeholder="Nhập ý tưởng dự án cần AI hỗ trợ" />
-            </Form.Item>
-            <Form.Item name="businessField" label="Lĩnh vực">
-              <Input placeholder="Nhập lĩnh vực kinh doanh" />
-            </Form.Item>
-            <Form.Item name="targetAudience" label="Khách hàng mục tiêu">
-              <Input placeholder="Nhập nhóm khách hàng mục tiêu" />
-            </Form.Item>
-            <Form.Item name="preferredStyle" label="Phong cách mong muốn">
-              <Input placeholder="Nhập phong cách mong muốn" />
-            </Form.Item>
-            <Button type="primary" size="large" htmlType="submit" loading={aiLoading} block>Gợi ý bằng AI</Button>
-          </Form>
-        </Card> : null}
+        {!deadlineOnly ? (
+          <Card className="ai-panel" title={<span><BulbOutlined /> Trợ lý AI viết brief</span>}>
+            <Alert
+              className="page-alert"
+              type="info"
+              showIcon
+              message="AI chỉ hỗ trợ gợi ý nội dung. SME vẫn quyết định brief, ngân sách, deadline và trạng thái publish cuối cùng."
+            />
+            <Form form={aiForm} layout="vertical" onFinish={generateAiSuggestion} requiredMark={false}>
+              <Form.Item
+                name="rawIdea"
+                label="Ý tưởng thô"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập ý tưởng.' },
+                  { min: 20, message: 'Tối thiểu 20 ký tự.' }
+                ]}
+              >
+                <Input.TextArea rows={5} maxLength={3000} showCount placeholder="Ví dụ: Tôi cần bộ nhận diện cho quán cà phê take-away dành cho sinh viên, phong cách trẻ trung và dễ nhớ." />
+              </Form.Item>
+              <Form.Item name="businessField" label="Lĩnh vực">
+                <Input placeholder="Ví dụ: F&B, giáo dục, mỹ phẩm, thời trang..." />
+              </Form.Item>
+              <Form.Item name="targetAudience" label="Khách hàng mục tiêu">
+                <Input placeholder="Ví dụ: sinh viên 18-24 tuổi, nhân viên văn phòng, phụ huynh..." />
+              </Form.Item>
+              <Form.Item name="preferredStyle" label="Phong cách mong muốn">
+                <Input placeholder="Ví dụ: tối giản, trẻ trung, cao cấp, vui tươi..." />
+              </Form.Item>
+              <div className="form-two-cols">
+                <Form.Item name="budgetAmount" label="Ngân sách tham khảo">
+                  <InputNumber className="full-width" min={1} addonAfter="VND" />
+                </Form.Item>
+                <Form.Item name="totalDeadline" label="Hạn hoàn tất mong muốn">
+                  <Input type="datetime-local" />
+                </Form.Item>
+              </div>
+              <Button type="primary" size="large" htmlType="submit" loading={aiLoading} block>
+                Gợi ý bằng AI
+              </Button>
+            </Form>
+
+            {aiSuggestion ? (
+              <div className="ai-suggestion-preview">
+                <Divider />
+                <Space direction="vertical" size={12} className="full-width">
+                  <Space wrap>
+                    <Tag color={aiSuggestion.provider === 'OpenAI' ? 'cyan' : 'gold'}>
+                      {aiSuggestion.provider === 'OpenAI' ? 'OpenAI' : 'Fallback tiếng Việt'}
+                    </Tag>
+                    <Tag>{aiSuggestion.suggestedCategoryHint}</Tag>
+                  </Space>
+                  <Title level={5}>{aiSuggestion.suggestedTitle}</Title>
+                  <Paragraph className="preserve-lines">{aiSuggestion.suggestedBrief}</Paragraph>
+                  <div>
+                    <Text strong>Sản phẩm bàn giao</Text>
+                    <List
+                      size="small"
+                      dataSource={aiSuggestion.suggestedDeliverables}
+                      renderItem={(item) => <List.Item>{item}</List.Item>}
+                    />
+                  </div>
+                  <div>
+                    <Text strong>Mục đích sử dụng</Text>
+                    <Paragraph>{aiSuggestion.suggestedUsagePurpose}</Paragraph>
+                  </div>
+                  {aiSuggestion.deadlineNotes?.length ? (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="Lưu ý deadline"
+                      description={aiSuggestion.deadlineNotes.join(' ')}
+                    />
+                  ) : null}
+                  {aiSuggestion.warnings?.length ? (
+                    <Alert
+                      type="info"
+                      showIcon
+                      message="Thông tin cần SME kiểm tra"
+                      description={aiSuggestion.warnings.join(' ')}
+                    />
+                  ) : null}
+                  <Button type="primary" onClick={applyAiSuggestionToForm}>
+                    Áp dụng vào form
+                  </Button>
+                </Space>
+              </div>
+            ) : null}
+          </Card>
+        ) : null}
 
         <Card className="form-panel" title={<span><ProjectOutlined /> Thông tin dự án</span>}>
           <div className="form-section-intro">
@@ -215,7 +334,7 @@ export function SmeProjectFormPage({ mode }) {
               <Input size="large" disabled={deadlineOnly} />
             </Form.Item>
             <Form.Item name="brief" label="Mô tả yêu cầu / Brief dự án" rules={[{ required: true }, { min: 20, message: 'Brief tối thiểu 20 ký tự.' }]}>
-              <Input.TextArea rows={7} disabled={deadlineOnly} />
+              <Input.TextArea rows={10} disabled={deadlineOnly} />
             </Form.Item>
             <Form.Item name="usagePurpose" label="Mục đích sử dụng">
               <Input.TextArea rows={3} disabled={deadlineOnly} />
