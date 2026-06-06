@@ -148,6 +148,12 @@ function getSelectedKey(flatItems, pathname) {
     .find((item) => pathname.startsWith(item.key))?.key || flatItems[0]?.key;
 }
 
+function getRoleText(role) {
+  if (role === 'STUDENT') return 'Student workspace';
+  if (role === 'SME') return 'SME workspace';
+  return 'Admin console';
+}
+
 export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -157,11 +163,7 @@ export function AppLayout() {
   const flatItems = flattenMenu(items);
   const selectedKey = getSelectedKey(flatItems, location.pathname);
   const title = pageTitleByPath[selectedKey] || 'D4U';
-  const roleText = user?.role === 'STUDENT'
-    ? 'Student workspace'
-    : user?.role === 'SME'
-      ? 'SME workspace'
-      : 'Admin console';
+  const roleText = getRoleText(user?.role);
 
   const handleLogout = async () => {
     await logout();
@@ -170,7 +172,7 @@ export function AppLayout() {
 
   return (
     <Layout className="app-layout">
-      <Sider className="app-sider" width={268} breakpoint="lg" collapsedWidth="0">
+      <Sider className="app-sider" width={260} breakpoint="lg" collapsedWidth="0">
         <div className="sider-brand">
           <D4ULogo />
           <Tag className="role-pill">{roleText}</Tag>
@@ -192,12 +194,12 @@ export function AppLayout() {
 
       <Layout>
         <Header className="app-header">
-          <Button className="mobile-menu-button" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />
+          <Button className="mobile-menu-button" aria-label="Mở menu" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />
           <div className="header-context">
-            <span>D4U</span>
+            <span>D4U public demo</span>
             <strong>{title}</strong>
           </div>
-          <Tag className="header-chip" icon={<BuildOutlined />}>MVP workspace</Tag>
+          <Tag className="header-chip" icon={<BuildOutlined />}>Outcome 1</Tag>
           <NotificationBell />
           <UserMenu user={user} onLogout={handleLogout} />
         </Header>
