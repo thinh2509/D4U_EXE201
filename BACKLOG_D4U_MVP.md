@@ -235,6 +235,8 @@ These items are outside Outcome 1 according to `D4U_Outcome1_Master.docx`. Do no
 
 - [x] SME can request AI assistance from raw project idea before or during draft project creation.
 - [x] AI assistant returns suggested title, brief, usage purpose, deliverables, design category hint, and deadline notes.
+- [x] AI Brief output is generated in Vietnamese with structured sections that SME can review.
+- [x] AI Brief can use OpenAI provider with `gpt-5-mini` and fallback to Vietnamese mock output when unavailable.
 - [x] SME must review and edit AI suggestions before saving or publishing a project.
 - [x] AI assistant must not publish projects, select students, set final pricing automatically, or bypass subscription limits.
 - [x] Store no AI conversation history in MVP; use the response only to prefill the project form.

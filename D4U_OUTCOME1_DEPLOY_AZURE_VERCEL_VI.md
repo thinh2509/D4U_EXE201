@@ -47,6 +47,13 @@ Admin__Username=admin
 Admin__Password=<strong-admin-password>
 Admin__FullName=D4U Admin
 
+Ai__Provider=OpenAI
+Ai__ApiKey=<openai-api-key>
+Ai__Model=gpt-5-mini
+Ai__TimeoutSeconds=30
+Ai__FallbackToMock=true
+Ai__BaseUrl=https://api.openai.com/v1
+
 Payment__Provider=PayOS
 Payment__ReturnUrl=https://<vercel-domain>/payment/success
 Payment__CancelUrl=https://<vercel-domain>/payment/cancel
@@ -60,6 +67,8 @@ GoogleAuth__ClientId=<google-client-id>
 Cors__AllowedOrigins__0=https://<vercel-domain>
 Uploads__RootPath=/home/site/uploads
 ```
+
+AI Brief dùng OpenAI khi có API key. Nếu OpenAI lỗi hoặc hết quota, `Ai__FallbackToMock=true` giúp hệ thống trả fallback tiếng Việt có cấu trúc thay vì chặn SME.
 
 5. Nếu bật email verification thật, thêm SMTP settings:
 

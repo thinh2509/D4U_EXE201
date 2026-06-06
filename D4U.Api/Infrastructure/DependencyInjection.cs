@@ -65,7 +65,26 @@ public static class DependencyInjection
         services.AddScoped<IDapperConnectionFactory, NpgsqlDapperConnectionFactory>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddSingleton<IUploadPathResolver, LocalUploadPathResolver>();
-        services.AddScoped<IAiProjectBriefAssistant, MockAiProjectBriefAssistant>();
+        services.AddScoped<MockAiProjectBriefAssistant>();
+        services.AddHttpClient<OpenAiProjectBriefAssistant>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>()
+                .GetSection(AiOptions.SectionName)
+                .Get<AiOptions>() ?? new AiOptions();
+
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+        });
+        services.AddScoped<IAiProjectBriefAssistant>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>()
+                .GetSection(AiOptions.SectionName)
+                .Get<AiOptions>() ?? new AiOptions();
+
+            return string.Equals(options.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<OpenAiProjectBriefAssistant>()
+                : serviceProvider.GetRequiredService<MockAiProjectBriefAssistant>();
+        });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IProjectService, ProjectService>();
