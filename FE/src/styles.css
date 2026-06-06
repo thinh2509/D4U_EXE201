@@ -116,6 +116,7 @@ a:hover {
 
 .payment-result-card {
   text-align: center;
+  border-color: var(--d4u-border);
 }
 
 .result-icon {
@@ -128,6 +129,13 @@ a:hover {
 
 .result-icon.danger {
   color: var(--danger);
+}
+
+.workspace-panel,
+.workspace-card {
+  border-color: var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-surface);
 }
 
 .result-icon.warning {
