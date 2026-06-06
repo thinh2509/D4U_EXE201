@@ -73,7 +73,9 @@ export function PaymentCancelPage() {
           <CloseCircleOutlined className="result-icon danger" />
           <div>
             <Title level={2}>Thanh toán đã bị hủy</Title>
-            <Paragraph className="muted-text">Offer vẫn chờ thanh toán nếu còn hiệu lực. SME có thể mở lại link PayOS từ workspace.</Paragraph>
+            <Paragraph className="muted-text">
+              Offer vẫn chờ thanh toán nếu còn hiệu lực. SME có thể mở lại link PayOS từ workspace.
+            </Paragraph>
           </div>
           <Alert type="info" showIcon message="Backend không ghi nhận thanh toán thành công từ trang này." />
           <Button type="primary"><Link to={workspacePath}>{projectId ? 'Về workspace' : 'Về danh sách offer'}</Link></Button>

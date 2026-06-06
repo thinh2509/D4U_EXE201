@@ -16,45 +16,87 @@ import { PageHeader } from '../../components/PageHeader.jsx';
 import { BackendGapState } from '../../components/StateViews.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
-const dashboardCards = {
-  STUDENT: [
-    ['Xác thực', 'Hoàn thiện xác thực sinh viên để đủ điều kiện ứng tuyển.', '/student/verification', <SafetyCertificateOutlined />],
-    ['Dự án đang mở', 'Tìm brief phù hợp và gửi ứng tuyển.', '/student/projects', <FolderOpenOutlined />],
-    ['Portfolio', 'Chuẩn bị hồ sơ năng lực từ các dự án được phép công khai.', '/student/portfolio', <StarOutlined />],
-    ['Ví D4U', 'Theo dõi số dư nội bộ và yêu cầu rút tiền thủ công.', '/student/wallet', <WalletOutlined />]
-  ],
-  SME: [
-    ['Tạo dự án', 'Viết brief, dùng AI hỗ trợ và publish khi sẵn sàng.', '/sme/projects/new', <FolderOpenOutlined />],
-    ['Đề nghị & escrow', 'Theo dõi offer đã accept và mở thanh toán PayOS cho từng dự án.', '/sme/offers', <CreditCardOutlined />],
-    ['AI Brief', 'Nhận gợi ý brief có thể chỉnh sửa trước khi lưu.', '/sme/ai-brief', <BulbOutlined />],
-    ['AI Matching', 'Tìm sinh viên phù hợp khi có gói tính năng đang hoạt động.', '/sme/ai-matching', <TeamOutlined />],
-    ['Gói & thanh toán', 'Mua gói tính năng bằng provider payment-in thật.', '/sme/billing', <CreditCardOutlined />]
-  ],
-  ADMIN: [
-    ['Duyệt xác thực', 'Xem và xử lý yêu cầu xác thực sinh viên.', '/admin/verifications', <SafetyCertificateOutlined />],
-    ['Portfolio', 'Ẩn các portfolio item không phù hợp nếu cần.', '/admin/portfolio', <StarOutlined />],
-    ['Rút tiền', 'Xử lý withdrawal sau khi Finance chuyển khoản ngoài hệ thống.', '/admin/withdrawals', <WalletOutlined />],
-    ['Audit logs', 'Theo dõi các hành động quan trọng của hệ thống.', '/admin/audit-logs', <FileDoneOutlined />]
-  ]
+const dashboardContent = {
+  STUDENT: {
+    label: 'Student workspace',
+    title: 'Sẵn sàng nhận dự án thiết kế thật',
+    description: 'Hoàn thiện xác thực, tìm dự án phù hợp, theo dõi offer và quản lý ví D4U sau khi hoàn thành Final.',
+    primaryPath: '/student/projects',
+    primaryLabel: 'Tìm dự án',
+    cards: [
+      ['Xác thực', 'Hoàn thiện hồ sơ sinh viên để đủ điều kiện ứng tuyển.', '/student/verification', <SafetyCertificateOutlined />, 'Cần làm trước'],
+      ['Dự án đang mở', 'Tìm brief phù hợp và gửi proposal rõ ràng.', '/student/projects', <FolderOpenOutlined />, 'Cơ hội mới'],
+      ['Dự án của tôi', 'Theo dõi các project đã accept và workspace nộp bài.', '/student/my-projects', <FileDoneOutlined />, 'Đang làm'],
+      ['Ví D4U', 'Theo dõi ledger nội bộ và yêu cầu rút tiền thủ công.', '/student/wallet', <WalletOutlined />, 'Thanh toán']
+    ]
+  },
+  SME: {
+    label: 'SME workspace',
+    title: 'Biến nhu cầu thiết kế thành project có thể triển khai',
+    description: 'Tạo brief, nhận ứng tuyển, gửi offer, thanh toán escrow và review Sketch/Final trong cùng một luồng.',
+    primaryPath: '/sme/projects/new',
+    primaryLabel: 'Tạo dự án',
+    cards: [
+      ['Tạo dự án', 'Viết brief, dùng AI hỗ trợ và publish khi sẵn sàng.', '/sme/projects/new', <FolderOpenOutlined />, 'Bắt đầu'],
+      ['Đề nghị & escrow', 'Theo dõi offer đã accept và mở thanh toán PayOS.', '/sme/offers', <CreditCardOutlined />, 'Cần chú ý'],
+      ['AI Brief', 'Nhận gợi ý brief tiếng Việt có thể chỉnh sửa.', '/sme/ai-brief', <BulbOutlined />, 'Hỗ trợ'],
+      ['AI Matching', 'Tìm Student phù hợp khi có gói tính năng đang hoạt động.', '/sme/ai-matching', <TeamOutlined />, 'Có điều kiện'],
+      ['Gói & thanh toán', 'Quản lý subscription và payment-in cho feature packages.', '/sme/billing', <CreditCardOutlined />, 'Tài khoản']
+    ]
+  },
+  ADMIN: {
+    label: 'Admin console',
+    title: 'Điều phối các bước vận hành quan trọng',
+    description: 'Duyệt xác thực, xử lý rút tiền, theo dõi audit logs và các tác vụ moderation phục vụ demo Outcome 1.',
+    primaryPath: '/admin/verifications',
+    primaryLabel: 'Duyệt xác thực',
+    cards: [
+      ['Duyệt xác thực', 'Xem và xử lý yêu cầu xác thực sinh viên.', '/admin/verifications', <SafetyCertificateOutlined />, 'Vận hành'],
+      ['Rút tiền', 'Cập nhật kết quả sau khi Finance chuyển khoản thủ công.', '/admin/withdrawals', <WalletOutlined />, 'Tài chính'],
+      ['Portfolio', 'Ẩn portfolio item không phù hợp nếu cần.', '/admin/portfolio', <StarOutlined />, 'Moderation'],
+      ['Audit logs', 'Theo dõi các hành động quan trọng của hệ thống.', '/admin/audit-logs', <FileDoneOutlined />, 'Giám sát']
+    ]
+  }
 };
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const cards = dashboardCards[user?.role] || [];
+  const content = dashboardContent[user?.role] || dashboardContent.STUDENT;
 
   return (
     <>
       <PageHeader
         icon={<DashboardOutlined />}
-        eyebrow="D4U workspace"
+        eyebrow={content.label}
         title="Tổng quan"
-        description="Các lối tắt chính cho vai trò hiện tại. Những chức năng chưa có API thật sẽ hiển thị trạng thái chờ backend thay vì dùng dữ liệu giả."
+        description="Các tác vụ quan trọng nhất cho vai trò hiện tại. D4U chỉ hiển thị dữ liệu thật từ API và không dùng số liệu giả cho dashboard."
+        extra={<Button type="primary" onClick={() => navigate(content.primaryPath)}>{content.primaryLabel}</Button>}
       />
+
+      <section className="dashboard-hero">
+        <div>
+          <Tag color="cyan">{content.label}</Tag>
+          <h2>{content.title}</h2>
+          <p>{content.description}</p>
+        </div>
+        <Button type="primary" size="large" onClick={() => navigate(content.primaryPath)}>
+          {content.primaryLabel}
+        </Button>
+      </section>
+
+      <div className="dashboard-section-heading">
+        <span>Workflow chính</span>
+        <strong>Chọn bước cần xử lý tiếp theo</strong>
+      </div>
+
       <div className="dashboard-grid">
-        {cards.map(([title, description, path, icon]) => (
+        {content.cards.map(([title, description, path, icon, badge]) => (
           <Card key={path} className="dashboard-card" hoverable onClick={() => navigate(path)}>
-            <div className="dashboard-card-icon">{icon}</div>
+            <div className="dashboard-card-top">
+              <div className="dashboard-card-icon">{icon}</div>
+              <Tag>{badge}</Tag>
+            </div>
             <div>
               <h2>{title}</h2>
               <p>{description}</p>

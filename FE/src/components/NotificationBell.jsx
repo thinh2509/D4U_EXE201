@@ -138,7 +138,7 @@ export function NotificationBell() {
         if (nextOpen) loadNotifications({ silent: true });
       }}
     >
-      <Button className="notification-button" icon={(
+      <Button className="notification-button" aria-label="Mở thông báo" icon={(
         <Badge count={unreadLabel} size="small" offset={[4, -4]}>
           <BellOutlined />
         </Badge>

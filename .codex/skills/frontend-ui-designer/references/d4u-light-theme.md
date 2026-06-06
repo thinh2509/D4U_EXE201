@@ -5,9 +5,9 @@ description: >
   Use when building or refining any React/Vite page or component for D4U: auth,
   dashboards, marketplace, project execution, payment/escrow, wallet, withdrawal,
   portfolio, AI matching, admin screens, or any role-based UI.
-  Enforces D4U brand system, visual consistency, UX best practices, N-Layer API
-  contract patterns, and MVP scope. Always improves aesthetics AND usability
-  without breaking logic, routes, state management, or business flows.
+  Enforces D4U brand system (Tailwind v3), visual consistency, UX best practices,
+  N-Layer API contract patterns, and MVP scope. Always improves aesthetics AND
+  usability without breaking logic, routes, state management, or business flows.
 ---
 
 # D4U Frontend Skill
@@ -39,311 +39,282 @@ D4U is a SaaS/product platform for real users (SMEs, students, admins). The inte
 
 ---
 
-## 2 — Brand & design tokens
+## 2 — Tailwind config (extend this in `tailwind.config.js`)
 
-Use **only** these CSS variables. Never hardcode hex colors in component styles.
+Always use the D4U custom tokens below — never hardcode hex values in JSX.
 
-```css
-/* ── Core brand ─────────────────────────────── */
---d4u-cyan: #12aeea; /* primary action, links, active nav, focus rings */
---d4u-cyan-hover: #0b9bd3;
---d4u-teal-deep: #075d78; /* headings, nav accents, structural elements */
---d4u-teal-muted: #0a6f8e;
-
-/* ── Neutral / structure ────────────────────── */
---d4u-charcoal: #1d2428; /* body text */
---d4u-nav-dark: #071014; /* top nav background */
-
-/* ── Surface ────────────────────────────────── */
---d4u-bg: #f6fafd; /* page background */
---d4u-surface: #ffffff; /* card, panel, modal surfaces */
---d4u-soft: #eef6fa; /* subtle highlight rows, hover states */
-
-/* ── Text hierarchy ─────────────────────────── */
---d4u-text-1: #1d2428; /* primary text */
---d4u-text-2: #667985; /* secondary / labels */
---d4u-text-3: #8ea0aa; /* captions, placeholders */
---d4u-border: #d7e5ec; /* borders, dividers */
-
-/* ── Semantic ───────────────────────────────── */
---d4u-success: #16a34a;
---d4u-warning: #f59e0b;
---d4u-error: #dc2626;
---d4u-info: #0ea5e9;
-
-/* ── Derived / aliases (compute at :root) ───── */
---d4u-cyan-10: rgba(18, 174, 234, 0.1);
---d4u-cyan-16: rgba(18, 174, 234, 0.16);
---d4u-teal-10: rgba(7, 93, 120, 0.1);
+```js
+// tailwind.config.js
+export default {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        // Core brand
+        "d4u-cyan": "#12aeea",
+        "d4u-cyan-hover": "#0b9bd3",
+        "d4u-teal-deep": "#075d78",
+        "d4u-teal-muted": "#0a6f8e",
+        // Neutral / structure
+        "d4u-charcoal": "#1d2428",
+        "d4u-nav-dark": "#071014",
+        // Surfaces
+        "d4u-bg": "#f6fafd",
+        "d4u-surface": "#ffffff",
+        "d4u-soft": "#eef6fa",
+        // Text hierarchy
+        "d4u-text-1": "#1d2428",
+        "d4u-text-2": "#667985",
+        "d4u-text-3": "#8ea0aa",
+        "d4u-border": "#d7e5ec",
+        // Semantic
+        "d4u-success": "#16a34a",
+        "d4u-warning": "#f59e0b",
+        "d4u-error": "#dc2626",
+        "d4u-info": "#0ea5e9",
+      },
+      fontFamily: {
+        display: ['"General Sans"', "system-ui", "sans-serif"],
+        body: ['"DM Sans"', "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "monospace"],
+      },
+      borderRadius: {
+        chip: "9999px",
+        btn: "6px",
+        drop: "8px",
+        card: "12px",
+        block: "16px",
+      },
+      boxShadow: {
+        "card-hover": "0 4px 16px rgba(0,0,0,0.10)",
+        panel: "0 8px 24px rgba(0,0,0,0.12)",
+        modal: "0 16px 48px rgba(0,0,0,0.18)",
+        focus: "0 0 0 3px rgba(18,174,234,0.16)",
+      },
+      maxWidth: {
+        content: "1280px",
+        form: "640px",
+        panel: "340px",
+      },
+    },
+  },
+  plugins: [],
+};
 ```
 
 **Color usage rules:**
 
-- Cyan/teal → primary actions, active states, focus rings, brand accents only.
-- Charcoal/dark teal → structure, headings, nav, serious UI chrome.
-- Keep the app **light** — `--d4u-bg` as page background, `--d4u-surface` for cards.
-- Never use purple/indigo as a primary action color.
-- No random gradients unrelated to the brand palette.
+- `d4u-cyan` / `d4u-teal-*` → primary actions, active states, focus rings, brand accents only.
+- `d4u-charcoal` / `d4u-nav-dark` → structure, headings, nav.
+- Keep the app **light** — `bg-d4u-bg` on page, `bg-d4u-surface` on cards.
+- Never use `purple` / `indigo` as primary action colors.
+- No random gradients outside the brand palette.
 
 ---
 
-## 3 — Typography
+## 3 — Typography classes
 
 ```
-Display / headings : "General Sans", system-ui, sans-serif
-Body / UI labels   : "DM Sans", system-ui, sans-serif
-Code / metadata    : "JetBrains Mono", monospace
+font-display  →  "General Sans"  (headings, page titles)
+font-body     →  "DM Sans"       (body, labels, buttons)
+font-mono     →  "JetBrains Mono" (code, metadata)
 ```
 
-| Role            | Desktop | Mobile  | Weight |
-| --------------- | ------- | ------- | ------ |
-| Page title      | 32–40px | 26–32px | 600    |
-| Section heading | 22–28px | 18–22px | 600    |
-| Card title      | 16–20px | 15–18px | 500    |
-| Body text       | 14–16px | 14–15px | 400    |
-| Caption / meta  | 12–13px | 12px    | 400    |
+| Role            | Tailwind classes                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| Page title      | `font-display text-[36px] md:text-[40px] font-semibold leading-tight tracking-tight text-d4u-teal-deep` |
+| Section heading | `font-display text-2xl md:text-3xl font-semibold leading-snug text-d4u-teal-deep`                       |
+| Card title      | `font-body text-lg font-medium leading-snug text-d4u-text-1`                                            |
+| Body text       | `font-body text-sm md:text-base font-normal leading-relaxed text-d4u-text-1`                            |
+| Secondary label | `font-body text-sm text-d4u-text-2`                                                                     |
+| Caption / meta  | `font-body text-xs text-d4u-text-3`                                                                     |
 
 **Rules:**
 
-- No `vw` units on typography — use `px` or `clamp()`.
-- Line-height: 1.6 for body, 1.3 for headings, 1.4 for UI labels.
-- Letter-spacing: -0.01em to -0.02em for headings, 0 for body.
-- Minimum contrast: 4.5:1 for normal text, 3:1 for large text (WCAG AA).
+- No `text-[Xvw]` — use px values or responsive Tailwind steps.
+- `leading-relaxed` (1.625) for body, `leading-tight` (1.25) or `leading-snug` (1.375) for headings.
+- Minimum contrast: 4.5:1 normal text, 3:1 large text (WCAG AA).
 
 ---
 
-## 4 — Spacing, layout, radius, elevation
+## 4 — Spacing, layout, responsive
 
-### Spacing
+### Spacing scale (4px base)
 
-```
-Base unit: 4px
-Scale:  4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 · 64 · 80 · 96px
-```
+Use Tailwind's default spacing — it is already 4px-based (`p-1 = 4px`, `p-2 = 8px`, `p-4 = 16px`, `p-5 = 20px`, `p-6 = 24px`, `p-8 = 32px`, `p-10 = 40px`…).
 
-Use the scale consistently. Do not invent arbitrary gaps (e.g., `gap: 13px`).
+Do **not** use arbitrary values like `gap-[13px]` or `p-[7px]`.
 
-### Layout
+### Page wrapper pattern
 
-```
-Max content width : 1280px
-Page padding      : 16px (mobile) · 24px (tablet) · 32px (desktop)
-Sidebar width     : 240–260px (desktop)
-Right summary panel: 300–340px
+```jsx
+<div className="min-h-screen bg-d4u-bg">
+  <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {/* page content */}
+  </div>
+</div>
 ```
 
-| Context           | Columns                                                       |
-| ----------------- | ------------------------------------------------------------- |
-| Marketplace grid  | 1 (mobile) · 2 (tablet) · 3 (desktop) · 4 (large if readable) |
-| Dashboard widgets | 1 (mobile) · 2 (tablet) · 2–3 (desktop)                       |
-| Forms             | Single column, max-width 640px                                |
-| Admin tables      | Full width, horizontal scroll on mobile                       |
+### Grid layouts
 
-### Border radius
-
-```
-Chip / tag / badge  : 9999px
-Button / input      : 6px
-Dropdown / tooltip  : 8px
-Card / panel / modal: 12px
-Page section block  : 16px
-```
-
-### Elevation (shadow system)
-
-```css
-/* Resting card — border first */
-box-shadow: none;
-border: 1px solid var(--d4u-border);
-
-/* Hover card */
-transform: translateY(-2px);
-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-transition:
-  transform 180ms ease,
-  box-shadow 180ms ease;
-
-/* Raised panel (dropdown, popover) */
-box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-
-/* Focus ring */
-outline: none;
-box-shadow: 0 0 0 3px var(--d4u-cyan-16);
-
-/* Modal overlay */
-box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
-```
+| Context                        | Classes                                                               |
+| ------------------------------ | --------------------------------------------------------------------- |
+| Marketplace                    | `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5` |
+| Dashboard widgets              | `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5`                |
+| Dashboard (sidebar + main)     | `flex gap-0` with `w-60 shrink-0` sidebar + `flex-1 min-w-0` main     |
+| Project detail (brief + panel) | `grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6`                     |
+| Forms                          | `flex flex-col gap-5 max-w-form`                                      |
+| Admin tables                   | `w-full overflow-x-auto`                                              |
 
 ---
 
-## 5 — Component standards
+## 5 — Component classes
 
 ### Buttons
 
-| Variant   | Use case               | Style                                                  |
-| --------- | ---------------------- | ------------------------------------------------------ |
-| Primary   | Main CTA               | bg `--d4u-cyan`, white text, hover `--d4u-cyan-hover`  |
-| Secondary | Supporting action      | border `--d4u-cyan`, `--d4u-cyan` text, transparent bg |
-| Ghost     | Tertiary / nav actions | no border, `--d4u-text-2` text                         |
-| Danger    | Destructive            | bg `--d4u-error`, white text                           |
+| Variant   | Classes                                                                                                                                                                                                                                                                             |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary   | `inline-flex items-center gap-2 h-10 px-4 rounded-btn bg-d4u-cyan hover:bg-d4u-cyan-hover text-white font-body text-sm font-medium transition-colors duration-150 focus:outline-none focus:shadow-focus active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed`         |
+| Secondary | `inline-flex items-center gap-2 h-10 px-4 rounded-btn border border-d4u-cyan text-d4u-cyan hover:bg-d4u-soft font-body text-sm font-medium transition-colors duration-150 focus:outline-none focus:shadow-focus active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed` |
+| Ghost     | `inline-flex items-center gap-2 h-10 px-4 rounded-btn text-d4u-text-2 hover:bg-d4u-soft font-body text-sm font-medium transition-colors duration-150 focus:outline-none focus:shadow-focus`                                                                                         |
+| Danger    | `inline-flex items-center gap-2 h-10 px-4 rounded-btn bg-d4u-error hover:bg-red-700 text-white font-body text-sm font-medium transition-colors duration-150 focus:outline-none focus:shadow-focus active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed`               |
 
-```css
-/* Base button */
-height: 40px; /* default; compact = 32px; large = 48px */
-padding: 0 16px;
-border-radius: 6px;
-font-size: 14px;
-font-weight: 500;
-font-family: "DM Sans", system-ui;
-cursor: pointer;
-transition:
-  background 150ms ease,
-  box-shadow 150ms ease,
-  transform 80ms ease;
+Size modifiers: `h-8 px-3 text-xs` (compact) · `h-12 px-6 text-base` (large).
 
-/* Active press */
-&:active {
-  transform: scale(0.98);
-}
-```
+- Minimum touch target 44×44px — add `min-h-[44px] min-w-[44px]` on small icon buttons.
+- Loading state: add `<Spinner className="w-4 h-4 animate-spin" />` inside, keep button disabled.
 
-- Minimum touch target: 44×44px (use padding to expand if needed).
-- Always show a visible focus ring.
-- Disabled state: 50% opacity, `cursor: not-allowed`.
-- Loading state: spinner inside button, button disabled, label unchanged.
+### Inputs & textareas
 
-### Inputs & forms
+```jsx
+// Input base
+<input className="
+  w-full h-10 px-3 rounded-btn
+  border border-d4u-border
+  bg-d4u-surface text-d4u-text-1 text-sm font-body
+  placeholder:text-d4u-text-3
+  hover:border-d4u-teal-muted
+  focus:outline-none focus:border-d4u-cyan focus:shadow-focus
+  disabled:bg-d4u-soft disabled:cursor-not-allowed
+  transition-colors duration-150
+" />
 
-```css
-/* Input base */
-height: 40px;
-padding: 0 12px;
-border: 1px solid var(--d4u-border);
-border-radius: 6px;
-font-size: 14px;
-color: var(--d4u-text-1);
-background: var(--d4u-surface);
-transition:
-  border-color 150ms ease,
-  box-shadow 150ms ease;
-
-&:hover {
-  border-color: var(--d4u-teal-muted);
-}
-&:focus {
-  border-color: var(--d4u-cyan);
-  box-shadow: 0 0 0 3px var(--d4u-cyan-16);
-}
-&.error {
-  border-color: var(--d4u-error);
-}
+// Error state — add alongside input
+<input className="... border-d4u-error focus:border-d4u-error" />
+<p className="mt-1 text-xs text-d4u-error">{errorMessage}</p>
 ```
 
 - Always use visible `<label>` — never placeholder-only.
-- Group related fields in named `<fieldset>` or named section blocks.
-- Show helper text below inputs for budget, dates, file types, revision limits.
-- Error messages appear immediately below the relevant field, in `--d4u-error` color.
-- Use `ConfirmDialog` for all destructive actions.
-
-Allowed upload extensions in MVP: `jpg · png · pdf`. Reject others with a clear message.
+- Group related fields with `<div className="flex flex-col gap-1.5">` (label + input + helper).
+- Helper text: `<p className="text-xs text-d4u-text-3 mt-1">{helperText}</p>`
 
 ### Cards
 
-```css
-/* Base card */
-background: var(--d4u-surface);
-border: 1px solid var(--d4u-border);
-border-radius: 12px;
-padding: 20px;
-transition:
-  transform 180ms ease,
-  box-shadow 180ms ease;
+```jsx
+// Resting card
+<div className="bg-d4u-surface border border-d4u-border rounded-card p-5">
 
-/* Hover (interactive cards only) */
-&:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
+// Interactive card (hover lift)
+<div className="bg-d4u-surface border border-d4u-border rounded-card p-5
+                transition-all duration-200 ease-out
+                hover:-translate-y-0.5 hover:shadow-card-hover
+                cursor-pointer">
 ```
 
 - Do not nest cards inside cards.
-- Cards must have a clear primary piece of information (title, number, status).
-- Use consistent internal padding — 20px default, 16px for compact variants.
+- Consistent internal padding: `p-5` (default) · `p-4` (compact).
 
 ### Status chips
 
-Always show **text labels** — never rely on color alone.
+```jsx
+const chipVariants = {
+  warning: 'bg-amber-50  text-amber-800',
+  success: 'bg-green-50  text-green-800',
+  error:   'bg-red-50    text-red-800',
+  neutral: 'bg-slate-100 text-slate-600',
+  info:    'bg-sky-50    text-sky-800',
+}
 
-| Status values                                                                                          | Variant | Colors                       |
-| ------------------------------------------------------------------------------------------------------ | ------- | ---------------------------- |
-| `PENDING` `UNDER_REVIEW` `WAITING_ACCEPTANCE` `PENDING_PAYMENT` `REVISION_REQUESTED` `RELEASE_PENDING` | warning | bg `#fef3c7`, text `#92400e` |
-| `ACTIVE` `VERIFIED` `OPEN` `ACCEPTED` `FUNDED` `RELEASED` `COMPLETED` `APPROVED` `PUBLIC`              | success | bg `#dcfce7`, text `#14532d` |
-| `REJECTED` `FAILED` `INVALID_REPORTED` `BANNED` `SUSPENDED`                                            | error   | bg `#fee2e2`, text `#991b1b` |
-| `DRAFT` `PRIVATE` `CANCELLED` `DELETED` `REFUNDED` `HIDDEN`                                            | neutral | bg `#f1f5f9`, text `#475569` |
-| `PRIVATE_INVITED` `IN_PROGRESS` `SKETCH_REVIEW` `FINAL_REVIEW` `AI_MATCHED`                            | info    | bg `#e0f2fe`, text `#0c4a6e` |
-
-```css
-/* Chip base */
-display: inline-flex;
-align-items: center;
-gap: 6px;
-padding: 3px 10px;
-border-radius: 9999px;
-font-size: 12px;
-font-weight: 500;
-white-space: nowrap;
+<span className={`
+  inline-flex items-center gap-1.5 px-2.5 py-0.5
+  rounded-chip text-xs font-medium whitespace-nowrap
+  ${chipVariants[variant]}
+`}>
+  {label}
+</span>
 ```
 
-Do not add `DISPUTED` chip — out of MVP scope.
+| Status values                                                                                          | Variant   |
+| ------------------------------------------------------------------------------------------------------ | --------- |
+| `PENDING` `UNDER_REVIEW` `WAITING_ACCEPTANCE` `PENDING_PAYMENT` `REVISION_REQUESTED` `RELEASE_PENDING` | `warning` |
+| `ACTIVE` `VERIFIED` `OPEN` `ACCEPTED` `FUNDED` `RELEASED` `COMPLETED` `APPROVED` `PUBLIC`              | `success` |
+| `REJECTED` `FAILED` `INVALID_REPORTED` `BANNED` `SUSPENDED`                                            | `error`   |
+| `DRAFT` `PRIVATE` `CANCELLED` `DELETED` `REFUNDED` `HIDDEN`                                            | `neutral` |
+| `PRIVATE_INVITED` `IN_PROGRESS` `SKETCH_REVIEW` `FINAL_REVIEW` `AI_MATCHED`                            | `info`    |
+
+Always show text — never rely on color alone. Do not add `DISPUTED` — out of MVP scope.
 
 ### Navigation
 
-**Top nav** (`--d4u-nav-dark` background):
+**Top nav:**
 
-- D4U logo left; role-based links center/right; user avatar menu far right.
-- Active link: `--d4u-cyan` underline or highlight.
-- Height: 64px desktop, 56px mobile.
-
-**Sidebar** (dashboard layouts):
-
-- Background: `--d4u-surface`, border-right `--d4u-border`.
-- Width: 240–260px, collapsible to icon-only on medium viewports.
-- Active item: `--d4u-soft` background, `--d4u-cyan` left border accent (3px), `--d4u-teal-deep` text.
-
-**Mobile nav:** drawer (slide-in), never horizontal overflow.
-
-### Tables (Admin & data views)
-
-```css
-/* Table wrapper */
-overflow-x: auto;
-border: 1px solid var(--d4u-border);
-border-radius: 12px;
-
-/* th */
-background: var(--d4u-soft);
-color: var(--d4u-text-2);
-font-size: 12px;
-font-weight: 500;
-text-transform: uppercase;
-letter-spacing: 0.05em;
-padding: 10px 16px;
-
-/* td */
-padding: 12px 16px;
-color: var(--d4u-text-1);
-border-top: 1px solid var(--d4u-border);
-font-size: 14px;
-
-/* Row hover */
-tr:hover td {
-  background: var(--d4u-soft);
-}
+```jsx
+<nav className="h-16 bg-d4u-nav-dark border-b border-white/10 flex items-center px-4 sm:px-6 lg:px-8">
 ```
 
-- Sticky header on tall tables.
-- Show pagination or "load more" when rows > 25.
-- Empty table state: centered `<EmptyState>` inside the table frame.
+Active link: `text-d4u-cyan border-b-2 border-d4u-cyan`
+Default link: `text-white/70 hover:text-white transition-colors`
+
+**Sidebar:**
+
+```jsx
+<aside className="w-60 shrink-0 bg-d4u-surface border-r border-d4u-border min-h-screen">
+```
+
+Active item: `bg-d4u-soft border-l-[3px] border-d4u-cyan text-d4u-teal-deep font-medium`
+Default item: `text-d4u-text-2 hover:bg-d4u-soft hover:text-d4u-text-1 transition-colors`
+
+Mobile nav: drawer (slide-in sheet) — never horizontal overflow.
+
+### Tables
+
+```jsx
+<div className="w-full overflow-x-auto rounded-card border border-d4u-border">
+  <table className="w-full text-sm">
+    <thead>
+      <tr className="bg-d4u-soft border-b border-d4u-border">
+        <th className="px-4 py-2.5 text-left text-xs font-medium text-d4u-text-2 uppercase tracking-wider">
+          {header}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr className="border-t border-d4u-border hover:bg-d4u-soft transition-colors">
+        <td className="px-4 py-3 text-d4u-text-1">{cell}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+```
+
+- Sticky header on tall tables: add `sticky top-0 z-10` to `<thead>`.
+- Paginate or "load more" when rows > 25.
+- Empty table: centered `<EmptyState>` inside the table frame.
+
+### Loading skeletons
+
+```jsx
+// Skeleton base — match the shape of real content
+<div className="animate-pulse bg-d4u-soft rounded h-4 w-3/4" />
+<div className="animate-pulse bg-d4u-soft rounded h-4 w-1/2 mt-2" />
+
+// Skeleton card
+<div className="bg-d4u-surface border border-d4u-border rounded-card p-5 animate-pulse">
+  <div className="h-5 bg-d4u-soft rounded w-2/3 mb-3" />
+  <div className="h-4 bg-d4u-soft rounded w-full mb-2" />
+  <div className="h-4 bg-d4u-soft rounded w-4/5" />
+</div>
+```
 
 ---
 
@@ -351,13 +322,13 @@ tr:hover td {
 
 Every page and data-fetching component must handle **all 5 states**:
 
-| State       | Implementation                                                           |
-| ----------- | ------------------------------------------------------------------------ |
-| `loading`   | `<LoadingSkeleton>` that matches the content shape (not a spinner alone) |
-| `empty`     | `<EmptyState>` with an icon, short message, and one clear CTA            |
-| `error`     | Inline error message with a retry button                                 |
-| `forbidden` | `<ForbiddenState>` — never show partial data                             |
-| `success`   | Render data; show a toast on successful mutations                        |
+| State       | Implementation                                                   |
+| ----------- | ---------------------------------------------------------------- |
+| `loading`   | `<LoadingSkeleton>` matching content shape — not a spinner alone |
+| `empty`     | `<EmptyState>` with icon, short message, and one clear CTA       |
+| `error`     | Inline error message + retry button                              |
+| `forbidden` | `<ForbiddenState>` — never show partial data                     |
+| `success`   | Render data; toast on successful mutations (auto-dismiss 4s)     |
 
 ---
 
@@ -365,141 +336,182 @@ Every page and data-fetching component must handle **all 5 states**:
 
 ### Auth pages
 
-- Light, centered layout (max-width 440px) or left-text / right-form split.
-- D4U logo visible at top.
-- Google OAuth button when configured.
-- Clear role selector: Student vs SME (visual cards, not just a dropdown).
-- Email verification state: progress indicator + resend/confirm flow.
+```jsx
+// Centered card layout
+<div className="min-h-screen bg-d4u-bg flex items-center justify-center px-4">
+  <div className="w-full max-w-[440px] bg-d4u-surface rounded-card border border-d4u-border p-8 shadow-panel">
+```
 
-### Dashboards (Student / SME / Admin)
+- D4U logo at top of card.
+- Google OAuth button with Google icon, full-width, secondary variant.
+- Role selector: two visual cards (Student / SME), not a plain `<select>`.
+- Email verification: progress step indicator + resend/confirm flow.
 
-**Structure:** `PageHeader` (title + primary CTA) → summary stat cards → main content sections.
+### Dashboards
 
-- Stat cards: large number, label, optional delta indicator.
-- Sections ordered by urgency: action-required items first.
-- Student: verification status → recommended projects → pending offers → active projects → wallet.
-- SME: package limits → draft/open projects → pending payments → AI Brief entry.
-- Admin: pending counts (verifications, withdrawals, portfolio moderation) → recent audit events.
+Structure: `PageHeader` (title + primary CTA) → stat cards row → content sections.
+
+```jsx
+// Stat card
+<div className="bg-d4u-surface border border-d4u-border rounded-card p-5">
+  <p className="text-xs font-medium text-d4u-text-2 uppercase tracking-wider">
+    {label}
+  </p>
+  <p className="mt-2 text-3xl font-semibold text-d4u-teal-deep font-display">
+    {value}
+  </p>
+  <p className="mt-1 text-xs text-d4u-text-3">{delta}</p>
+</div>
+```
+
+Section order by urgency:
+
+- **Student:** verification status → recommended projects → pending offers → active projects → wallet.
+- **SME:** package limits → draft/open projects → pending payments → AI Brief entry.
+- **Admin:** pending counts (verifications, withdrawals, portfolio) → recent audit events.
 
 ### Marketplace
 
-- Search bar + filter toolbar at top (sticky on scroll).
-- `ProjectCard` grid below.
-- Project card must show: title · company · category · budget · deadline · status chip · brief preview · confidentiality/portfolio badges.
-- Empty state: friendly message + "Create Project" CTA for SME, "Adjust filters" for Student.
+```jsx
+// Toolbar
+<div className="flex flex-col sm:flex-row gap-3 mb-6">
+  <input className="flex-1 h-10 ..." placeholder="Tìm kiếm project..." />
+  <FilterBar />  {/* desktop */}
+  <MobileFilterDrawer />  {/* mobile */}
+</div>
+
+// Grid
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+  {projects.map(p => <ProjectCard key={p.id} project={p} />)}
+</div>
+```
+
+`ProjectCard` must show: title · company · category · budget · deadline · `<StatusChip>` · brief preview (2-line clamp) · confidentiality/portfolio badges.
 
 ### Project detail
 
-Desktop: 2-column layout — brief (main, ~65%) + summary panel (right, ~35%).
-Summary panel: budget · deadlines · SME/company · category · usage purpose · revision limit · confidentiality · portfolio permission.
-Student CTA: **Apply**. SME owner CTAs: **Edit / Publish / Cancel**.
+```jsx
+<div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+  <main>{/* brief, description, deliverables */}</main>
+  <aside className="lg:sticky lg:top-24 self-start">
+    {/* budget, deadlines, SME info, usage, revision limit, badges */}
+    {/* Student CTA: Apply | SME owner: Edit / Publish / Cancel */}
+  </aside>
+</div>
+```
 
 ### AI Brief Assistant
 
-- Frame AI as a helper tool, not a chat interface.
-- Show clearly-labeled editable fields: title · brief · usage purpose · deliverables · category hint · deadline notes.
-- Persistent notice: _"AI suggestions are editable and are never published automatically."_
+```jsx
+<div className="bg-d4u-soft border border-d4u-border rounded-card p-4 mb-6 flex gap-3">
+  <InfoIcon className="text-d4u-cyan mt-0.5 shrink-0" />
+  <p className="text-sm text-d4u-text-2">
+    Gợi ý của AI có thể chỉnh sửa và không bao giờ được đăng tự động.
+  </p>
+</div>
+```
 
-### AI Matching (entitlement-gated)
-
-- Show entitlement requirement before allowing access (do not render the UI silently).
-- Results: match score percentage · reasons list · missing-data warnings.
-- Never imply AI can auto-apply, auto-select, auto-price, or auto-publish.
+Frame as a form with editable suggestion fields — not a chat interface.
 
 ### Payment & escrow
 
-- Display: amount · platform fee · provider name · QR or payment link · escrow explanation.
-- Notice: _"Project starts only after escrow is confirmed by the payment provider."_
-- Offer state machine strictly enforced in UI: `PENDING_ACCEPTANCE` → accept/reject → `ACCEPTED` → SME pays → `PENDING_PAYMENT` → webhook → `ACTIVE`.
-- Hide SME payment button until Student has accepted the offer.
-- Never show "sandbox" label in production. Never trust client-side success flag.
+```jsx
+<p className="text-sm text-d4u-text-2 bg-d4u-soft rounded-card p-4 border border-d4u-border">
+  Project chỉ bắt đầu sau khi escrow được xác nhận bởi đơn vị thanh toán.
+</p>
+```
+
+- Offer state machine: `PENDING_ACCEPTANCE` → accept/reject → `ACCEPTED` → SME pays → `PENDING_PAYMENT` → webhook → `ACTIVE`.
+- **Hide SME payment button** until Student has accepted the offer (`status !== 'ACCEPTED'`).
+- Never trust client-side success flag — wait for backend-confirmed status.
 
 ### Wallet & withdrawal (Student)
 
-- Clear notice: _"D4U Wallet là sổ cái nội bộ, không phải tài khoản ngân hàng."_
-- Show: available balance · pending · locked · currency · wallet status · transaction history · withdrawal requests.
-- Withdrawal form: amount (min 50,000 VND) · bank account selector · fee preview (5,000 VND fixed) · net amount.
-- Notice: _"Admin/Finance sẽ xử lý chuyển khoản thủ công. Bạn sẽ được thông báo khi hoàn tất."_
+```jsx
+<p className="text-xs text-d4u-text-2 bg-amber-50 border border-amber-200 rounded-card px-4 py-3">
+  D4U Wallet là sổ cái nội bộ, không phải tài khoản ngân hàng.
+</p>
+```
+
+- Show: available balance · pending · locked · currency · status · transaction history · withdrawal requests.
+- Withdrawal form: amount (min 50,000 VND) · bank selector · fee preview (5,000 VND) · net amount.
 - Wallet balance must never display as negative.
 
 ### Admin withdrawal screen
 
-Table: request ID · student name · amount · bank · created at · status chip · actions.
+Table columns: request ID · student name · amount · bank · created at · status chip · actions.
 
-- **Mark Success**: confirmation modal (confirm amount, debit warning, optional note).
-- **Mark Failed**: modal with mandatory reason field; note that wallet is not debited and student can retry.
+- **Mark Success** → `<ConfirmDialog>` with amount, debit warning, optional note.
+- **Mark Failed** → modal with mandatory reason field.
 
 ### Submission & review
 
-Student submits: Sketch · Final · Revision with description + file metadata.
-SME review actions (separate buttons): **Approve** · **Request Revision** · **Report Invalid File**.
+Student submits: Sketch · Final · Revision — description + file metadata.
+SME actions (separate buttons): **Approve** · **Request Revision** · **Report Invalid File**.
 Do not add Open Dispute — out of MVP.
 
 ### Portfolio Builder
 
-- Student: create/edit items (title · description · category · role · tools · skills · link · visibility · featured flag · file metadata).
-- Attach D4U project output only when `isConfidential = false` AND `allowStudentPortfolio = true`.
+- Attach D4U output only when `isConfidential === false && allowStudentPortfolio === true`.
 - SME: read-only view during application/offer review.
-- Admin: **Hide** button on any public item.
+- Admin: **Hide** button on public items.
 
 ### Rating page
 
 - Render only after project `COMPLETED`.
-- Show rating deadline (7 days after completion, countdown if < 48h left).
-- 1–5 star selector with visual stars + comment textarea (max 500 chars, counter shown).
-- Hide the form once the rating has been submitted for this project.
+- Countdown if < 48h to deadline: `text-d4u-error`.
+- Star selector: visual `★` icons (1–5) + `<textarea maxLength={500}>` + live char counter.
+- Hide form once rating submitted.
 
 ---
 
-## 8 — UI improvement checklist (use when refactoring/beautifying)
-
-When improving an existing screen, run through these in order:
+## 8 — UI improvement checklist (refactoring/beautifying)
 
 ### Spacing & rhythm
 
-- [ ] All gaps use the 4px scale (4, 8, 12, 16, 20, 24, 32, 40...).
-- [ ] Consistent internal card padding (20px default).
-- [ ] Section-to-section spacing: 32–48px.
-- [ ] No orphaned elements with mismatched margins.
+- [ ] All gaps use Tailwind spacing scale (multiples of 4px). No arbitrary `gap-[13px]`.
+- [ ] Card internal padding: `p-5` default, `p-4` compact.
+- [ ] Section-to-section: `mb-8` to `mb-12`.
+- [ ] No orphaned elements with inconsistent margins.
 
 ### Typography
 
-- [ ] Page title uses `General Sans`, 32–40px, weight 600.
-- [ ] Body uses `DM Sans`, 14–16px, weight 400, line-height 1.6.
-- [ ] Text hierarchy is clear: heading → subheading → body → caption, in that order.
-- [ ] No text smaller than 12px anywhere except chart axis labels.
+- [ ] Page titles use `font-display font-semibold` in `text-d4u-teal-deep`.
+- [ ] Body uses `font-body text-sm leading-relaxed text-d4u-text-1`.
+- [ ] Clear visual hierarchy: heading → subheading → body → caption.
+- [ ] No text smaller than `text-xs` (12px) except chart axis labels.
 
 ### Color & contrast
 
-- [ ] All text meets WCAG AA contrast (4.5:1 normal, 3:1 large).
-- [ ] Primary actions use `--d4u-cyan` only.
-- [ ] No random color values outside the token palette.
-- [ ] Hover and focus states are visually distinct from default.
+- [ ] All text meets WCAG AA (use `text-d4u-text-1` or `text-d4u-charcoal` for primary content).
+- [ ] Only `bg-d4u-cyan` / `hover:bg-d4u-cyan-hover` for primary actions.
+- [ ] No raw hex values in JSX — always Tailwind token classes.
+- [ ] Hover and focus states visually distinct from default.
 
 ### Layout & structure
 
-- [ ] Page has a clear visual hierarchy: header → content → actions.
-- [ ] CTAs are prominent and above the fold on desktop.
-- [ ] Related elements are visually grouped (proximity principle).
-- [ ] Responsive: no overflow, no truncated text on mobile (375px viewport).
-- [ ] Vietnamese text fits in all buttons, badges, and form labels.
+- [ ] Clear visual hierarchy: header → content → actions.
+- [ ] Primary CTA above the fold on desktop.
+- [ ] Related elements grouped (proximity) — use `gap` inside a flex/grid wrapper, not scattered `mt-`.
+- [ ] No overflow or truncated text at 375px (mobile).
+- [ ] Vietnamese text fits in buttons, badges, and form labels — test with longest strings.
 
 ### Components
 
-- [ ] Consistent border-radius across all cards, buttons, inputs.
-- [ ] Status chips use the correct variant colors.
-- [ ] Form fields have visible labels (not placeholder-only).
-- [ ] Destructive actions use `ConfirmDialog`.
-- [ ] Empty states have an icon, message, and at least one CTA.
-- [ ] Loading skeletons match the content shape they replace.
+- [ ] Consistent `rounded-btn` buttons, `rounded-card` cards, `rounded-chip` chips everywhere.
+- [ ] Status chips use correct variant.
+- [ ] Form fields have visible `<label>` — no placeholder-only inputs.
+- [ ] Destructive actions wrapped in `<ConfirmDialog>`.
+- [ ] Empty states have icon + message + CTA.
+- [ ] Loading skeletons match content shape.
 
 ### Interactions
 
-- [ ] All interactive elements have hover states.
-- [ ] All focusable elements have a visible focus ring (`--d4u-cyan-16` glow).
-- [ ] Touch targets ≥ 44px.
-- [ ] Transitions: 150–200ms ease (never janky or missing).
-- [ ] Toasts appear on successful mutations and auto-dismiss after 4s.
+- [ ] All interactive elements have `hover:` states.
+- [ ] All focusable elements have `focus:shadow-focus focus:outline-none`.
+- [ ] Touch targets `min-h-[44px] min-w-[44px]`.
+- [ ] Transitions: `transition-colors duration-150` or `transition-all duration-200`.
+- [ ] Toasts on successful mutations, auto-dismiss 4s.
 
 ---
 
@@ -554,8 +566,8 @@ baseURL: "/api/v1"; // never hardcode host in page components
 ```
 
 - Inject access token in every authenticated request.
-- `401` → attempt refresh token → retry once → on failure: clear session, redirect `/login`.
-- `403` → render `<ForbiddenState>` — do not show partial data.
+- `401` → refresh token → retry once → on failure: clear session, redirect `/login`.
+- `403` → render `<ForbiddenState>` — never show partial data.
 - `404` → render `<NotFoundState>` or treat as "not yet created" (empty wallet, no portfolio).
 - Map field-level errors from backend `errors[]` to form fields.
 
@@ -591,14 +603,14 @@ Dispute UI · Dispute appeal · Automatic bank payout or KYC · Real-time chat �
 - [ ] `npm run build` passes with no errors.
 - [ ] `npm run lint` passes (or only known pre-existing issues).
 - [ ] Dev server starts; key routes open without console errors.
-- [ ] Desktop (1280px+) and mobile (375px) checked — no overflow, no truncation.
+- [ ] Desktop (1280px+) and mobile (375px) — no overflow, no truncation.
 - [ ] Vietnamese text fits in all buttons, cards, badges, and form labels.
 - [ ] All 5 states verified: loading · empty · error · forbidden · success.
 - [ ] Role-based redirects work for all protected routes.
 - [ ] SME payment button hidden until Student has accepted the offer.
 - [ ] Wallet balance never shown as negative.
 - [ ] File upload rejects non-jpg/png/pdf with a clear message.
-- [ ] No hardcoded hex colors — only CSS variables used.
+- [ ] No raw hex values in JSX — only Tailwind token classes from config.
 - [ ] Any missing backend endpoint is noted as a gap comment, not silently skipped.
-- [ ] Touch targets ≥ 44px on all interactive elements.
-- [ ] Focus rings visible on all focusable elements.
+- [ ] Touch targets `min-h-[44px]` on all interactive elements.
+- [ ] Focus rings `focus:shadow-focus focus:outline-none` on all focusable elements.
