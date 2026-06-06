@@ -10,15 +10,24 @@ import {
 } from '../constants/status';
 
 export function StatusBadge({ status }) {
+  const normalizedStatus = status || 'UNKNOWN';
   const label =
-    verificationStatusLabels[status] ||
-    projectStatusLabels[status] ||
-    offerStatusLabels[status] ||
-    applicationStatusLabels[status] ||
-    paymentStatusLabels[status] ||
-    portfolioStatusLabels[status] ||
+    verificationStatusLabels[normalizedStatus] ||
+    projectStatusLabels[normalizedStatus] ||
+    offerStatusLabels[normalizedStatus] ||
+    applicationStatusLabels[normalizedStatus] ||
+    paymentStatusLabels[normalizedStatus] ||
+    portfolioStatusLabels[normalizedStatus] ||
     status ||
     'Không rõ';
 
-  return <Tag className="status-badge" color={statusColors[status] || 'default'}>{label}</Tag>;
+  return (
+    <Tag
+      className="status-badge"
+      color={statusColors[normalizedStatus] || 'default'}
+      title={label}
+    >
+      {label}
+    </Tag>
+  );
 }

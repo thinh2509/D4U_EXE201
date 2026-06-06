@@ -11,32 +11,30 @@ import { D4ULogo } from '../../components/D4ULogo.jsx';
 const FEATURES = [
   {
     icon: IdcardOutlined,
-    title: 'Student profile',
-    copy: 'Hồ sơ năng lực và xác thực sinh viên rõ ràng.'
+    title: 'Hồ sơ xác thực',
+    copy: 'Student hoàn thiện hồ sơ và tài liệu trước khi tham gia dự án thật.'
   },
   {
     icon: AppstoreOutlined,
-    title: 'SME workspace',
-    copy: 'Quản lý brief, offer và tiến độ trong một nơi.'
+    title: 'Workspace theo dự án',
+    copy: 'SME quản lý brief, proposal, offer và tiến độ trong cùng một nơi.'
   },
   {
     icon: CheckCircleOutlined,
-    title: 'Review flow',
-    copy: 'Sketch, Final và phản hồi được theo dõi minh bạch.'
+    title: 'Review theo milestone',
+    copy: 'Sketch, Revision và Final được theo dõi bằng trạng thái rõ ràng.'
   }
 ];
 
 const STATS = [
-  ['3 roles', 'Student, SME, Admin'],
-  ['Verified flow', 'Xác thực trước khi hợp tác']
+  ['3 vai trò', 'Student, SME, Admin'],
+  ['Escrow', 'Thanh toán trước khi làm'],
+  ['Sketch/Final', 'Bàn giao theo milestone']
 ];
 
 export function AuthBrandPanel() {
   return (
     <section className="auth-showcase" aria-label="D4U brand panel">
-      <div className="auth-orb auth-orb-one" />
-      <div className="auth-orb auth-orb-two" />
-
       <div className="auth-brand-stack">
         <div className="auth-logo-card">
           <Link className="auth-logo-link" to="/" aria-label="Về trang chủ D4U">
@@ -47,12 +45,12 @@ export function AuthBrandPanel() {
         <div className="auth-brand-copy">
           <span className="auth-market-badge">
             <SafetyCertificateOutlined />
-            Design marketplace for students & SMEs
+            Marketplace thiết kế cho Student và SME
           </span>
-          <h1>Kết nối sinh viên thiết kế với doanh nghiệp SME</h1>
+          <h1>Đăng nhập để tiếp tục workflow thiết kế của bạn</h1>
           <p>
-            D4U giúp doanh nghiệp tìm designer phù hợp, quản lý hồ sơ, xác thực tài khoản
-            và vận hành quy trình tuyển chọn trong một nền tảng duy nhất.
+            D4U giúp SME tạo dự án, chọn Student phù hợp, xác nhận escrow và theo dõi bài nộp qua từng milestone.
+            Student có một nơi để ứng tuyển, nhận offer và quản lý ví D4U sau khi hoàn thành dự án.
           </p>
         </div>
 
@@ -73,9 +71,8 @@ export function AuthBrandPanel() {
               <span>{label}</span>
             </div>
           ))}
-          <div>
+          <div className="auth-stats-icon">
             <TeamOutlined />
-            <span>Quy trình marketplace</span>
           </div>
         </div>
       </div>

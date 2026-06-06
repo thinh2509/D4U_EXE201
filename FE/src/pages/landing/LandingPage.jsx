@@ -18,54 +18,54 @@ import { roleHome } from '../../components/RouteGuards.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 const PROOF_ITEMS = [
-  { icon: SafetyCertificateOutlined, title: 'Student xác thực', copy: 'Hồ sơ sinh viên được kiểm tra trước khi tham gia dự án.' },
-  { icon: WalletOutlined, title: 'Escrow PayOS', copy: 'Doanh nghiệp thanh toán escrow trước khi dự án bắt đầu.' },
-  { icon: FileDoneOutlined, title: 'Sketch & Final rõ ràng', copy: 'Hai mốc duyệt bài giúp phản hồi và bàn giao minh bạch.' },
+  { icon: SafetyCertificateOutlined, title: 'Student được xác thực', copy: 'Hồ sơ và tài liệu được kiểm tra trước khi Student tham gia dự án thật.' },
+  { icon: WalletOutlined, title: 'Escrow trước khi bắt đầu', copy: 'Project chỉ vào execution sau khi backend xác nhận thanh toán PayOS thành công.' },
+  { icon: FileDoneOutlined, title: 'Sketch và Final rõ ràng', copy: 'Mỗi mốc nộp bài có deadline, review và lịch sử phản hồi minh bạch.' },
 ];
 
 const ROLE_ITEMS = [
   {
     icon: BankOutlined,
-    eyebrow: 'Dành cho doanh nghiệp',
-    title: 'Tìm đúng tài năng cho từng brief',
-    copy: 'Đăng yêu cầu thiết kế, xem proposal, gửi offer và theo dõi tiến độ trong một workspace thống nhất.',
-    action: 'Đăng dự án thiết kế',
-    points: ['Tạo brief và deadline rõ ràng', 'Chọn proposal phù hợp', 'Thanh toán escrow qua PayOS', 'Duyệt Sketch và Final'],
+    eyebrow: 'Dành cho SME',
+    title: 'Biến nhu cầu thiết kế thành brief có thể triển khai',
+    copy: 'Tạo dự án, nhận proposal, gửi offer và theo dõi Sketch/Final trong một workspace thống nhất.',
+    action: 'Bắt đầu với vai trò SME',
+    points: ['Brief, ngân sách và deadline rõ ràng', 'Chọn proposal phù hợp trước khi gửi offer', 'Thanh toán escrow qua PayOS', 'Duyệt Sketch, Revision và Final'],
   },
   {
     icon: SolutionOutlined,
-    eyebrow: 'Dành cho sinh viên',
-    title: 'Biến kỹ năng thành dự án thực tế',
-    copy: 'Tìm cơ hội phù hợp, gửi giải pháp, làm việc theo milestone và nhận thu nhập qua ví D4U.',
-    action: 'Tìm dự án phù hợp',
-    points: ['Khám phá dự án đang mở', 'Ứng tuyển hoặc đề xuất giá', 'Nộp Sketch và Final', 'Nhận tiền sau khi hoàn thành'],
+    eyebrow: 'Dành cho Student',
+    title: 'Tìm dự án thật để xây năng lực thiết kế',
+    copy: 'Khám phá cơ hội phù hợp, ứng tuyển bằng proposal, làm việc theo milestone và nhận tiền qua ví D4U.',
+    action: 'Bắt đầu với vai trò Student',
+    points: ['Xem dự án đang mở theo category', 'Ứng tuyển hoặc phản hồi offer', 'Nộp Sketch và Final đúng quy trình', 'Nhận tiền sau khi Final được duyệt'],
   },
 ];
 
 const PROCESS_ITEMS = [
-  ['01', 'SME đăng dự án', 'Brief, ngân sách và deadline được công bố rõ ràng.'],
-  ['02', 'Student gửi proposal', 'Sinh viên xác nhận điều khoản hoặc đề xuất giải pháp khác.'],
-  ['03', 'Hai bên xác nhận offer', 'SME chọn proposal và Student quyết định nhận dự án.'],
-  ['04', 'SME thanh toán escrow', 'PayOS xác nhận giao dịch trước khi bắt đầu thực hiện.'],
-  ['05', 'Student nộp Sketch & Final', 'Bài nộp và phản hồi được lưu theo từng milestone.'],
-  ['06', 'Hoàn thành và nhận tiền', 'Escrow được release vào ví Student sau khi Final được duyệt.'],
+  ['01', 'SME đăng dự án', 'Brief, ngân sách, category và deadline được SME nhập rõ ngay từ đầu.'],
+  ['02', 'Student gửi proposal', 'Student nêu giải pháp, thời gian và mức giá trong phạm vi project.'],
+  ['03', 'Hai bên xác nhận offer', 'SME chọn ứng viên, Student accept trước khi bước thanh toán mở ra.'],
+  ['04', 'SME thanh toán escrow', 'PayOS và backend xác nhận giao dịch trước khi dự án bắt đầu.'],
+  ['05', 'Student nộp Sketch và Final', 'Bản nộp, revision và review được lưu theo từng milestone.'],
+  ['06', 'Duyệt Final và giải ngân', 'Escrow chỉ release vào ví Student khi Final được duyệt hoặc auto-approve đúng luật.'],
 ];
 
 const TRUST_ITEMS = [
   {
     icon: SafetyCertificateOutlined,
     title: 'Verification trước khi hợp tác',
-    copy: 'Student hoàn thiện hồ sơ xác thực EDU hoặc tài liệu trước khi gửi ứng tuyển.',
+    copy: 'Student hoàn thiện hồ sơ xác thực bằng email EDU hoặc tài liệu để tăng độ tin cậy khi ứng tuyển.',
   },
   {
     icon: WalletOutlined,
-    title: 'Escrow tạo sự an tâm',
-    copy: 'Project chỉ chuyển sang thực hiện sau khi backend xác nhận escrow đã được thanh toán.',
+    title: 'Escrow bảo vệ cả hai bên',
+    copy: 'SME biết tiền được giữ đúng luồng; Student biết dự án đã được thanh toán trước khi bắt đầu làm.',
   },
   {
     icon: CheckCircleOutlined,
     title: 'Review theo milestone',
-    copy: 'Sketch, revision và Final có trạng thái, deadline review và lịch sử phản hồi rõ ràng.',
+    copy: 'Sketch, Revision và Final có trạng thái, deadline review và thông báo để hai bên không mất dấu tiến trình.',
   },
 ];
 
@@ -139,20 +139,22 @@ export function LandingPage() {
       <main>
         <section className="landing-hero">
           <div className="landing-container landing-hero-inner">
-            <p className="landing-eyebrow">Marketplace thiết kế cho thế hệ mới</p>
-            <h1>D4U - Design For You</h1>
+            <p className="landing-eyebrow">D4U Outcome 1 marketplace</p>
+            <h1>Kết nối SME với Student Designer qua escrow và milestone rõ ràng</h1>
             <p className="landing-hero-copy">
-              Nơi doanh nghiệp gặp sinh viên thiết kế tài năng, cùng làm việc qua offer,
-              escrow PayOS và milestone rõ ràng.
+              SME đăng brief, Student ứng tuyển, hai bên xác nhận offer và làm việc trong workspace có Sketch, Final, review và ví D4U.
             </p>
             <div className="landing-hero-actions">
               <Button type="primary" size="large" onClick={goToDestination}>
-                Đăng dự án thiết kế <ArrowRightOutlined />
+                Tạo tài khoản SME <ArrowRightOutlined />
               </Button>
-              <Button size="large" onClick={goToDestination}>
-                Tìm dự án phù hợp <SearchOutlined />
+              <Button size="large" href="#roles">
+                Xem vai trò Student <SearchOutlined />
               </Button>
             </div>
+            <p className="landing-hero-note">
+              D4U không tự chọn Student, không tự publish dự án và chỉ ghi nhận thanh toán khi backend hoặc provider xác nhận.
+            </p>
           </div>
         </section>
 
@@ -174,8 +176,8 @@ export function LandingPage() {
           <div className="landing-container">
             <div className="landing-section-heading">
               <p className="landing-eyebrow">Một nền tảng, hai phía cộng tác</p>
-              <h2>Quy trình rõ cho cả doanh nghiệp và sinh viên</h2>
-              <p>D4U giữ mọi bước quan trọng trong cùng một luồng, từ brief đầu tiên đến bàn giao cuối.</p>
+              <h2>SME cần kết quả rõ. Student cần dự án thật.</h2>
+              <p>D4U giữ hai nhu cầu đó trong cùng một luồng sản phẩm: đăng dự án, ứng tuyển, offer, escrow, nộp bài và review.</p>
             </div>
             <div className="landing-role-grid">
               {ROLE_ITEMS.map(({ icon: Icon, eyebrow, title, copy, action, points }) => (
@@ -198,8 +200,8 @@ export function LandingPage() {
           <div className="landing-container">
             <div className="landing-section-heading">
               <p className="landing-eyebrow">Quy trình tương tác thực tế</p>
-              <h2>Từng bước đều có phản hồi từ hai phía</h2>
-              <p>Không có khoảng trống mơ hồ giữa ứng tuyển, thanh toán và bàn giao thiết kế.</p>
+              <h2>Từng bước đều có trạng thái, deadline và người chịu trách nhiệm</h2>
+              <p>Không có khoảng trống mơ hồ giữa ứng tuyển, thanh toán, nộp bài và giải ngân.</p>
             </div>
             <div className="landing-process-grid">
               {PROCESS_ITEMS.map(([step, title, copy]) => (
@@ -217,8 +219,8 @@ export function LandingPage() {
           <div className="landing-container landing-trust-layout">
             <div className="landing-section-heading landing-trust-heading">
               <p className="landing-eyebrow">Tin cậy ngay trong sản phẩm</p>
-              <h2>Không chỉ kết nối, D4U còn giữ luồng làm việc minh bạch</h2>
-              <p>Những điểm bảo vệ cốt lõi xuất hiện đúng lúc hai bên cần đưa ra quyết định.</p>
+              <h2>D4U làm rõ các quyết định quan trọng trước khi dự án đi tiếp</h2>
+              <p>Verification, escrow và review milestone xuất hiện đúng lúc hai bên cần xác nhận trách nhiệm.</p>
             </div>
             <div className="landing-trust-list">
               {TRUST_ITEMS.map(({ icon: Icon, title, copy }) => (

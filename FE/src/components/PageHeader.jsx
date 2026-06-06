@@ -3,7 +3,7 @@ export function PageHeader({ icon, title, description, extra, eyebrow }) {
     <div className="page-header">
       <div className="page-title-wrap">
         {icon && <div className="page-icon">{icon}</div>}
-        <div>
+        <div className="page-title-copy">
           {eyebrow && <span className="page-eyebrow">{eyebrow}</span>}
           <h1>{title}</h1>
           {description && <p>{description}</p>}
