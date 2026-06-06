@@ -1,5 +1,6 @@
 import {
   ApiOutlined,
+  ArrowRightOutlined,
   BulbOutlined,
   CreditCardOutlined,
   DashboardOutlined,
@@ -23,10 +24,11 @@ const dashboardContent = {
     description: 'Hoàn thiện xác thực, tìm dự án phù hợp, theo dõi offer và quản lý ví D4U sau khi hoàn thành Final.',
     primaryPath: '/student/projects',
     primaryLabel: 'Tìm dự án',
+    insight: 'Ưu tiên hoàn thiện xác thực trước khi ứng tuyển để SME tin tưởng hơn.',
     cards: [
       ['Xác thực', 'Hoàn thiện hồ sơ sinh viên để đủ điều kiện ứng tuyển.', '/student/verification', <SafetyCertificateOutlined />, 'Cần làm trước'],
       ['Dự án đang mở', 'Tìm brief phù hợp và gửi proposal rõ ràng.', '/student/projects', <FolderOpenOutlined />, 'Cơ hội mới'],
-      ['Dự án của tôi', 'Theo dõi các project đã accept và workspace nộp bài.', '/student/my-projects', <FileDoneOutlined />, 'Đang làm'],
+      ['Đề nghị', 'Phản hồi offer trước khi SME mở thanh toán escrow.', '/student/offers', <FileDoneOutlined />, 'Cần phản hồi'],
       ['Ví D4U', 'Theo dõi ledger nội bộ và yêu cầu rút tiền thủ công.', '/student/wallet', <WalletOutlined />, 'Thanh toán']
     ]
   },
@@ -36,24 +38,25 @@ const dashboardContent = {
     description: 'Tạo brief, nhận ứng tuyển, gửi offer, thanh toán escrow và review Sketch/Final trong cùng một luồng.',
     primaryPath: '/sme/projects/new',
     primaryLabel: 'Tạo dự án',
+    insight: 'Brief càng rõ, Student càng dễ gửi proposal sát nhu cầu và deadline.',
     cards: [
       ['Tạo dự án', 'Viết brief, dùng AI hỗ trợ và publish khi sẵn sàng.', '/sme/projects/new', <FolderOpenOutlined />, 'Bắt đầu'],
+      ['Ứng tuyển', 'So sánh proposal trước khi chọn Student phù hợp.', '/sme/applications', <TeamOutlined />, 'Tuyển chọn'],
       ['Đề nghị & escrow', 'Theo dõi offer đã accept và mở thanh toán PayOS.', '/sme/offers', <CreditCardOutlined />, 'Cần chú ý'],
-      ['AI Brief', 'Nhận gợi ý brief tiếng Việt có thể chỉnh sửa.', '/sme/ai-brief', <BulbOutlined />, 'Hỗ trợ'],
-      ['AI Matching', 'Tìm Student phù hợp khi có gói tính năng đang hoạt động.', '/sme/ai-matching', <TeamOutlined />, 'Có điều kiện'],
-      ['Gói & thanh toán', 'Quản lý subscription và payment-in cho feature packages.', '/sme/billing', <CreditCardOutlined />, 'Tài khoản']
+      ['AI Brief', 'Nhận gợi ý brief tiếng Việt có thể chỉnh sửa.', '/sme/ai-brief', <BulbOutlined />, 'Hỗ trợ']
     ]
   },
   ADMIN: {
     label: 'Admin console',
     title: 'Điều phối các bước vận hành quan trọng',
-    description: 'Duyệt xác thực, xử lý rút tiền, theo dõi audit logs và các tác vụ moderation phục vụ demo Outcome 1.',
+    description: 'Duyệt xác thực, xử lý rút tiền, theo dõi audit logs và moderation phục vụ demo Outcome 1.',
     primaryPath: '/admin/verifications',
     primaryLabel: 'Duyệt xác thực',
+    insight: 'Các thao tác tài chính và xác thực cần rõ trạng thái, người xử lý và thời điểm cập nhật.',
     cards: [
       ['Duyệt xác thực', 'Xem và xử lý yêu cầu xác thực sinh viên.', '/admin/verifications', <SafetyCertificateOutlined />, 'Vận hành'],
       ['Rút tiền', 'Cập nhật kết quả sau khi Finance chuyển khoản thủ công.', '/admin/withdrawals', <WalletOutlined />, 'Tài chính'],
-      ['Portfolio', 'Ẩn portfolio item không phù hợp nếu cần.', '/admin/portfolio', <StarOutlined />, 'Moderation'],
+      ['Người dùng', 'Theo dõi tài khoản Student, SME và Admin.', '/admin/users', <TeamOutlined />, 'Quản trị'],
       ['Audit logs', 'Theo dõi các hành động quan trọng của hệ thống.', '/admin/audit-logs', <FileDoneOutlined />, 'Giám sát']
     ]
   }
@@ -75,14 +78,21 @@ export function DashboardPage() {
       />
 
       <section className="dashboard-hero">
-        <div>
+        <div className="dashboard-hero-copy">
           <Tag color="cyan">{content.label}</Tag>
           <h2>{content.title}</h2>
           <p>{content.description}</p>
+          <div className="dashboard-insight">
+            <span>Gợi ý workflow</span>
+            <strong>{content.insight}</strong>
+          </div>
         </div>
-        <Button type="primary" size="large" onClick={() => navigate(content.primaryPath)}>
-          {content.primaryLabel}
-        </Button>
+        <div className="dashboard-hero-action">
+          <span>Next action</span>
+          <Button type="primary" size="large" onClick={() => navigate(content.primaryPath)}>
+            {content.primaryLabel} <ArrowRightOutlined />
+          </Button>
+        </div>
       </section>
 
       <div className="dashboard-section-heading">
@@ -101,7 +111,7 @@ export function DashboardPage() {
               <h2>{title}</h2>
               <p>{description}</p>
             </div>
-            <Button type="link">Mở</Button>
+            <Button type="link">Mở <ArrowRightOutlined /></Button>
           </Card>
         ))}
       </div>
