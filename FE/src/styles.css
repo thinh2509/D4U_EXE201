@@ -1110,8 +1110,9 @@ a:hover {
 }
 
 .withdrawal-summary-card {
-  border-color: var(--border-soft);
-  box-shadow: var(--shadow-xs);
+  border-color: var(--d4u-border);
+  background: var(--d4u-surface);
+  box-shadow: none;
 }
 
 .withdrawal-summary-card .ant-card-body {
@@ -1123,20 +1124,21 @@ a:hover {
 }
 
 .withdrawal-summary-card span {
-  color: var(--muted);
+  color: var(--d4u-text-2);
   font-size: 13px;
   font-weight: 800;
 }
 
 .withdrawal-summary-card strong {
-  color: var(--ink);
+  color: var(--d4u-text-1);
   font-size: 30px;
   line-height: 1;
 }
 
 .withdrawal-workbench {
-  border-color: var(--border-soft);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--d4u-border);
+  background: var(--d4u-surface);
+  box-shadow: none;
 }
 
 .withdrawal-workbench .ant-card-body {
@@ -1157,12 +1159,12 @@ a:hover {
 }
 
 .withdrawal-toolbar strong {
-  color: var(--ink);
+  color: var(--d4u-text-1);
   font-size: 18px;
 }
 
 .withdrawal-toolbar span {
-  color: var(--muted);
+  color: var(--d4u-text-2);
   font-size: 13px;
 }
 
@@ -1182,10 +1184,10 @@ a:hover {
   min-height: 180px;
   display: grid;
   place-items: center;
-  color: var(--muted);
-  border: 1px dashed var(--border-soft);
-  border-radius: 12px;
-  background: var(--surface-soft);
+  color: var(--d4u-text-2);
+  border: 1px dashed var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-soft);
 }
 
 .withdrawal-request-card {
@@ -1194,22 +1196,22 @@ a:hover {
   display: grid;
   gap: 10px;
   text-align: left;
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-surface);
   cursor: pointer;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .withdrawal-request-card:hover,
 .withdrawal-request-card.is-active {
-  border-color: rgba(18, 174, 234, 0.48);
-  box-shadow: var(--shadow-xs);
+  border-color: var(--d4u-cyan-24);
+  box-shadow: var(--d4u-shadow-card-hover);
   transform: translateY(-1px);
 }
 
 .withdrawal-request-card.is-active {
-  background: linear-gradient(135deg, rgba(18, 174, 234, 0.08), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--d4u-soft), var(--d4u-surface));
 }
 
 .withdrawal-card-topline,
@@ -1224,37 +1226,37 @@ a:hover {
 
 .withdrawal-card-topline span:last-child,
 .withdrawal-card-meta {
-  color: var(--muted);
+  color: var(--d4u-text-2);
   font-size: 13px;
 }
 
 .withdrawal-card-title strong {
-  color: var(--ink);
+  color: var(--d4u-text-1);
   font-size: 16px;
 }
 
 .withdrawal-card-title span {
-  color: var(--ink);
+  color: var(--d4u-text-1);
   font-weight: 900;
 }
 
 .withdrawal-detail-panel {
   min-height: 520px;
   padding: 22px;
-  border: 1px solid var(--border-soft);
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-surface);
+  box-shadow: none;
 }
 
 .withdrawal-detail-header {
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--d4u-border);
 }
 
 .withdrawal-detail-header h3 {
   margin: 10px 0 2px;
-  color: var(--ink);
+  color: var(--d4u-text-1);
   font-size: 24px;
 }
 
@@ -1263,7 +1265,7 @@ a:hover {
 .withdrawal-detail-field span,
 .withdrawal-detail-grid span {
   margin: 0;
-  color: var(--muted);
+  color: var(--d4u-text-2);
   font-size: 13px;
 }
 
@@ -1274,7 +1276,7 @@ a:hover {
 }
 
 .withdrawal-detail-amount strong {
-  color: var(--primary);
+  color: var(--d4u-cyan);
   font-size: 24px;
 }
 
@@ -1283,9 +1285,9 @@ a:hover {
   padding: 16px;
   display: grid;
   gap: 14px;
-  border: 1px solid rgba(18, 174, 234, 0.22);
-  border-radius: 12px;
-  background: var(--surface-soft);
+  border: 1px solid var(--d4u-cyan-24);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-soft);
 }
 
 .withdrawal-detail-field,
@@ -1302,7 +1304,7 @@ a:hover {
 }
 
 .withdrawal-detail-grid strong {
-  color: var(--ink);
+  color: var(--d4u-text-1);
 }
 
 .withdrawal-detail-actions {
