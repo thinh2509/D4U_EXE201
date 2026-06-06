@@ -1,6 +1,7 @@
 namespace D4U.Api.Controllers;
 
 using System.Security.Claims;
+using D4U.Api.Application.Common.Files;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 [Authorize(Roles = nameof(UserRole.ADMIN))]
 public sealed class AdminStudentVerificationsController(
     IProfileService profileService,
-    IWebHostEnvironment environment) : ControllerBase
+    IUploadPathResolver uploadPathResolver) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<AdminStudentVerificationListItemResponse>>> List(
@@ -37,14 +38,9 @@ public sealed class AdminStudentVerificationsController(
         CancellationToken cancellationToken)
     {
         var document = await profileService.GetStudentVerificationDocumentAsync(verificationId, cancellationToken);
-        var uploadsRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "App_Data", "uploads"));
-        var absolutePath = Path.GetFullPath(Path.Combine(uploadsRoot, document.StorageKey));
-        var uploadsRootWithSeparator = uploadsRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? uploadsRoot
-            : uploadsRoot + Path.DirectorySeparatorChar;
+        var absolutePath = uploadPathResolver.GetAbsolutePath(document.StorageKey);
 
-        if (!absolutePath.StartsWith(uploadsRootWithSeparator, StringComparison.OrdinalIgnoreCase) ||
-            !System.IO.File.Exists(absolutePath))
+        if (!System.IO.File.Exists(absolutePath))
         {
             return NotFound();
         }

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SubmissionFileService(
     IUnitOfWork unitOfWork,
-    IWebHostEnvironment environment) : ISubmissionFileService
+    IUploadPathResolver uploadPathResolver) : ISubmissionFileService
 {
     private const long MaxFileSizeBytes = 20 * 1024 * 1024;
 
@@ -44,7 +44,7 @@ public sealed class SubmissionFileService(
             throw new InvalidOperationException("Submission file content does not match its extension.");
         }
 
-        var uploadsRoot = Path.Combine(environment.ContentRootPath, "App_Data", "uploads");
+        var uploadsRoot = uploadPathResolver.GetUploadsRoot();
         var relativeStorageKey = Path.Combine("submissions", userId.ToString("N"), $"{Guid.NewGuid():N}.{extension}");
         var absolutePath = Path.Combine(uploadsRoot, relativeStorageKey);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath)!);
@@ -134,18 +134,7 @@ public sealed class SubmissionFileService(
 
     public string GetAbsolutePath(FileAsset file)
     {
-        var uploadsRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "App_Data", "uploads"));
-        var absolutePath = Path.GetFullPath(Path.Combine(uploadsRoot, file.StorageKey));
-        var rootWithSeparator = uploadsRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? uploadsRoot
-            : uploadsRoot + Path.DirectorySeparatorChar;
-
-        if (!absolutePath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Stored file path is invalid.");
-        }
-
-        return absolutePath;
+        return uploadPathResolver.GetAbsolutePath(file.StorageKey);
     }
 
     private static SubmissionUploadResponse ToUploadResponse(FileAsset file)

@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 public sealed class StudentsController(
     IProfileService profileService,
     IProjectService projectService,
-    IWebHostEnvironment environment) : ControllerBase
+    IUploadPathResolver uploadPathResolver) : ControllerBase
 {
     [HttpGet("me")]
     public async Task<ActionResult<StudentProfileResponse>> GetMe(CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ public sealed class StudentsController(
             throw new InvalidOperationException("Verification document extension must be jpg, png, or pdf.");
         }
 
-        var uploadsRoot = Path.Combine(environment.ContentRootPath, "App_Data", "uploads");
+        var uploadsRoot = uploadPathResolver.GetUploadsRoot();
         var relativeStorageKey = Path.Combine("student-verifications", $"{Guid.NewGuid():N}.{extension}");
         var absolutePath = Path.Combine(uploadsRoot, relativeStorageKey);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath)!);
