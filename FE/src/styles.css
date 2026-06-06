@@ -1552,10 +1552,10 @@ a:hover {
 .empty-panel,
 .state-box,
 .result-panel {
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-surface);
+  box-shadow: none;
 }
 
 .empty-panel {
@@ -1572,16 +1572,16 @@ a:hover {
   align-content: center;
   gap: 14px;
   padding: clamp(24px, 4vw, 34px);
-  color: var(--muted);
+  color: var(--d4u-text-2);
   text-align: center;
 }
 
 .skeleton-panel {
   padding: clamp(20px, 3vw, 28px);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-surface);
+  box-shadow: none;
 }
 
 .dashboard-grid {
