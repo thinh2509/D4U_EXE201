@@ -24,6 +24,26 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddD4UInfrastructure(builder.Configuration);
 builder.Services.AddD4USwagger();
 
+const string CorsPolicyName = "D4UConfiguredOrigins";
+var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
+    .Select(origin => origin.Trim().TrimEnd('/'))
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicyName, policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
+
 var app = builder.Build();
 
 if (app.Configuration.GetValue<bool>("D4U_APPLY_MIGRATIONS"))
@@ -43,6 +63,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+if (allowedOrigins.Length > 0)
+{
+    app.UseCors(CorsPolicyName);
 }
 
 app.UseAuthentication();

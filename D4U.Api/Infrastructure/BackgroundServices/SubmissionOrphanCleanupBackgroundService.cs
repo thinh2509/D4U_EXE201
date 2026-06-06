@@ -1,11 +1,12 @@
 namespace D4U.Api.Infrastructure.BackgroundServices;
 
+using D4U.Api.Application.Common.Files;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class SubmissionOrphanCleanupBackgroundService(
     IServiceScopeFactory scopeFactory,
-    IWebHostEnvironment environment,
+    IUploadPathResolver uploadPathResolver,
     ILogger<SubmissionOrphanCleanupBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromHours(1);
@@ -52,7 +53,7 @@ public sealed class SubmissionOrphanCleanupBackgroundService(
 
         foreach (var orphan in orphans)
         {
-            var absolutePath = GetAbsolutePath(orphan.StorageKey);
+            var absolutePath = uploadPathResolver.GetAbsolutePath(orphan.StorageKey);
             if (File.Exists(absolutePath))
             {
                 File.Delete(absolutePath);
@@ -65,21 +66,5 @@ public sealed class SubmissionOrphanCleanupBackgroundService(
         {
             await dbContext.SaveChangesAsync(cancellationToken);
         }
-    }
-
-    private string GetAbsolutePath(string storageKey)
-    {
-        var uploadsRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "App_Data", "uploads"));
-        var absolutePath = Path.GetFullPath(Path.Combine(uploadsRoot, storageKey));
-        var rootWithSeparator = uploadsRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? uploadsRoot
-            : uploadsRoot + Path.DirectorySeparatorChar;
-
-        if (!absolutePath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Stored file path is invalid.");
-        }
-
-        return absolutePath;
     }
 }

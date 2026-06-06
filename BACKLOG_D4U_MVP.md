@@ -215,7 +215,14 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Core interaction guide exists for SME/Student happy path.
 - [x] Completed feature E2E guide exists.
 - [ ] Outcome 1 demo script runs all 8 steps end-to-end without blocking error.
-- [x] Seed demo data includes ready-to-use Admin, SME, and verified Student accounts.
+- [ ] Outcome 1 public demo environment is deployed and accessible via HTTPS.
+- [ ] Backend runs on Azure App Service F1 and connects to Azure PostgreSQL Flexible Server.
+- [ ] Frontend runs on Vercel and calls the Azure API without CORS errors.
+- [ ] Demo environment seeds Admin only; SME and Student accounts are created through registration.
+- [ ] PayOS return, cancel, and webhook URLs use public HTTPS URLs and pass live smoke test.
+- [ ] File upload and download work on deployed environment using Azure App Service local storage; Azure Blob migration is documented as a post-demo hardening task.
+- [ ] Outcome 1 core flow passes end-to-end on the deployed environment.
+- [x] Local/dev seed demo data includes ready-to-use Admin, SME, and verified Student accounts.
 - [x] Frontend build passes.
 - [ ] Desktop and mobile demo routes have no blocking overflow.
 - [ ] API response time for ordinary demo actions is under 2 seconds in staging/demo environment.

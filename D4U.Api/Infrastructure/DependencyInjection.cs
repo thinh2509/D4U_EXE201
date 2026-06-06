@@ -2,6 +2,7 @@ namespace D4U.Api.Infrastructure;
 
 using System.Text;
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Common.Files;
 using D4U.Api.Application.Common.Security;
 using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
@@ -17,6 +18,7 @@ using D4U.Api.Infrastructure.BackgroundServices;
 using D4U.Api.Infrastructure.Caching;
 using D4U.Api.Infrastructure.Email;
 using D4U.Api.Infrastructure.EmailVerification;
+using D4U.Api.Infrastructure.Files;
 using D4U.Api.Infrastructure.Payments;
 using D4U.Api.Infrastructure.Persistence;
 using D4U.Api.Domain.Entities;
@@ -62,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IDapperConnectionFactory, NpgsqlDapperConnectionFactory>();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddSingleton<IUploadPathResolver, LocalUploadPathResolver>();
         services.AddScoped<IAiProjectBriefAssistant, MockAiProjectBriefAssistant>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();

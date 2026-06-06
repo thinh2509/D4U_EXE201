@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { getApiErrorMessage } from '../utils/apiError';
 
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+
 export const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBaseUrl,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -43,7 +45,7 @@ apiClient.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const response = await axios.post('/api/v1/auth/refresh', { refreshToken });
+          const response = await axios.post(`${apiBaseUrl}/auth/refresh`, { refreshToken });
           const refreshPayload = response.data?.data ?? response.data;
           localStorage.setItem('accessToken', refreshPayload.accessToken);
           localStorage.setItem('refreshToken', refreshPayload.refreshToken);
@@ -53,7 +55,7 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           window.dispatchEvent(new CustomEvent('d4u:session-expired', {
-            detail: getApiErrorMessage(refreshError, 'Phiên đăng nhập đã hết hạn.')
+            detail: getApiErrorMessage(refreshError, 'Phi\u00ean \u0111\u0103ng nh\u1eadp \u0111\u00e3 h\u1ebft h\u1ea1n.')
           }));
         }
       }
