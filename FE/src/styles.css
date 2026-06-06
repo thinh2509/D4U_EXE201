@@ -4158,3 +4158,254 @@ body {
     padding-right: 0;
   }
 }
+
+/* Forms, admin and wallet polish */
+.form-two-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.project-form-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.project-form-layout.deadline-only {
+  grid-template-columns: minmax(0, 760px);
+}
+
+.ai-panel,
+.project-form-card,
+.feature-shell-card,
+.review-main,
+.review-side .ant-card,
+.profile-card,
+.wallet-card,
+.billing-card,
+.rating-card {
+  border-color: var(--d4u-border);
+  background: var(--d4u-surface);
+}
+
+.ai-panel .ant-card-head,
+.project-form-card .ant-card-head,
+.feature-shell-card .ant-card-head,
+.review-main .ant-card-head,
+.review-side .ant-card-head {
+  border-bottom-color: var(--d4u-border);
+}
+
+.ai-suggestion-preview {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--d4u-cyan-24);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-soft);
+}
+
+.ai-suggestion-preview h4,
+.ai-suggestion-preview .ant-typography {
+  color: var(--d4u-text-1);
+}
+
+.table-toolbar {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--d4u-border);
+  background: var(--d4u-surface);
+}
+
+.status-filter {
+  min-width: 190px;
+}
+
+.review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 20px;
+  align-items: start;
+}
+
+.review-side {
+  display: grid;
+  gap: 16px;
+}
+
+.document-preview {
+  min-height: 360px;
+  margin-bottom: 18px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-soft);
+}
+
+.document-preview img,
+.document-preview iframe {
+  width: 100%;
+  height: 520px;
+  border: 0;
+  object-fit: contain;
+  background: var(--d4u-surface);
+}
+
+.document-preview a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.document-meta {
+  margin-top: 12px;
+}
+
+.reject-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--d4u-border);
+  border-radius: var(--d4u-radius-btn);
+  color: var(--d4u-text-1);
+  font: inherit;
+  resize: vertical;
+}
+
+.reject-textarea:focus {
+  outline: none;
+  border-color: var(--d4u-cyan);
+  box-shadow: var(--d4u-shadow-focus);
+}
+
+.wallet-summary-grid,
+.withdrawal-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wallet-summary-card,
+.withdrawal-summary-card {
+  border-color: var(--d4u-border);
+  background: var(--d4u-surface);
+}
+
+.wallet-summary-card .ant-card-body,
+.withdrawal-summary-card .ant-card-body {
+  min-height: 112px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+}
+
+.wallet-summary-card span,
+.withdrawal-summary-card span {
+  color: var(--d4u-text-2);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.wallet-summary-card strong,
+.withdrawal-summary-card strong {
+  color: var(--d4u-text-1);
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.withdrawal-workbench,
+.withdrawal-detail-panel,
+.withdrawal-request-card {
+  border-color: var(--d4u-border);
+  background: var(--d4u-surface);
+  box-shadow: none;
+}
+
+.withdrawal-request-card {
+  border-radius: var(--d4u-radius-card);
+}
+
+.withdrawal-request-card:hover,
+.withdrawal-request-card.is-active {
+  border-color: var(--d4u-cyan-24);
+  box-shadow: var(--d4u-shadow-card-hover);
+}
+
+.withdrawal-request-card.is-active,
+.withdrawal-empty,
+.withdrawal-transfer-box {
+  background: var(--d4u-soft);
+}
+
+.withdrawal-detail-header,
+.withdrawal-transfer-box {
+  border-color: var(--d4u-border);
+}
+
+.withdrawal-detail-header h3,
+.withdrawal-card-title strong,
+.withdrawal-card-title span,
+.withdrawal-detail-grid strong,
+.withdrawal-detail-amount strong {
+  color: var(--d4u-text-1);
+}
+
+.withdrawal-detail-amount strong {
+  color: var(--d4u-cyan-hover);
+}
+
+.expanded-copy {
+  margin: 0;
+  color: var(--d4u-text-2);
+  line-height: 1.65;
+}
+
+.page-alert {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1100px) {
+  .project-form-layout,
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-summary-grid,
+  .withdrawal-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .form-two-cols,
+  .wallet-summary-grid,
+  .withdrawal-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .table-toolbar .ant-space,
+  .table-toolbar .ant-input,
+  .status-filter {
+    width: 100%;
+  }
+
+  .document-preview {
+    min-height: 260px;
+  }
+
+  .document-preview img,
+  .document-preview iframe {
+    height: 360px;
+  }
+}
