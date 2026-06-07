@@ -3,6 +3,7 @@ import { App, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
+import { StudentReadinessNotice, useStudentReadiness } from '../../components/StudentReadinessGate.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
@@ -23,6 +24,7 @@ export function StudentProjectDetailPage() {
   const [customConfirmationOpen, setCustomConfirmationOpen] = useState(false);
   const [customProposal, setCustomProposal] = useState(null);
   const [error, setError] = useState(null);
+  const readiness = useStudentReadiness();
 
   const loadProject = async () => {
     setLoading(true);
@@ -85,16 +87,37 @@ export function StudentProjectDetailPage() {
     customProposalForm.resetFields();
   };
 
-  if (loading) return <LoadingState />;
+  if (loading || readiness.loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadProject} />;
+  if (readiness.error) return <ErrorState description={readiness.error} onRetry={readiness.reload} />;
 
   const hasApplied = Boolean(project.hasApplied);
-  const canApply = project.status === 'OPEN' && !hasApplied;
+  const canAccessMarketplaceActions = readiness.hasProfile && readiness.isApproved;
+  const canApply = project.status === 'OPEN' && !hasApplied && canAccessMarketplaceActions;
   const applyButtonLabel = hasApplied ? 'Đã ứng tuyển' : 'Gửi ứng tuyển';
   const openCustomProposal = () => {
     setQuickConfirmationOpen(false);
     setCustomProposalOpen(true);
   };
+  const readinessNotice = readiness.needsProfile ? (
+    <StudentReadinessNotice
+      compact
+      mode="profile"
+      title="Tạo hồ sơ sinh viên trước khi gửi ứng tuyển"
+      description="Bạn đang xem được brief dự án, nhưng D4U chỉ mở bước ứng tuyển sau khi hồ sơ sinh viên được tạo."
+      secondaryActionLabel="Tiếp tục đọc brief"
+      secondaryActionPath={`/student/projects/${projectId}`}
+    />
+  ) : readiness.needsVerification ? (
+    <StudentReadinessNotice
+      compact
+      mode="verification"
+      title="Hoàn tất xác thực để ứng tuyển dự án này"
+      description="SME chỉ nên nhận proposal từ Student đã xác thực. Hãy hoàn tất xác thực để gửi ứng tuyển hoặc đề xuất khác."
+      secondaryActionLabel="Tiếp tục đọc brief"
+      secondaryActionPath={`/student/projects/${projectId}`}
+    />
+  ) : null;
 
   return (
     <>
@@ -103,6 +126,8 @@ export function StudentProjectDetailPage() {
         description={project.designCategoryName}
         extra={<Button type="primary" icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={() => setQuickConfirmationOpen(true)}>{applyButtonLabel}</Button>}
       />
+
+      {readinessNotice}
 
       <div className="project-detail-layout">
         <div className="project-detail-main">
@@ -149,6 +174,13 @@ export function StudentProjectDetailPage() {
               <Button size="large" block disabled={!canApply || applying} onClick={openCustomProposal}>
                 Đề xuất khác
               </Button>
+              {!canAccessMarketplaceActions ? (
+                <p className="project-action-note">
+                  {readiness.needsProfile
+                    ? 'Tạo hồ sơ sinh viên trước để D4U mở tính năng ứng tuyển.'
+                    : 'Hoàn tất xác thực để gửi proposal và phản hồi offer.'}
+                </p>
+              ) : null}
             </Space>
           </Card>
         </aside>

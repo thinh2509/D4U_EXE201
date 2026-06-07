@@ -2,6 +2,7 @@ import { FileDoneOutlined, MailOutlined, SafetyCertificateOutlined, UploadOutlin
 import { Alert, App, Button, Card, Descriptions, Form, Input, Select, Tabs, Upload } from 'antd';
 import { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.jsx';
+import { StudentReadinessNotice } from '../../components/StudentReadinessGate.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { profileApi } from '../../services/profileApi.js';
@@ -198,9 +199,21 @@ export function StudentVerificationPage() {
         </p>
       </div>
 
-      <Card className="tabs-card">
-        <Tabs items={items} />
-      </Card>
+      {!profile ? (
+        <StudentReadinessNotice
+          mode="profile"
+          title="Tạo hồ sơ sinh viên trước khi xác thực EDU hoặc giấy tờ"
+          description="D4U cần hồ sơ sinh viên để gắn yêu cầu xác thực đúng tài khoản của bạn. Sau khi lưu hồ sơ, bạn có thể chọn xác thực bằng giấy tờ hoặc email EDU ngay tại màn này."
+          secondaryActionLabel="Về dashboard"
+          secondaryActionPath="/student/dashboard"
+        />
+      ) : null}
+
+      {profile ? (
+        <Card className="tabs-card">
+          <Tabs items={items} />
+        </Card>
+      ) : null}
     </>
   );
 }
