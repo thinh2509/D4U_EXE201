@@ -14,7 +14,7 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 - MVP scope: `MVP_D4U.md`.
 - MVP backlog: `BACKLOG_D4U_MVP.md`.
 - Technical stack: `TECH_STACK_D4U.md`.
-- GitHub workflow: `GITHUB_WORKFLOW_D4U.md`.
+- GitHub workflow and branch model: `GITHUB_WORKFLOW_D4U.md`.
 - ERD code: `D4U_ERD.dbml`.
 - Entity dictionary: `Entity_Dictionary_D4U.md`.
 - Broader product requirement: `Requirement.md`.
@@ -23,9 +23,12 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 
 - Keep implementation MVP-only unless the user explicitly expands scope.
 - Use `BACKLOG_D4U_MVP.md` as the implementation checklist and update it as slices are completed.
-- Use the branch + PR flow from `GITHUB_WORKFLOW_D4U.md`; do not commit feature work directly to `main`.
-- Preserve the 34-entity MVP as the first database target.
-- Do not add post-MVP features such as AI recommendation, realtime chat, social login, dispute appeal, or reputation ledger.
+- Use the branch + PR flow from `GITHUB_WORKFLOW_D4U.md`.
+- Create MVP work from `develop` using `feature/*` branches.
+- Use `release/*` for release stabilization and `hotfix/*` for urgent production fixes.
+- Do not commit feature work directly to `main` or `develop`.
+- Preserve the approved MVP entity scope as the first database target.
+- Do not add post-MVP features such as realtime chat, non-Google social login, dispute workflow, dispute appeal, reputation ledger, standalone AI recommendation outside paid AI Matching, or automatic bank payout.
 - Prefer thin controllers, application services, EF Core persistence configuration, and DTOs.
 - Validate with `dotnet build` and tests when possible.
 

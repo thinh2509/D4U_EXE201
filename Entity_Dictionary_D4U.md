@@ -1,6 +1,6 @@
 # D4U MVP Entity Dictionary
 
-This document describes the MVP-only ERD for D4U. It matches the 34 tables in `D4U_ERD.dbml` and supports the implementation scope in `MVP_D4U.md`.
+This document describes the optimized MVP-only ERD for D4U. It matches the 29 tables in `D4U_ERD.dbml` and supports the implementation scope in `MVP_D4U.md`.
 
 ## 1. Conventions
 
@@ -11,6 +11,8 @@ This document describes the MVP-only ERD for D4U. It matches the 34 tables in `D
 - C# code should use PascalCase properties.
 - Soft delete is represented by nullable `deleted_at` fields when needed.
 - Some MVP status fields are string-based for speed; important state machines use enums in DBML.
+- `audit_logs` is the primary source for project status transition history in the optimized MVP model.
+- Fixed Sketch/Final execution does not require a standalone milestone table.
 
 ## 2. Entities
 
@@ -34,7 +36,7 @@ Relationships:
 
 - One user has many sessions.
 - One user may have one Student, SME, or Admin profile depending on role.
-- Users are referenced by files, payments, disputes, ratings, notifications, and audit logs.
+- Users are referenced by files, payments, portfolio moderation, ratings, notifications, and audit logs.
 
 ### 2.2. user_sessions
 
@@ -112,12 +114,14 @@ Key attributes:
 - `logo_file_id`: optional logo file.
 - `onboarding_status`: onboarding state.
 - `average_rating`, `completed_projects_count`, `active_open_project_count`: metrics.
+- `subscription_plan_id`: current MVP plan used for publish limits and platform fee.
+- `subscription_started_at`, `subscription_current_period_end`: lightweight plan lifecycle fields.
 - `created_at`, `updated_at`: timestamps.
 
 Relationships:
 
 - One SME profile belongs to one user.
-- SME profile owns subscriptions, projects, and escrows.
+- SME profile owns its current plan reference, projects, and escrows.
 
 ### 2.7. subscription_plans
 
@@ -135,25 +139,9 @@ Key attributes:
 
 Relationships:
 
-- One plan has many SME subscriptions.
+- One plan can be referenced by many SME profiles.
 
-### 2.8. sme_subscriptions
-
-SME subscription instance.
-
-Key attributes:
-
-- `sme_profile_id`: subscribed SME.
-- `subscription_plan_id`: selected plan.
-- `status`: subscription status.
-- `started_at`, `current_period_end`, `cancelled_at`, `created_at`: lifecycle timestamps.
-
-Relationships:
-
-- Many subscriptions belong to one SME.
-- Many subscriptions reference one plan.
-
-### 2.9. design_categories
+### 2.8. design_categories
 
 Project category catalog.
 
@@ -167,7 +155,7 @@ Relationships:
 
 - One category has many projects.
 
-### 2.10. projects
+### 2.9. projects
 
 Design project posted by an SME.
 
@@ -181,7 +169,7 @@ Key attributes:
 - `status`: project workflow status.
 - `budget_amount`, `currency`: commercial terms.
 - `total_deadline_at`, `sketch_deadline_at`, `final_deadline_at`: deadlines.
-- `max_revision_rounds`, `current_revision_round`: revision control.
+- `max_revision_rounds`: legacy compatibility field; not used to block revision requests. `current_revision_round`: auditable revision counter.
 - `is_confidential`, `allow_student_portfolio`: privacy settings.
 - `rating_due_at`, `published_at`, `accepted_at`, `completed_at`, `cancelled_at`: lifecycle timestamps.
 
@@ -189,9 +177,9 @@ Relationships:
 
 - Project belongs to one SME and one category.
 - Project may select one Student.
-- Project has attachments, applications, offers, status history, milestones, submissions, review actions, revision requests, invalid file reports, escrow, disputes, and ratings.
+- Project has attachments, applications, offers, submissions, review actions, escrow, portfolio items, ratings, and audit logs for lifecycle transitions.
 
-### 2.11. project_attachments
+### 2.10. project_attachments
 
 Files attached to a project brief.
 
@@ -207,7 +195,7 @@ Relationships:
 - Many attachments belong to one project.
 - Each attachment references one file.
 
-### 2.12. project_applications
+### 2.11. project_applications
 
 Student application to an open project.
 
@@ -230,7 +218,7 @@ Relationships:
 - Many applications belong to one Student.
 - An application may be linked to an offer.
 
-### 2.13. project_offers
+### 2.12. project_offers
 
 Offer from SME to Student.
 
@@ -241,68 +229,36 @@ Key attributes:
 - `application_id`: optional source application.
 - `status`: offer status.
 - `offered_amount`: offer value.
-- `expires_at`, `accepted_at`, `rejected_at`, `revoked_at`, `created_at`: timestamps.
+- `expires_at`: Student 48-hour decision deadline.
+- `payment_due_at`: SME 72-hour escrow payment deadline after Student acceptance.
+- `accepted_at`, `rejected_at`, `expired_at`, `created_at`: timestamps.
 
 Relationships:
 
 - Many offers belong to one project.
 - Many offers target one Student.
 
-### 2.14. project_status_histories
-
-Project state transition audit.
-
-Key attributes:
-
-- `project_id`: project.
-- `from_status`, `to_status`: transition.
-- `changed_by_user_id`: actor.
-- `change_reason`, `metadata_json`: context.
-- `created_at`: transition time.
-
-Relationships:
-
-- Many status history rows belong to one project.
-
-### 2.15. project_milestones
-
-Sketch and Final milestones.
-
-Key attributes:
-
-- `project_id`: project.
-- `milestone_type`: `SKETCH` or `FINAL`.
-- `status`: milestone state.
-- `deadline_at`, `submitted_at`, `review_due_at`, `approved_at`, `auto_approved_at`: milestone timestamps.
-
-Constraints:
-
-- Unique `(project_id, milestone_type)`.
-
-Relationships:
-
-- A project has one Sketch milestone and one Final milestone.
-- A milestone can have multiple submissions due to revisions.
-
-### 2.16. project_submissions
+### 2.13. project_submissions
 
 Student delivery submission.
 
 Key attributes:
 
 - `project_id`: project.
-- `milestone_id`: milestone.
 - `submitted_by_student_id`: submitting Student.
 - `submission_type`: `SKETCH`, `FINAL`, or `REVISION`.
+- `milestone_type`: fixed stage `SKETCH` or `FINAL`.
 - `revision_round`: revision number.
 - `description`, `status`, `submitted_at`: submission details.
+- `review_due_at`, `approved_at`, `auto_approved_at`: review and auto-approve timestamps.
 
 Relationships:
 
-- Many submissions belong to one project and one milestone.
-- Submission has files, review actions, revision requests, and invalid file reports.
+- Many submissions belong to one project.
+- Submission has files and review actions.
+- Revision request and invalid file report details are stored as review actions.
 
-### 2.17. submission_files
+### 2.14. submission_files
 
 Files included in a submission.
 
@@ -319,7 +275,7 @@ Relationships:
 - Many submission files belong to one submission.
 - File references point to `files`.
 
-### 2.18. review_actions
+### 2.15. review_actions
 
 Review action on a submission.
 
@@ -330,50 +286,17 @@ Key attributes:
 - `reviewer_user_id`: SME/Admin reviewer or null for system action.
 - `action`: review action type.
 - `comment`: optional comment.
+- `requested_changes`, `revision_round`, `due_at`: revision request details when action is `REQUEST_REVISION`.
+- `invalid_file_reason`, `reupload_due_at`: invalid file report details when action is `REPORT_INVALID_FILE`.
+- `resolved_at`, `metadata_json`: resolution and structured context for auto/admin actions.
 - `created_at`: timestamp.
 
 Relationships:
 
 - Many review actions belong to one project and one submission.
+- Auto-approve actions use a null or system reviewer and must include reason `AUTO_APPROVED_TIMEOUT` in metadata.
 
-### 2.19. revision_requests
-
-Requested changes for a submission.
-
-Key attributes:
-
-- `project_id`: project.
-- `submission_id`: target submission.
-- `requested_by_user_id`: requester.
-- `revision_round`: revision number.
-- `requested_changes`: required changes.
-- `status`, `due_at`, `resolved_at`, `created_at`: state and timing.
-
-Constraints:
-
-- Unique `(project_id, revision_round, submission_id)`.
-
-Relationships:
-
-- Many revision requests belong to one project and one submission.
-
-### 2.20. invalid_file_reports
-
-Invalid file report for a submission.
-
-Key attributes:
-
-- `project_id`: project.
-- `submission_id`: target submission.
-- `reported_by_user_id`: reporter.
-- `reason_code`: invalid file reason.
-- `description`, `status`, `reupload_due_at`, `resolved_at`, `created_at`: report details.
-
-Relationships:
-
-- Many invalid file reports belong to one project and one submission.
-
-### 2.21. files
+### 2.16. files
 
 File metadata table.
 
@@ -387,9 +310,9 @@ Key attributes:
 
 Relationships:
 
-- Files are referenced by profiles, verification, project attachments, submissions, and dispute evidence.
+- Files are referenced by profiles, verification, project attachments, submissions, and portfolio items.
 
-### 2.22. escrows
+### 2.17. escrows
 
 Escrow record for a project.
 
@@ -406,9 +329,9 @@ Key attributes:
 Relationships:
 
 - One project has at most one escrow.
-- Escrow has payments, refunds, disbursements, and disputes.
+- Escrow has payments, refunds, and disbursements.
 
-### 2.23. payments
+### 2.18. payments
 
 Payment transaction from SME/provider.
 
@@ -417,19 +340,22 @@ Key attributes:
 - `payer_user_id`: paying user.
 - `escrow_id`: target escrow.
 - `amount`, `currency`: payment value.
-- `provider`, `provider_transaction_id`: provider data.
-- `status`, `paid_at`, `created_at`: payment state.
+- `provider`, `provider_transaction_id`, `provider_order_code`: provider data.
+- `checkout_url`, `qr_code`, `expires_at`: PayOS checkout data.
+- `status`, `paid_at`, `created_at`, `updated_at`: payment state.
+- `raw_provider_response_json`: raw provider response for support/debug.
 
 Constraints:
 
 - Unique `(provider, provider_transaction_id)`.
+- Unique `(provider, provider_order_code)`.
 
 Relationships:
 
 - Many payments may belong to one escrow.
 - Payment may be linked to refunds.
 
-### 2.24. refunds
+### 2.19. refunds
 
 Refund from escrow/payment.
 
@@ -445,7 +371,7 @@ Relationships:
 
 - Many refunds belong to one escrow.
 
-### 2.25. disbursements
+### 2.20. disbursements
 
 Payout from escrow to Student wallet.
 
@@ -461,7 +387,7 @@ Relationships:
 - Many disbursements can reference one escrow.
 - Disbursement credits one wallet.
 
-### 2.26. wallets
+### 2.21. wallets
 
 Student wallet.
 
@@ -478,7 +404,7 @@ Relationships:
 - One wallet belongs to one user.
 - Wallet has transactions, disbursements, and withdrawal requests.
 
-### 2.27. wallet_transactions
+### 2.22. wallet_transactions
 
 Wallet ledger entry.
 
@@ -495,7 +421,7 @@ Relationships:
 
 - Many wallet transactions belong to one wallet.
 
-### 2.28. payment_methods
+### 2.23. payment_methods
 
 Bank account/payment method for withdrawals.
 
@@ -511,7 +437,7 @@ Relationships:
 - Many payment methods belong to one user.
 - Withdrawal requests use payment methods.
 
-### 2.29. withdrawal_requests
+### 2.24. withdrawal_requests
 
 Student withdrawal request.
 
@@ -527,43 +453,54 @@ Relationships:
 
 - Many withdrawal requests belong to one wallet and one user.
 
-### 2.30. disputes
+### 2.25. student_portfolio_items
 
-MVP dispute case.
+Basic Student portfolio item.
 
 Key attributes:
 
-- `project_id`: disputed project.
-- `escrow_id`: disputed escrow.
-- `opened_by_user_id`, `against_user_id`: parties.
-- `reason_code`, `description`: dispute content.
-- `status`, `assigned_admin_id`: workflow state.
-- `decision_type`, `sme_refund_amount`, `student_payout_amount`, `platform_fee_amount`, `decision_rationale`: Admin decision.
-- `opened_at`, `resolved_at`: timestamps.
+- `student_profile_id`: portfolio owner.
+- `source_project_id`: optional completed D4U project reference.
+- `design_category_id`: optional category.
+- `title`, `description`: portfolio content.
+- `student_role`, `tools`, `skills`: contribution and capability details.
+- `external_url`: optional external portfolio/demo link.
+- `status`: `DRAFT`, `PUBLIC`, `PRIVATE`, or `HIDDEN`.
+- `is_featured`: featured/pinned item flag.
+- `published_at`: public publishing timestamp.
+- `hidden_by_admin_id`, `hidden_reason`: moderation fields.
+- `created_at`, `updated_at`: lifecycle timestamps.
 
 Relationships:
 
-- Many disputes belong to one project.
-- Dispute may reference escrow.
-- Dispute has evidence.
+- Many portfolio items belong to one Student profile.
+- Portfolio item may reference one completed project.
+- Portfolio item may reference one design category.
+- Portfolio item may be hidden by one Admin user.
+- Portfolio item has portfolio files.
 
-### 2.31. dispute_evidences
+Rules:
 
-Evidence submitted to a dispute.
+- Public items linked to a D4U project must respect `projects.is_confidential` and `projects.allow_student_portfolio`.
+- Admin-hidden items should not be visible to SMEs or public portfolio viewers.
+
+### 2.26. student_portfolio_files
+
+Files attached to a Student portfolio item.
 
 Key attributes:
 
-- `dispute_id`: dispute.
-- `submitted_by_user_id`: submitter.
-- `file_id`: optional evidence file.
-- `comment`: optional text evidence.
+- `portfolio_item_id`: portfolio item.
+- `file_id`: attached file.
+- `display_order`: ordering inside the portfolio item.
 - `created_at`: timestamp.
 
 Relationships:
 
-- Many evidence records belong to one dispute.
+- Many portfolio files belong to one portfolio item.
+- Each portfolio file references one file metadata record.
 
-### 2.32. ratings
+### 2.27. ratings
 
 Post-completion rating.
 
@@ -584,7 +521,7 @@ Relationships:
 
 - Many ratings belong to one project.
 
-### 2.33. notifications
+### 2.28. notifications
 
 In-app notification.
 
@@ -600,7 +537,7 @@ Relationships:
 
 - Many notifications belong to one recipient user.
 
-### 2.34. audit_logs
+### 2.29. audit_logs
 
 Operational audit record.
 
@@ -634,10 +571,9 @@ Relationships:
 - `users` 1-n `student_verifications` as Admin reviewer.
 - `users` 1-n `files` as owner.
 
-### 3.3. SME Subscription
+### 3.3. SME Plan
 
-- `sme_profiles` 1-n `sme_subscriptions`.
-- `subscription_plans` 1-n `sme_subscriptions`.
+- `subscription_plans` 1-n `sme_profiles`.
 
 ### 3.4. Project Marketplace
 
@@ -650,17 +586,14 @@ Relationships:
 - `projects` 1-n `project_offers`.
 - `student_profiles` 1-n `project_offers`.
 - `project_applications` 1-n `project_offers`.
-- `projects` 1-n `project_status_histories`.
+- Project status transitions are recorded in `audit_logs`.
 
 ### 3.5. Execution
 
-- `projects` 1-n `project_milestones`.
 - `projects` 1-n `project_submissions`.
-- `project_milestones` 1-n `project_submissions`.
 - `project_submissions` 1-n `submission_files`.
 - `project_submissions` 1-n `review_actions`.
-- `project_submissions` 1-n `revision_requests`.
-- `project_submissions` 1-n `invalid_file_reports`.
+- Revision requests and invalid file reports are stored as `review_actions`.
 
 ### 3.6. Money Movement
 
@@ -675,8 +608,10 @@ Relationships:
 
 ### 3.7. Trust and Operations
 
-- `projects` 1-n `disputes`.
-- `disputes` 1-n `dispute_evidences`.
+- `student_profiles` 1-n `student_portfolio_items`.
+- `projects` 1-n `student_portfolio_items` as optional source project.
+- `design_categories` 1-n `student_portfolio_items`.
+- `student_portfolio_items` 1-n `student_portfolio_files`.
 - `projects` 1-n `ratings`.
 - `users` 1-n `notifications`.
 - `users` 1-n `audit_logs`.
@@ -686,17 +621,16 @@ Relationships:
 - `user_role`: STUDENT, SME, ADMIN.
 - `user_status`: PENDING, ACTIVE, SUSPENDED, BANNED, DELETED.
 - `project_type`: OPEN, PRIVATE.
-- `project_status`: DRAFT through COMPLETED, CANCELLED, DISPUTED.
-- `offer_status`: PENDING_PAYMENT, WAITING_ACCEPTANCE, ACCEPTED, REJECTED, REVOKED, EXPIRED.
+- `project_status`: DRAFT, OPEN, PRIVATE_INVITED, OFFER_SELECTED, IN_PROGRESS, SKETCH_REVIEW, REVISION_REQUESTED, FINAL_REVIEW, ADMIN_REVIEW, COMPLETED, CANCELLED.
+- `offer_status`: WAITING_ACCEPTANCE, ACCEPTED, REJECTED, EXPIRED, PENDING_PAYMENT, PAYMENT_FAILED, ACTIVE.
 - `payment_status`: PENDING, SUCCESS, FAILED, CANCELLED, EXPIRED.
-- `escrow_status`: PENDING_PAYMENT, FUNDED, RELEASE_PENDING, RELEASED, REFUNDED, PARTIALLY_REFUNDED, DISPUTED, CANCELLED.
-- `milestone_type`: SKETCH, FINAL.
-- `milestone_status`: PENDING, SUBMITTED, IN_REVIEW, APPROVED, REVISION_REQUESTED, AUTO_APPROVED, CANCELLED.
+- `escrow_status`: PENDING_PAYMENT, FUNDED, RELEASE_PENDING, RELEASED, REFUNDED, PARTIALLY_REFUNDED, CANCELLED.
 - `submission_type`: SKETCH, FINAL, REVISION.
-- `submission_status`: SUBMITTED, VALID, INVALID_REPORTED, APPROVED, REVISION_REQUESTED, DISPUTED.
-- `review_action_type`: APPROVE_SKETCH, APPROVE_FINAL, REQUEST_REVISION, REPORT_INVALID_FILE, OPEN_DISPUTE, AUTO_APPROVE.
+- `submission_stage`: SKETCH, FINAL.
+- `submission_status`: SUBMITTED, VALID, INVALID_REPORTED, APPROVED, REVISION_REQUESTED.
+- `review_action_type`: APPROVE_SKETCH, APPROVE_FINAL, REQUEST_REVISION, REPORT_INVALID_FILE, AUTO_APPROVE, ADMIN_FORCE_COMPLETE, ADMIN_CANCEL.
 - `invalid_file_reason`: EMPTY_FILE, CANNOT_OPEN, WRONG_FORMAT, UNRELATED, BROKEN_LINK, OTHER.
-- `dispute_status`: OPEN, UNDER_REVIEW, RESOLVED, REJECTED, CANCELLED.
+- `portfolio_item_status`: DRAFT, PUBLIC, PRIVATE, HIDDEN.
 - `wallet_status`: ACTIVE, LOCKED, CLOSED.
 - `wallet_transaction_type`: DISBURSEMENT_CREDIT, WITHDRAWAL_DEBIT, WITHDRAWAL_FAILED_REVERSAL, ADMIN_ADJUSTMENT.
 - `notification_status`: UNREAD, READ.

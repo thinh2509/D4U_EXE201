@@ -10,27 +10,34 @@ D4U (Design 4 You) is an MVP marketplace that connects Student Designers with SM
 - Runtime: .NET 8
 - Database: PostgreSQL
 - ORM: Entity Framework Core 8 with Npgsql
+- Read-query helper: Dapper for targeted read-only SQL queries
 - Database strategy: EF Core Code First
-- Mapping strategy: Fluent API
+- Mapping strategy: Fluent API with `IEntityTypeConfiguration<T>`
+- Persistence patterns: Generic Repository and Unit of Work
+- Cache: Redis via `IDistributedCache`, with local memory fallback
+- Logging: Serilog structured logging
+- Authentication: JWT Bearer, account email verification by SMTP, Google login, and optional OAuth2 external provider registration
 - API documentation: Swagger/OpenAPI
+- Local container runtime: Docker Desktop with Docker Compose
 - IDE: Visual Studio 2022
 - Source control: GitHub
 
 ## Features
 
-- Email/password authentication direction
+- Email/password registration with SMTP email verification before login
 - Role-based users: Student, SME, Admin
 - Student and SME profile management
 - Student verification reviewed by Admin
 - SME subscription plans
 - Open/private project creation and publishing
 - Student applications and SME offers
-- Escrow payment workflow
+- Escrow payment workflow through one selected real payment provider
+- Paid feature package purchase flow for AI Matching entitlements
 - Sketch and final milestones
 - Submission upload and review actions
 - Revision requests and invalid file reports
-- Dispute opening, evidence, and Admin resolution
-- Wallet balance, disbursement, payment method, and withdrawal workflow
+- Basic Student Portfolio Builder with project confidentiality checks
+- Internal wallet ledger, disbursement, payment method, and manual withdrawal workflow
 - Ratings after project completion
 - In-app notification records
 - Audit logs for important actions
@@ -64,13 +71,23 @@ Layer responsibilities:
 
 ## Backend Install Guide
 
+Backend foundation details are documented in [BACKEND_FOUNDATION_D4U.md](BACKEND_FOUNDATION_D4U.md).
+
+Completed feature manual E2E testing is documented in [D4U_COMPLETED_FEATURE_E2E_TEST_GUIDE_VI.md](D4U_COMPLETED_FEATURE_E2E_TEST_GUIDE_VI.md).
+
+PayOS live payment and Cloudflare named tunnel setup is documented in [PAYOS_LIVE_SMOKE_RUNBOOK_VI.md](PAYOS_LIVE_SMOKE_RUNBOOK_VI.md).
+
+Outcome 1 public deployment on Azure App Service, Azure PostgreSQL, and Vercel is documented in [D4U_OUTCOME1_DEPLOY_AZURE_VERCEL_VI.md](D4U_OUTCOME1_DEPLOY_AZURE_VERCEL_VI.md).
+
+The SME and Student back-and-forth core-flow test script is documented in [D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md](D4U_CORE_INTERACTION_E2E_TEST_GUIDE_VI.md).
+
 ### Prerequisites
 
 - Visual Studio 2022 version 17.8 or newer
 - ASP.NET and web development workload
 - .NET 8 SDK
 - PostgreSQL
-- Docker Desktop, if running the API with Docker
+- Docker Desktop, if running with Docker
 - Git
 
 ### Clone
@@ -80,62 +97,96 @@ git clone https://github.com/thinh2509/D4U_EXE201.git
 cd D4U_EXE201
 ```
 
-### Configure Database
+### Configure Database Without Docker
 
-Create a PostgreSQL database for local development:
-
-```sql
-CREATE DATABASE d4u_mvp;
-```
-
-Configure the connection string locally. Do not commit real database credentials.
-
-PowerShell example:
+The project uses .NET User Secrets for local development. Do not put database passwords in `appsettings.json`.
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
 ```
 
-### Frontend Setup With Docker API
+For deployed environments, configure `D4U_DATABASE_CONNECTION` as an environment variable.
 
-Frontend developers can run the backend API locally with Docker, then point the frontend API base URL to the Docker API endpoint.
+### Run With Docker Desktop
 
-Clone the backend repository:
-
-```powershell
-git clone https://github.com/thinh2509/D4U_EXE201.git
-cd D4U_EXE201
-```
-
-Use the `develop` branch because it contains the current Docker setup:
-
-```powershell
-git switch develop
-git pull origin develop
-```
-
-Create a local `.env` file:
+Create a local `.env` file from `.env.example`, then change `POSTGRES_PASSWORD` and any local ports if needed:
 
 ```powershell
 copy .env.example .env
 ```
 
-Start PostgreSQL and the API:
+If Google login is enabled, set the same Google OAuth client ID for backend validation and frontend build-time configuration:
+
+```env
+GOOGLE_AUTH_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+For email/password registration, configure SMTP so D4U can send account verification codes:
+
+```env
+EMAIL_SMTP_HOST=smtp.example.com
+EMAIL_SMTP_PORT=587
+EMAIL_USERNAME=your-smtp-username
+EMAIL_PASSWORD=your-smtp-password
+EMAIL_FROM_EMAIL=no-reply@example.com
+EMAIL_FROM_NAME=D4U
+EMAIL_USE_SSL=true
+USER_EMAIL_CODE_EXPIRES_MINUTES=15
+USER_EMAIL_CODE_LENGTH=6
+```
+
+For MVP payment-in, choose one real provider for production use. Keep `Mock` only for local development/tests:
+
+```env
+PAYMENT_PROVIDER=PayOS
+PAYMENT_WEBHOOK_SECRET=your-provider-webhook-secret
+PAYMENT_RETURN_URL=http://localhost:3000/payment/success
+PAYMENT_CANCEL_URL=http://localhost:3000/payment/cancel
+PAYMENT_PAYOS_CLIENT_ID=your-payos-client-id
+PAYMENT_PAYOS_API_KEY=your-payos-api-key
+PAYMENT_PAYOS_CHECKSUM_KEY=your-payos-checksum-key
+```
+
+For SME AI Brief generation, keep `AI_PROVIDER=Mock` for local offline development or set OpenAI credentials for real generated Vietnamese briefs:
+
+```env
+AI_PROVIDER=OpenAI
+AI_API_KEY=your-openai-api-key
+AI_MODEL=gpt-5-mini
+AI_TIMEOUT_SECONDS=30
+AI_FALLBACK_TO_MOCK=true
+AI_BASE_URL=https://api.openai.com/v1
+```
+
+Paid feature package purchases and escrow funding both use this payment-in provider. Student withdrawals remain manual in MVP: Admin/Finance transfers money externally, then updates the withdrawal status in D4U.
+
+For Google OAuth, add these local frontend origins in Google Cloud Console:
+
+```text
+http://localhost:3000
+http://127.0.0.1:3000
+```
+
+Start PostgreSQL, the API, and the frontend:
 
 ```powershell
 docker compose up -d --build
 ```
 
-The API runs locally at:
+The Docker Compose project name is `d4u-mvp`.
+
+Frontend:
+
+```text
+http://localhost:3000
+```
+
+The frontend container serves the React app with Nginx and proxies `/api/*` to the API container. Frontend users should call the app URL above; API calls use the same browser origin.
+
+API:
 
 ```text
 http://localhost:8080
-```
-
-Use this as the frontend API base URL:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080
 ```
 
 Swagger:
@@ -150,10 +201,24 @@ Health check:
 http://localhost:8080/health
 ```
 
+The API container applies EF Core migrations automatically when `D4U_APPLY_MIGRATIONS=true`.
 View API logs:
 
 ```powershell
 docker compose logs -f api
+```
+
+View frontend logs:
+
+```powershell
+docker compose logs -f frontend
+```
+
+If `GOOGLE_AUTH_CLIENT_ID` changes, rebuild the frontend because Vite embeds `VITE_*` variables into the static bundle:
+
+```powershell
+docker compose build frontend
+docker compose up -d frontend
 ```
 
 Stop containers:
@@ -162,7 +227,7 @@ Stop containers:
 docker compose down
 ```
 
-Reset the Docker database:
+Reset the local Docker database volume:
 
 ```powershell
 docker compose down -v
@@ -182,7 +247,7 @@ dotnet build D4U.sln
 dotnet ef database update --project D4U.Api --startup-project D4U.Api
 ```
 
-### Run API
+### Run API Without Docker
 
 ```powershell
 dotnet run --project D4U.Api/D4U.Api.csproj

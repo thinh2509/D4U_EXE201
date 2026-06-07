@@ -1,0 +1,4 @@
+interface:
+  display_name: "D4U Frontend UI Designer"
+  short_description: "Design D4U React/Vite UI with MVP-safe flows."
+  default_prompt: "Use $frontend-ui-designer to design or implement a D4U frontend screen with cyan/teal branding, role-based UX, API-connected states, responsive layout, and MVP boundary checks."

@@ -1,0 +1,705 @@
+import { FileDoneOutlined, FolderOpenOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
+import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table, Tag } from 'antd';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { PageHeader } from '../../components/PageHeader.jsx';
+import { StatusBadge } from '../../components/StatusBadge.jsx';
+import { ErrorState } from '../../components/StateViews.jsx';
+import { projectApi } from '../../services/projectApi.js';
+import { walletApi } from '../../services/walletApi.js';
+import { getApiErrorMessage } from '../../utils/apiError.js';
+import { formatCurrency, formatDate } from '../../utils/format.js';
+import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
+import { MyRatingsPage } from '../shared/RatingPages.jsx';
+
+export function StudentApplicationsPage() {
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadRows = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setRows(await projectApi.listStudentApplications());
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Không thể tải ứng tuyển của bạn.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRows();
+  }, []);
+
+  if (error) return <ErrorState description={error} onRetry={loadRows} />;
+
+  const columns = [
+    {
+      title: 'Dự án',
+      dataIndex: 'projectTitle',
+      render: (value, row) => (
+        <div>
+          <strong>{value}</strong>
+          <div className="muted-text">{row.coverLetter?.slice(0, 90)}{row.coverLetter?.length > 90 ? '...' : ''}</div>
+        </div>
+      )
+    },
+    { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: (value) => formatCurrency(value) },
+    { title: 'Application', dataIndex: 'applicationStatus', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Offer', dataIndex: 'offerStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    { title: 'Ngày gửi', dataIndex: 'submittedAt', render: formatDate },
+    {
+      title: 'Hành động',
+      render: (_, row) => (
+        <Space wrap>
+          <Button type="primary" ghost onClick={() => navigate(`/student/projects/${row.projectId}`)}>
+            Xem dự án
+          </Button>
+          {row.offerStatus === 'WAITING_ACCEPTANCE' ? (
+            <Button type="primary" onClick={() => navigate('/student/offers')}>
+              Xử lý offer
+            </Button>
+          ) : null}
+        </Space>
+      )
+    }
+  ];
+
+  return (
+    <>
+      <PageHeader
+        icon={<FileDoneOutlined />}
+        title="Ứng tuyển của tôi"
+        description="Theo dõi application đã gửi, offer liên quan và trạng thái escrow nếu SME đã chọn bạn."
+        extra={<Button onClick={loadRows}>Làm mới</Button>}
+      />
+      <Card className="table-card">
+        <Table
+          rowKey="applicationId"
+          loading={loading}
+          columns={columns}
+          dataSource={rows}
+          scroll={{ x: 1040 }}
+          expandable={{ expandedRowRender: (row) => <p className="expanded-copy">{row.coverLetter}</p> }}
+          pagination={{ pageSize: 8 }}
+          locale={{ emptyText: 'Bạn chưa gửi ứng tuyển nào.' }}
+        />
+      </Card>
+    </>
+  );
+}
+
+export function StudentOffersPage() {
+  const { message } = App.useApp();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(null);
+  const [error, setError] = useState(null);
+
+  const loadRows = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setRows(await projectApi.listStudentOffers());
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Không thể tải offer của bạn.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRows();
+  }, []);
+
+  const accept = async (offerId) => {
+    setActing(offerId);
+    try {
+      await projectApi.acceptOffer(offerId);
+      message.success('Đã chấp nhận offer. SME cần thanh toán escrow trước khi dự án bắt đầu.');
+      await loadRows();
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể chấp nhận offer.'));
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const reject = async (offerId) => {
+    setActing(offerId);
+    try {
+      await projectApi.rejectOffer(offerId);
+      message.success('Đã từ chối offer.');
+      await loadRows();
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể từ chối offer.'));
+    } finally {
+      setActing(null);
+    }
+  };
+
+  if (error) return <ErrorState description={error} onRetry={loadRows} />;
+
+  const columns = [
+    {
+      title: 'Dự án',
+      dataIndex: 'projectTitle',
+      render: (value, row) => (
+        <div>
+          <strong>{value}</strong>
+          <div className="muted-text">Offer: {formatCurrency(row.offeredAmount)}</div>
+        </div>
+      )
+    },
+    { title: 'Offer', dataIndex: 'offerStatus', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Payment', dataIndex: 'paymentStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    {
+      title: 'Deadline',
+      render: (_, row) => (
+        <div>
+          <div>Sketch: {formatDate(row.sketchDeadlineAt)}</div>
+          <div>Final: {formatDate(row.finalDeadlineAt)}</div>
+          <div className="muted-text">Hoàn tất review: {formatDate(row.totalDeadlineAt)}</div>
+        </div>
+      )
+    },
+    { title: 'Ngày tạo', dataIndex: 'createdAt', render: formatDate },
+    {
+      title: 'Hành động',
+      render: (_, row) => (
+        <Space wrap>
+          <Button
+            type="primary"
+            disabled={row.offerStatus !== 'WAITING_ACCEPTANCE'}
+            loading={acting === row.offerId}
+            onClick={() => accept(row.offerId)}
+          >
+            Chấp nhận
+          </Button>
+          <Button
+            danger
+            disabled={row.offerStatus !== 'WAITING_ACCEPTANCE'}
+            loading={acting === row.offerId}
+            onClick={() => reject(row.offerId)}
+          >
+            Từ chối
+          </Button>
+        </Space>
+      )
+    }
+  ];
+
+  return (
+    <>
+      <PageHeader
+        icon={<FileDoneOutlined />}
+        title="Đề nghị"
+        description="Chấp nhận hoặc từ chối offer trước. Sau khi bạn chấp nhận, SME mới thanh toán escrow qua PayOS."
+        extra={<Button onClick={loadRows}>Làm mới</Button>}
+      />
+      <Alert
+        type="info"
+        showIcon
+        className="form-alert"
+        message="Offer đã chấp nhận vẫn chưa bắt đầu ngay. Project chỉ chuyển sang đang thực hiện sau khi PayOS xác nhận escrow đã được thanh toán."
+      />
+      <Card className="table-card">
+        <Table
+          rowKey="offerId"
+          loading={loading}
+          columns={columns}
+          dataSource={rows}
+          scroll={{ x: 1080 }}
+          pagination={{ pageSize: 8 }}
+          locale={{ emptyText: 'Bạn chưa có offer nào.' }}
+        />
+      </Card>
+    </>
+  );
+}
+
+export function StudentMyProjectsPage() {
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadRows = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setRows(await projectApi.listStudentProjects());
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Không thể tải dự án của bạn.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRows();
+  }, []);
+
+  if (error) return <ErrorState description={error} onRetry={loadRows} />;
+
+  const columns = [
+    { title: 'Dự án', dataIndex: 'projectTitle' },
+    { title: 'Trạng thái', dataIndex: 'projectStatus', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Ngân sách', dataIndex: 'budgetAmount', render: (value, row) => formatCurrency(value, row.currency) },
+    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    { title: 'Hạn hoàn tất review', dataIndex: 'totalDeadlineAt', render: formatDate },
+    {
+      title: 'Hành động',
+      render: (_, row) => (
+        <Button type="primary" ghost onClick={() => navigate(`/projects/${row.projectId}/execution`)}>
+          Theo dõi
+        </Button>
+      )
+    }
+  ];
+
+  return (
+    <>
+      <PageHeader
+        icon={<FolderOpenOutlined />}
+        title="Dự án của tôi"
+        description="Các dự án đã được bạn chấp nhận sau khi escrow được thanh toán."
+        extra={<Button onClick={loadRows}>Làm mới</Button>}
+      />
+      <Card className="table-card">
+        <Table
+          rowKey="projectId"
+          loading={loading}
+          columns={columns}
+          dataSource={rows}
+          scroll={{ x: 920 }}
+          pagination={{ pageSize: 8 }}
+          locale={{ emptyText: 'Bạn chưa có dự án đang thực hiện.' }}
+        />
+      </Card>
+    </>
+  );
+}
+
+export function StudentPortfolioPage() {
+  return (
+    <FeatureShellPage
+      icon={<StarOutlined />}
+      title="Portfolio Builder"
+      description="Tạo portfolio item từ nội dung được phép công khai và quản lý trạng thái public/private."
+      role="Student"
+      endpoint="GET /api/v1/students/me/portfolio"
+      notes={[
+        'Không hiển thị dữ liệu mẫu.',
+        'Chỉ cho publish output dự án khi dự án không bảo mật và cho phép portfolio.'
+      ]}
+      backTo="/student/dashboard"
+    />
+  );
+}
+
+export function StudentWalletShellPage() {
+  return (
+    <FeatureShellPage
+      icon={<WalletOutlined />}
+      title="Ví D4U"
+      description="Ví là ledger nội bộ của D4U. Rút tiền được Admin/Finance xử lý thủ công sau chuyển khoản ngoài hệ thống."
+      role="Student"
+      endpoint="GET /api/v1/wallets/me"
+      notes={['Không thiết kế automatic bank payout.', 'Không đồng bộ số dư ngân hàng thật trong MVP.']}
+      backTo="/student/dashboard"
+    />
+  );
+}
+
+const isValidPaymentMethod = (method) => method?.status === 'ACTIVE' && method?.bankName && method?.hasFullAccountNumber;
+
+const getPaymentMethodIssue = (method) => {
+  if (method?.status !== 'ACTIVE') return 'Tài khoản chưa active';
+  if (!method?.bankName) return 'Thiếu ngân hàng';
+  if (!method?.hasFullAccountNumber) return 'Thiếu số tài khoản đầy đủ';
+  return null;
+};
+
+const getPaymentMethodLabel = (method) => [
+  method?.bankName || 'Thiếu ngân hàng',
+  method?.accountHolderName || 'Thiếu chủ tài khoản',
+  method?.maskedAccountNumber || 'Thiếu số TK'
+].join(' - ');
+
+export function StudentWalletPage() {
+  const { message } = App.useApp();
+  const [searchParams] = useSearchParams();
+  const [form] = Form.useForm();
+  const [withdrawalForm] = Form.useForm();
+  const withdrawalAmount = Number(Form.useWatch('amount', withdrawalForm) ?? 0);
+  const selectedPaymentMethodId = Form.useWatch('paymentMethodId', withdrawalForm);
+  const [wallet, setWallet] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [savingMethod, setSavingMethod] = useState(false);
+  const [requestingWithdrawal, setRequestingWithdrawal] = useState(false);
+  const [error, setError] = useState(null);
+  const [sectionErrors, setSectionErrors] = useState({});
+
+  const loadWallet = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+      setSectionErrors({});
+    }
+    try {
+      const [walletResult, transactionResult, methodResult, withdrawalResult] = await Promise.allSettled([
+        walletApi.getMyWallet(),
+        walletApi.listTransactions(),
+        walletApi.listPaymentMethods(),
+        walletApi.listWithdrawalRequests()
+      ]);
+
+      if (walletResult.status === 'rejected') {
+        throw walletResult.reason;
+      }
+
+      setWallet(walletResult.value);
+      setTransactions(transactionResult.status === 'fulfilled' ? transactionResult.value : []);
+      setPaymentMethods(methodResult.status === 'fulfilled' ? methodResult.value : []);
+      setWithdrawals(withdrawalResult.status === 'fulfilled' ? withdrawalResult.value : []);
+      setSectionErrors({
+        transactions: transactionResult.status === 'rejected'
+          ? getApiErrorMessage(transactionResult.reason, 'Không thể tải ledger.')
+          : null,
+        methods: methodResult.status === 'rejected'
+          ? getApiErrorMessage(methodResult.reason, 'Không thể tải tài khoản nhận tiền.')
+          : null,
+        withdrawals: withdrawalResult.status === 'rejected'
+          ? getApiErrorMessage(withdrawalResult.reason, 'Không thể tải yêu cầu rút tiền.')
+          : null
+      });
+    } catch (requestError) {
+      if (!silent) {
+        setError(getApiErrorMessage(requestError, 'Không thể tải ví D4U.'));
+      }
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadWallet();
+  }, []);
+
+  useEffect(() => {
+    const hasActiveRequest = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
+    if (!hasActiveRequest) return undefined;
+
+    const timerId = window.setInterval(() => loadWallet({ silent: true }), 30000);
+    return () => window.clearInterval(timerId);
+  }, [withdrawals]);
+
+  useEffect(() => {
+    const refreshVisibleWallet = () => {
+      if (document.visibilityState === 'visible') {
+        loadWallet({ silent: true });
+      }
+    };
+
+    window.addEventListener('focus', refreshVisibleWallet);
+    document.addEventListener('visibilitychange', refreshVisibleWallet);
+    return () => {
+      window.removeEventListener('focus', refreshVisibleWallet);
+      document.removeEventListener('visibilitychange', refreshVisibleWallet);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPaymentMethodId) return;
+    const selectedMethod = paymentMethods.find((method) => method.id === selectedPaymentMethodId);
+    if (selectedMethod && !isValidPaymentMethod(selectedMethod)) {
+      withdrawalForm.setFieldsValue({ paymentMethodId: undefined });
+    }
+  }, [paymentMethods, selectedPaymentMethodId, withdrawalForm]);
+
+  const createPaymentMethod = async (values) => {
+    setSavingMethod(true);
+    try {
+      const savedMethod = await walletApi.createPaymentMethod({
+        bankName: values.bankName,
+        bankCode: values.bankCode,
+        accountHolderName: values.accountHolderName,
+        accountNumber: values.accountNumber,
+        isDefault: true
+      });
+      message.success('Đã lưu tài khoản nhận tiền.');
+      form.resetFields();
+      await loadWallet();
+      if (isValidPaymentMethod(savedMethod)) {
+        withdrawalForm.setFieldsValue({ paymentMethodId: savedMethod.id });
+      }
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể lưu tài khoản nhận tiền.'));
+    } finally {
+      setSavingMethod(false);
+    }
+  };
+
+  const createWithdrawal = async (values) => {
+    setRequestingWithdrawal(true);
+    try {
+      await walletApi.createWithdrawalRequest({
+        paymentMethodId: values.paymentMethodId,
+        amount: values.amount
+      });
+      message.success('Đã tạo yêu cầu rút tiền.');
+      withdrawalForm.resetFields();
+      await loadWallet();
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể tạo yêu cầu rút tiền.'));
+    } finally {
+      setRequestingWithdrawal(false);
+    }
+  };
+
+  if (error) return <ErrorState description={error} onRetry={loadWallet} />;
+
+  const transactionColumns = [
+    { title: 'Loại', dataIndex: 'type', render: (value) => <StatusBadge status={value} /> },
+    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Số dư sau GD', dataIndex: 'balanceAfter', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Ghi chú', dataIndex: 'description' },
+    { title: 'Thời gian', dataIndex: 'createdAt', render: formatDate }
+  ];
+
+  const withdrawalColumns = [
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      render: (value) => value === 'COMPLETED' ? <Tag color="success">Đã chuyển khoản</Tag> : <StatusBadge status={value} />
+    },
+    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
+    { title: 'Thực nhận', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
+    {
+      title: 'Tài khoản',
+      render: (_, row) => (
+        <div>
+          <strong>{row.bankName || 'Thiếu ngân hàng'}</strong>
+          <div>{row.accountHolderName}</div>
+          <div className="muted-text">{row.maskedAccountNumber}</div>
+        </div>
+      )
+    },
+    { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
+    { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
+    { title: 'Thời gian chuyển', dataIndex: 'transferredAt', render: formatDate },
+    { title: 'Mã giao dịch NH', dataIndex: 'bankTransactionReference' },
+    { title: 'Lý do thất bại', dataIndex: 'failureReason' }
+  ];
+  const hasActiveWithdrawal = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
+  const highlightedWithdrawalId = searchParams.get('withdrawalId');
+  const validPaymentMethods = paymentMethods.filter(isValidPaymentMethod);
+  const invalidPaymentMethods = paymentMethods.filter((method) => !isValidPaymentMethod(method));
+  const selectedPaymentMethod = validPaymentMethods.find((method) => method.id === selectedPaymentMethodId);
+  const paymentMethodOptions = [
+    ...validPaymentMethods.map((method) => ({
+      value: method.id,
+      label: getPaymentMethodLabel(method)
+    })),
+    ...invalidPaymentMethods.map((method) => ({
+      value: method.id,
+      label: `${getPaymentMethodLabel(method)} (${getPaymentMethodIssue(method)})`,
+      disabled: true
+    }))
+  ];
+  const minimumWithdrawalAmount = 50000;
+  const withdrawalFee = 5000;
+  const withdrawalNetAmount = Math.max(0, withdrawalAmount - withdrawalFee);
+  const hasEnoughBalance = wallet ? wallet.availableBalance >= withdrawalAmount : false;
+  const canRequestWithdrawal = validPaymentMethods.length > 0 &&
+    Boolean(selectedPaymentMethod) &&
+    !hasActiveWithdrawal &&
+    withdrawalAmount >= minimumWithdrawalAmount &&
+    hasEnoughBalance;
+  const withdrawalBlockingMessage = (() => {
+    if (validPaymentMethods.length === 0) return 'Bạn cần lưu tài khoản ngân hàng có đầy đủ số tài khoản trước khi rút tiền.';
+    if (!selectedPaymentMethod) return 'Chọn tài khoản nhận tiền hợp lệ.';
+    if (hasActiveWithdrawal) return 'Bạn đang có yêu cầu rút tiền chờ xử lý.';
+    if (!withdrawalAmount) return 'Nhập số tiền muốn rút. Số tiền tối thiểu là 50.000 VND.';
+    if (withdrawalAmount < minimumWithdrawalAmount) return 'Số tiền rút tối thiểu là 50.000 VND.';
+    if (!hasEnoughBalance) return `Số dư có thể rút hiện tại chỉ còn ${formatCurrency(wallet?.availableBalance ?? 0, wallet?.currency)}.`;
+    return null;
+  })();
+
+  return (
+    <>
+      <PageHeader
+        icon={<WalletOutlined />}
+        title="Ví D4U"
+        description="Theo dõi tiền nhận sau khi escrow release và tạo yêu cầu rút tiền thủ công."
+        extra={<Button onClick={loadWallet}>Làm mới</Button>}
+      />
+      <Alert
+        type="info"
+        showIcon
+        className="form-alert"
+        message="D4U ghi nhận số dư nội bộ. Admin/Finance sẽ chuyển khoản thủ công ngoài hệ thống khi duyệt yêu cầu rút tiền."
+        description="Sau khi SME duyệt Final, hệ thống release escrow vào ví Student. Bạn có thể tạo yêu cầu rút tiền khi số dư khả dụng đủ tối thiểu 50,000 VND."
+      />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={8}>
+          <Card loading={loading}>
+            <Statistic title="Có thể rút" value={wallet?.availableBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card loading={loading}>
+            <Statistic title="Đang khóa" value={wallet?.lockedBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card loading={loading}>
+            <Statistic title="Trạng thái ví" value={wallet?.status ?? 'ACTIVE'} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} className="section-grid">
+        <Col xs={24} lg={12}>
+          <Card title="Tài khoản nhận tiền">
+            {sectionErrors.methods ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.methods} /> : null}
+            <Form form={form} layout="vertical" onFinish={createPaymentMethod}>
+              <Form.Item name="bankName" label="Ngân hàng" rules={[{ required: true, message: 'Nhập tên ngân hàng.' }]}>
+                <Input maxLength={120} placeholder="Ví dụ: Vietcombank, MB Bank, Techcombank" />
+              </Form.Item>
+              <Form.Item name="bankCode" label="Mã ngân hàng" tooltip="Không bắt buộc trong MVP. Có thể dùng mã như VCB, MB, TCB nếu biết.">
+                <Input maxLength={30} placeholder="Không bắt buộc" />
+              </Form.Item>
+              <Form.Item name="accountHolderName" label="Chủ tài khoản" rules={[{ required: true, message: 'Nhập tên chủ tài khoản.' }]}>
+                <Input maxLength={120} />
+              </Form.Item>
+              <Form.Item name="accountNumber" label="Số tài khoản" rules={[{ required: true, message: 'Nhập số tài khoản.' }]}>
+                <Input maxLength={40} />
+              </Form.Item>
+              <Button type="primary" htmlType="submit" loading={savingMethod}>Lưu tài khoản</Button>
+            </Form>
+            <Table
+              className="embedded-table"
+              size="small"
+              rowKey="id"
+              dataSource={paymentMethods}
+              columns={[
+                { title: 'Ngân hàng', dataIndex: 'bankName', render: (value) => value || 'Thiếu ngân hàng' },
+                { title: 'Chủ TK', dataIndex: 'accountHolderName' },
+                {
+                  title: 'Số TK',
+                  render: (_, row) => (
+                    <span>{row.maskedAccountNumber || 'Thiếu số TK'}</span>
+                  )
+                },
+                { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
+                {
+                  title: 'Ghi chú',
+                  render: (_, row) => {
+                    const issue = getPaymentMethodIssue(row);
+                    return issue ? <Tag color="warning">{issue}</Tag> : <Tag color="success">Có thể rút</Tag>;
+                  }
+                }
+              ]}
+              pagination={false}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="Tạo yêu cầu rút tiền">
+            {hasActiveWithdrawal && (
+              <Alert
+                type="warning"
+                showIcon
+                className="form-alert"
+                message="Bạn đang có một yêu cầu rút tiền chờ xử lý. Hãy chờ Admin/Finance hoàn tất trước khi tạo yêu cầu mới."
+              />
+            )}
+            {validPaymentMethods.length === 0 ? (
+              <Alert type="warning" showIcon className="form-alert" message="Bạn cần lưu tài khoản ngân hàng có đầy đủ số tài khoản trước khi rút tiền." />
+            ) : null}
+            <Form form={withdrawalForm} layout="vertical" onFinish={createWithdrawal}>
+              <Form.Item name="paymentMethodId" label="Tài khoản nhận" rules={[{ required: true, message: 'Chọn tài khoản nhận.' }]}>
+                <Select
+                  placeholder="Chọn tài khoản"
+                  options={paymentMethodOptions}
+                />
+              </Form.Item>
+              <Form.Item
+                name="amount"
+                label="Số tiền rút"
+                rules={[
+                  { required: true, message: 'Nhập số tiền rút.' },
+                  {
+                    validator: (_, value) => {
+                      if (value == null || value === '') return Promise.resolve();
+                      return Number(value) >= minimumWithdrawalAmount
+                        ? Promise.resolve()
+                        : Promise.reject(new Error('Số tiền rút tối thiểu là 50.000 VND.'));
+                    }
+                  }
+                ]}
+              >
+                <InputNumber min={0} step={10000} style={{ width: '100%' }} />
+              </Form.Item>
+              <div className="muted-text form-alert">
+                <div>Phí rút tiền: <strong>{formatCurrency(withdrawalFee, wallet?.currency)}</strong></div>
+                <div>Thực nhận: <strong>{formatCurrency(withdrawalNetAmount, wallet?.currency)}</strong></div>
+                <div>{withdrawalBlockingMessage ?? 'Phí rút tiền cố định là 5,000 VND cho mỗi yêu cầu.'}</div>
+              </div>
+              <Button type="primary" htmlType="submit" loading={requestingWithdrawal} disabled={!canRequestWithdrawal}>
+                Gửi yêu cầu
+              </Button>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card className="table-card" title="Yêu cầu rút tiền">
+        {sectionErrors.withdrawals ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.withdrawals} /> : null}
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={withdrawalColumns}
+          dataSource={withdrawals}
+          scroll={{ x: 1040 }}
+          rowClassName={(row) => row.id === highlightedWithdrawalId ? 'withdrawal-row-highlight' : ''}
+        />
+      </Card>
+      <Card className="table-card" title="Ledger">
+        {sectionErrors.transactions ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.transactions} /> : null}
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={transactionColumns}
+          dataSource={transactions}
+          scroll={{ x: 980 }}
+          expandable={{
+            rowExpandable: (row) => row.grossAmount != null,
+            expandedRowRender: (row) => (
+              <Space wrap size="large">
+                <span>Gross: <strong>{formatCurrency(row.grossAmount, wallet?.currency)}</strong></span>
+                <span>Phí nền tảng: <strong>{formatCurrency(row.feeAmount, wallet?.currency)}</strong></span>
+                <span>Student nhận: <strong>{formatCurrency(row.netAmount, wallet?.currency)}</strong></span>
+              </Space>
+            )
+          }}
+        />
+      </Card>
+    </>
+  );
+}
+
+export function StudentRatingsPage() {
+  return <MyRatingsPage role="STUDENT" />;
+}

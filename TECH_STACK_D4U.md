@@ -41,6 +41,8 @@ Related source of truth:
 MVP authentication:
 
 - Email/password login.
+- SMTP account email verification after email/password registration.
+- Continue with Google for `STUDENT` and `SME` accounts.
 - Password hashing.
 - JWT access token.
 - Refresh token stored as hash in `user_sessions`.
@@ -49,6 +51,7 @@ MVP authentication:
 Recommended packages/services:
 
 - JWT bearer authentication: `Microsoft.AspNetCore.Authentication.JwtBearer`.
+- Google token validation/OAuth integration: prefer official Google token validation libraries or ASP.NET Core external authentication packages.
 - Password hashing: `Microsoft.AspNetCore.Identity.PasswordHasher<TUser>` for MVP.
 - Optional future upgrade: BCrypt or Argon2 if the team wants an explicit password hashing library.
 
@@ -65,9 +68,17 @@ JWT defaults:
 
 Out of MVP:
 
-- Social login.
+- Non-Google social login providers.
 - SSO.
 - MFA.
+
+EDU email verification:
+
+- Account email verification uses SMTP and is required before email/password login.
+- Treat EDU email verification as a student verification method, not a general notification system.
+- Use an email provider abstraction so local development can mock delivery.
+- Validate `.edu` or approved school domains with a configurable whitelist.
+- Store verification attempts and expiry safely; do not mark a Student verified until the code/link is confirmed.
 
 ### 2.4. File Storage
 
@@ -91,19 +102,73 @@ Local development option:
 
 MVP direction:
 
-- Payment sandbox first.
-- Provider can be PayOS, VNPAY, or a mocked provider behind an interface.
+- Payment-in uses PayOS as the selected real payment provider for MVP demo and production-shaped use.
+- VNPAY or another provider can be added later behind the same interface, but PayOS is the first MVP integration.
+- A mocked/sandbox provider is allowed only for local development and automated tests.
+- The same payment provider abstraction is used for escrow funding first, then paid feature package purchases.
 - Webhook handling must be idempotent.
 - Escrow, payment, disbursement, and wallet transaction updates must be transactionally consistent.
+- The backend must never trust client-submitted payment success; only trusted provider webhook/callback confirmation can mark payment as successful.
 
 Payment abstraction:
 
 - Define `IPaymentProvider`.
-- Implement `MockPaymentProvider` for MVP/local development.
-- Add PayOS/VNPAY adapters later behind the same interface.
+- Implement `MockPaymentProvider` for local development and tests.
+- Implement `PayOsPaymentProvider` as the real provider adapter for MVP payment-in.
 - Store provider transaction id and enforce uniqueness per provider.
 
-### 2.6. Validation
+Withdrawal and bank transfer policy:
+
+- Student wallet is an internal ledger in D4U, not a live bank wallet.
+- Withdrawal requests are processed manually by Admin/Finance after an external bank transfer.
+- Automatic bank payout, bank account KYC, and direct bank balance synchronization are out of MVP.
+
+### 2.6. AI Assistance
+
+MVP direction:
+
+- Include one bounded AI feature: Project Brief Assistant for SME project drafting.
+- Add AI Matching as a paid entitlement feature for Student project suggestions and SME student recommendations.
+- Keep AI behind an application abstraction so the provider can change without rewriting controllers.
+- Use AI output only as draft assistance; SME must review and submit final project data.
+- AI Matching returns ranked recommendations with scores/reasons; it must not auto-apply, auto-invite, auto-select, auto-price, auto-publish, or approve verification.
+- Do not store AI conversation history in MVP.
+- Store only matching request metadata and result summaries needed for audit/debug and cost control.
+
+Recommended abstraction:
+
+- Define `IAiProjectBriefAssistant`.
+- Define `IAiMatchingService`.
+- Implement a local/mock provider first for deterministic development.
+- Add a real LLM provider adapter later behind the same interface.
+
+Suggested request fields:
+
+- Raw project idea.
+- Business field.
+- Target audience.
+- Preferred style.
+- Budget amount.
+- Total deadline.
+
+Suggested response fields:
+
+- Suggested title.
+- Suggested brief.
+- Suggested usage purpose.
+- Suggested deliverables.
+- Suggested category name or category id hint.
+- Suggested sketch/final deadline notes.
+- Warnings or missing information for SME review.
+
+Configuration keys:
+
+- `Ai__Provider`
+- `Ai__ApiKey`
+- `Ai__Model`
+- `Ai__TimeoutSeconds`
+
+### 2.7. Validation
 
 Recommended MVP approach:
 
@@ -115,7 +180,7 @@ Recommended package:
 
 - `FluentValidation.AspNetCore`
 
-### 2.7. Error Handling
+### 2.8. Error Handling
 
 Use centralized exception handling.
 
@@ -138,7 +203,7 @@ Error response shape:
 }
 ```
 
-### 2.8. CORS
+### 2.9. CORS
 
 MVP API should define an explicit CORS policy.
 
@@ -160,7 +225,7 @@ Example config:
 }
 ```
 
-### 2.9. Rate Limiting
+### 2.10. Rate Limiting
 
 Use ASP.NET Core rate limiting for sensitive endpoints.
 
@@ -175,15 +240,15 @@ Recommended package:
 
 - Built-in `Microsoft.AspNetCore.RateLimiting`
 
-### 2.10. Background Jobs
+### 2.11. Background Jobs
 
 MVP can start with hosted services. Upgrade to a durable job runner later if needed.
 
 Use background jobs for:
 
-- Expiring offers.
-- Auto-approving overdue reviews if enabled.
-- Marking stale payments as expired.
+- Expiring offers after the 48-hour Student decision window.
+- Expiring accepted offers and pending payments after the 72-hour SME payment window.
+- Auto-approving overdue Sketch/Final reviews after 5 business days.
 - Notification retries.
 - Withdrawal processing reminders.
 
@@ -195,7 +260,7 @@ Recommended post-MVP option:
 
 - Hangfire with PostgreSQL storage.
 
-### 2.11. Observability
+### 2.12. Observability
 
 Use structured logs and request correlation.
 
@@ -285,7 +350,7 @@ Responsibilities:
 - EF Core DbContext.
 - Entity configuration.
 - Database migrations.
-- External integrations: payment provider, file storage, email later.
+- External integrations: payment provider, file storage, AI provider, email later.
 - System clock abstraction if needed.
 
 ## 5. MVP Module Boundaries
@@ -313,36 +378,62 @@ Tables:
 
 ### 5.3. Subscription
 
-Owns Basic/Pro/Premium seed data, current SME subscription, project publishing limits, and platform fee rate lookup.
+Owns Basic/Pro/Premium seed data, current SME plan on the SME profile, project publishing limits, and platform fee rate lookup.
 
 Tables:
 
 - `subscription_plans`
-- `sme_subscriptions`
+- `sme_profiles.subscription_plan_id`
+
+### 5.3.1. Paid Feature Access
+
+Owns Student/SME feature package catalog, purchase state, active entitlements, usage limits, and feature gate checks.
+
+Tables:
+
+- `feature_packages`
+- `feature_package_purchases`
+- `user_feature_entitlements`
 
 ### 5.4. Projects
 
-Owns project drafts, publish/cancel, listing/detail, attachments, and status history.
+Owns project drafts, publish/cancel, listing/detail, attachments, and lifecycle transition audit.
 
 Tables:
 
 - `projects`
 - `project_attachments`
-- `project_status_histories`
 - `design_categories`
+- `audit_logs` for project lifecycle transition history
 
-### 5.5. Applications and Offers
+### 5.5. AI Assistance
 
-Owns Student applications, SME offers, and Student accept/reject.
+Owns Project Brief Assistant, AI Matching request handling, feature entitlement checks for paid AI features, and AI provider abstraction.
+
+Tables:
+
+- No dedicated MVP table. The response is used to prefill the project form.
+- AI Matching may use `ai_matching_requests` and `ai_matching_results` when audit/debug history is required.
+
+### 5.6. Applications and Offers
+
+Owns Student applications, SME offers, Student accept/reject, offer timeout, and payment window state.
 
 Tables:
 
 - `project_applications`
 - `project_offers`
 
-### 5.6. Payments and Escrow
+Rules:
 
-Owns escrow creation, payment creation, payment webhook, escrow status, refund, and disbursement.
+- Offer starts as `WAITING_ACCEPTANCE`.
+- Student has 48 hours to accept or reject.
+- Accepted offer gives SME 72 hours to complete escrow payment.
+- Expired/rejected offers must not require refund because escrow is not funded before Student acceptance.
+
+### 5.7. Payments and Escrow
+
+Owns escrow creation, package payment creation, payment webhook/callback processing, escrow status, refund, and disbursement.
 
 Tables:
 
@@ -351,22 +442,33 @@ Tables:
 - `refunds`
 - `disbursements`
 
-### 5.7. Project Execution
+Rules:
 
-Owns milestone creation, Sketch submission, Final submission, review action, revision request, and invalid file report.
+- Payment success is trusted only from validated provider webhook/callback data.
+- Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
+- Webhook processing must be idempotent and keep business logic in application services, not controllers.
+
+### 5.8. Project Execution
+
+Owns fixed Sketch/Final submission stages, submission files, review action, revision request details, invalid file report details, auto-approve timeout, and Admin review resolution.
 
 Tables:
 
-- `project_milestones`
 - `project_submissions`
 - `submission_files`
 - `review_actions`
-- `revision_requests`
-- `invalid_file_reports`
+- `audit_logs`
 
-### 5.8. Wallets
+Rules:
 
-Owns wallet balance, wallet ledger, payment methods, and withdrawal requests.
+- `project_submissions` stores the fixed stage `SKETCH` or `FINAL`; no separate milestone table is needed in optimized MVP.
+- Revision requests and invalid file reports are stored as `review_actions`.
+- Sketch and Final are auto-approved after 5 business days without SME review.
+- Revision requests are not capped. Store revision rounds for audit history; keep `ADMIN_REVIEW` for explicit operational exceptions.
+
+### 5.9. Wallets
+
+Owns wallet balance, wallet ledger, payment methods, and manual withdrawal requests.
 
 Tables:
 
@@ -375,16 +477,23 @@ Tables:
 - `payment_methods`
 - `withdrawal_requests`
 
-### 5.9. Disputes
+Rules:
 
-Owns open dispute, evidence, Admin resolution, and refund/disbursement decision execution.
+- Wallet balance must never become negative.
+- Enforce non-negative balances in service logic and database constraints.
+- Mid-project cancellation uses the MVP partial refund policy before wallet/disbursement updates are committed.
+
+### 5.10. Portfolio Builder
+
+Owns Student portfolio items, portfolio file metadata, project confidentiality checks, SME portfolio viewing, and Admin portfolio moderation.
 
 Tables:
 
-- `disputes`
-- `dispute_evidences`
+- `student_portfolio_items`
+- `student_portfolio_files`
+- `files`
 
-### 5.10. Trust and Operations
+### 5.11. Trust and Operations
 
 Owns ratings, in-app notifications, and audit logs.
 
@@ -477,7 +586,7 @@ Use idempotency for:
 - Payment webhook processing.
 - Payment creation if provider supports it.
 - Escrow release.
-- Dispute resolution money movement.
+- Package entitlement activation from payment success.
 
 Recommended header for client-triggered commands:
 
@@ -627,53 +736,65 @@ Important states:
 
 - `DRAFT`
 - `OPEN`
+- `PRIVATE_INVITED`
 - `OFFER_SELECTED`
-- `PAYMENT_SECURED`
-- `WAITING_FOR_ACCEPTANCE`
 - `IN_PROGRESS`
-- `SKETCH_IN_REVIEW`
+- `SKETCH_REVIEW`
 - `REVISION_REQUESTED`
-- `FINAL_IN_REVIEW`
+- `FINAL_REVIEW`
+- `ADMIN_REVIEW`
 - `COMPLETED`
-- `DISPUTED`
 - `CANCELLED`
 
-Always write `project_status_histories` when project status changes.
+Always write an `audit_logs` entry when project status changes. The optimized MVP does not keep a separate `project_status_histories` table.
 
 ### 9.2. Offer
 
 ```text
-PENDING_PAYMENT -> WAITING_ACCEPTANCE -> ACCEPTED
-PENDING_PAYMENT -> REVOKED
+WAITING_ACCEPTANCE -> ACCEPTED
 WAITING_ACCEPTANCE -> REJECTED
 WAITING_ACCEPTANCE -> EXPIRED
+ACCEPTED -> PENDING_PAYMENT
+ACCEPTED -> EXPIRED
+PENDING_PAYMENT -> ACTIVE
+PENDING_PAYMENT -> PAYMENT_FAILED
 ```
+
+Offer timing rules:
+
+- `WAITING_ACCEPTANCE` expires after 48 hours if the Student does not decide.
+- `ACCEPTED` expires after 72 hours if the SME does not complete escrow payment.
+- `ACTIVE` means escrow has been funded and execution has started; project/escrow status remains the stronger source for execution state.
 
 ### 9.3. Escrow
 
 ```text
 PENDING_PAYMENT -> FUNDED -> RELEASE_PENDING -> RELEASED
-FUNDED -> DISPUTED -> RELEASED
-FUNDED -> DISPUTED -> REFUNDED
 FUNDED -> REFUNDED
 ```
 
-### 9.4. Milestone
+### 9.4. Submission Review
 
 ```text
-PENDING -> SUBMITTED -> IN_REVIEW -> APPROVED
-IN_REVIEW -> REVISION_REQUESTED
-IN_REVIEW -> AUTO_APPROVED
+SUBMITTED -> VALID -> APPROVED
+SUBMITTED -> INVALID_REPORTED
+SUBMITTED -> REVISION_REQUESTED
+REVISION_REQUESTED -> SUBMITTED
+SUBMITTED -> APPROVED by AUTO_APPROVE after timeout
 ```
+
+Sketch and Final are fixed submission stages stored on `project_submissions`, not standalone milestone rows.
 
 ## 10. Transaction Boundaries
 
 Use database transactions for:
 
 - Payment webhook updates payment + escrow + offer/project status.
-- Student accepts offer + project starts + milestones are created.
+- Payment webhook updates package purchase + user entitlement status.
+- Student accepts offer + selected Student/project offer state is updated.
+- PayOS-funded payment + escrow funded + offer/project execution state is updated.
 - Final approval + disbursement + wallet credit + wallet transaction + escrow release.
-- Dispute resolution + refund/disbursement + escrow/project status update.
+- Portfolio item publish/unpublish + confidentiality checks + audit log.
 - Withdrawal processing + wallet debit + wallet transaction.
 
 ## 11. Testing Strategy
@@ -716,14 +837,15 @@ Priority flows:
 
 1. SME publishes project within Basic limits.
 2. Student applies once; duplicate application fails.
-3. SME creates offer and pays escrow.
-4. Student accepts offer; project starts and milestones are created.
+3. SME creates offer and Student accepts before payment.
+4. SME pays escrow through PayOS real payment-in; provider webhook starts the project.
 5. Student submits Sketch and SME approves.
 6. Student submits Final and SME approves.
 7. Escrow releases to wallet.
 8. Student creates withdrawal request.
-9. Dispute blocks escrow release.
+9. Portfolio publishing is blocked when project confidentiality or portfolio permission does not allow it.
 10. Rating is allowed after completion and duplicate rating fails.
+11. User buys a paid feature package and payment success activates AI Matching entitlement.
 
 ## 12. Logging and Audit
 
@@ -733,16 +855,17 @@ Use structured logs for:
 - Payment webhook events.
 - Escrow state changes.
 - Wallet transactions.
-- Dispute resolution.
+- Portfolio moderation.
 - Unexpected exceptions.
 
 Write audit logs for:
 
 - Admin verification decisions.
 - Project publish/cancel.
+- Project status changes.
 - Payment webhook success/failure.
-- Escrow funded/released/refunded/disputed.
-- Admin dispute resolution.
+- Escrow funded/released/refunded.
+- Portfolio item create/update/publish/hide/delete.
 - Wallet balance changes.
 - Withdrawal processing.
 - User status changes.
@@ -776,6 +899,7 @@ Write audit logs for:
 - Log provider event id and transaction id.
 - Make webhook handling idempotent.
 - Do not trust client-submitted payment success.
+- Use the same webhook discipline for escrow payments and paid feature package purchases.
 
 ## 14. Local Development
 
@@ -787,44 +911,13 @@ Write audit logs for:
 
 ### 14.2. Connection String
 
-Set in `D4U.Api/appsettings.json` or user secrets:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=postgres"
-  }
-}
-```
-
-Prefer user secrets for real credentials:
+Use .NET User Secrets for local credentials. Do not store database passwords in `appsettings.json`.
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=d4u_mvp;Username=postgres;Password=your_password" --project D4U.Api
 ```
 
-### 14.3. Docker Compose for PostgreSQL
-
-Recommended local database:
-
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: d4u_mvp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - d4u_postgres_data:/var/lib/postgresql/data
-
-volumes:
-  d4u_postgres_data:
-```
-
-### 14.4. Run
+### 14.3. Run
 
 ```powershell
 dotnet restore D4U.Api/D4U.Api.csproj
@@ -836,12 +929,6 @@ Swagger:
 
 ```text
 http://localhost:5000/swagger
-```
-
-Health check:
-
-```text
-http://localhost:5000/health
 ```
 
 ## 15. CI/CD
@@ -877,10 +964,18 @@ Required environment variables:
 - `Jwt__Issuer`
 - `Jwt__Audience`
 - `Jwt__SigningKey`
-- `Payment__Provider`
-- `Payment__WebhookSecret`
+- `Payment__Provider=PayOS`
+- `Payment__ReturnUrl`
+- `Payment__CancelUrl`
+- `Payment__PayOS__ClientId`
+- `Payment__PayOS__ApiKey`
+- `Payment__PayOS__ChecksumKey`
 - `Storage__Provider`
 - `Storage__Bucket`
+- `Ai__Provider`
+- `Ai__ApiKey`
+- `Ai__Model`
+- `Ai__TimeoutSeconds`
 
 ## 17. Recommended NuGet Packages
 
@@ -928,15 +1023,19 @@ Good task shape:
 Use the D4U MVP .NET skill. Implement MVP slice: Projects.
 
 Scope:
+- AI Project Brief Assistant for draft prefill
 - project create/publish/list/detail
 - subscription limit validation
 - project status history
 
 Own files:
+- Application/Features/Ai
 - Application/Features/Projects
+- Controllers/AiController.cs
 - Controllers/ProjectsController.cs
 
 Do not implement:
+- AI auto-selection or AI pricing
 - payment
 - submission
 - dispute
@@ -952,13 +1051,17 @@ Use the D4U MVP .NET skill. Review the Projects slice against MVP_D4U.md, D4U_ER
 
 Do not implement unless explicitly requested:
 
-- AI recommendation.
+- AI verification approval.
+- AI auto-selection.
+- AI auto-publishing or pricing decisions.
 - Realtime chat.
-- Social login.
-- Portfolio builder.
-- Skill/software matching.
+- Non-Google social login providers.
+- Standalone skill/software matching outside the paid AI Matching scope.
+- Dispute open/evidence/resolve workflow.
 - Dispute appeal.
+- Advanced portfolio marketplace, portfolio analytics, and portfolio monetization.
 - Reputation ledger.
 - Email/push notification pipeline.
 - Advanced KYC.
+- Automatic bank payout and direct bank account balance synchronization.
 - Native mobile app.
