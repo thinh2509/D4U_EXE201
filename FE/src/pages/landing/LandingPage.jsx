@@ -169,16 +169,6 @@ export function LandingPage() {
               <div className="landing-hero-image-frame">
                 <img src="/brand/hero-laptops.png" alt="Hai màn hình laptop minh họa workflow D4U" />
               </div>
-              <div className="landing-hero-info-strip" aria-label="Thông tin quy trình D4U">
-                <div className="landing-hero-info-item">
-                  <span>Escrow xác nhận</span>
-                  <strong>Chỉ ghi nhận thanh toán khi backend xác minh thành công.</strong>
-                </div>
-                <div className="landing-hero-info-item">
-                  <span>Workflow rõ ràng</span>
-                  <strong>Brief, offer, Sketch và Final đi trong cùng một luồng dễ theo dõi.</strong>
-                </div>
-              </div>
             </div>
           </div>
         </section>

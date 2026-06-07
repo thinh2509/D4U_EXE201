@@ -4460,15 +4460,9 @@ body {
 
 .landing-hero-visual {
   display: grid;
-  gap: 16px;
+  gap: 0;
   align-content: start;
   min-height: auto;
-}
-
-.landing-hero-info-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
 }
 
 .landing-hero-image-frame {
@@ -4487,30 +4481,6 @@ body {
   height: auto;
   display: block;
   object-fit: contain;
-}
-
-.landing-hero-info-item {
-  padding: 12px 14px;
-  border: 1px solid var(--d4u-border);
-  border-radius: var(--d4u-radius-card);
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 12px 28px rgba(7, 93, 120, 0.08);
-}
-
-.landing-hero-info-item span {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--d4u-text-3);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.landing-hero-info-item strong {
-  color: var(--d4u-text-1);
-  font-size: 14px;
-  line-height: 1.45;
 }
 
 .landing-proof-grid {
@@ -4914,10 +4884,6 @@ body {
 
   .landing-hero-copy-block {
     gap: 16px;
-  }
-
-  .landing-hero-info-strip {
-    grid-template-columns: 1fr;
   }
 
   .landing-cta-inner {
