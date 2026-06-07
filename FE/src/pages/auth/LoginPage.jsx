@@ -2,7 +2,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import {
   GoogleOutlined,
   LockOutlined,
-  MailOutlined
+  MailOutlined,
 } from '@ant-design/icons';
 import { Alert, App, Button, Card, Form, Input, Radio, Typography } from 'antd';
 import { useState } from 'react';
@@ -59,7 +59,7 @@ export function LoginPage() {
     try {
       const response = await authApi.googleLogin({
         idToken: credentialResponse.credential,
-        role
+        role,
       });
       login(response);
       message.success('Đăng nhập Google thành công.');
@@ -83,7 +83,9 @@ export function LoginPage() {
             <div className="auth-heading">
               <Text className="eyebrow">Chào mừng trở lại</Text>
               <Title level={2}>Đăng nhập D4U</Title>
-              <Text type="secondary">Tiếp tục quản lý hồ sơ, dự án, offer, ví và thông báo trong workspace của bạn.</Text>
+              <Text type="secondary">
+                Tiếp tục quản lý hồ sơ, dự án, offer, ví và thông báo trong workspace của bạn.
+              </Text>
             </div>
 
             {formError && (
@@ -91,18 +93,40 @@ export function LoginPage() {
             )}
 
             <Form form={form} layout="vertical" onFinish={handleLogin} requiredMark={false}>
-              <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lòng nhập email.' }, { type: 'email', message: 'Email không hợp lệ.' }]}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập email.' },
+                  { type: 'email', message: 'Email không hợp lệ.' },
+                ]}
+              >
                 <Input size="large" prefix={<MailOutlined />} placeholder="Nhập email" autoComplete="email" />
               </Form.Item>
-              <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu.' }]}>
-                <Input.Password size="large" prefix={<LockOutlined />} placeholder="Nhập mật khẩu" autoComplete="current-password" />
+              <Form.Item
+                name="password"
+                label="Mật khẩu"
+                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu.' }]}
+              >
+                <Input.Password
+                  size="large"
+                  prefix={<LockOutlined />}
+                  placeholder="Nhập mật khẩu"
+                  autoComplete="current-password"
+                />
               </Form.Item>
-              <Button type="primary" size="large" htmlType="submit" block loading={submitting}>Đăng nhập</Button>
+              <Button type="primary" size="large" htmlType="submit" block loading={submitting}>
+                Đăng nhập
+              </Button>
 
               <div className="divider-text">hoặc</div>
 
               <div className="auth-google-section">
-                <Form.Item name="googleRole" label="Vai trò khi dùng Google" rules={[{ required: true, message: 'Vui lòng chọn vai trò khi dùng Google.' }]}>
+                <Form.Item
+                  name="googleRole"
+                  label="Vai trò"
+                  rules={[{ required: true, message: 'Vui lòng chọn vai trò khi dùng Google.' }]}
+                >
                   <Radio.Group optionType="button" buttonStyle="solid" className="role-radio">
                     <Radio.Button value="STUDENT">Student</Radio.Button>
                     <Radio.Button value="SME">SME</Radio.Button>
@@ -111,24 +135,26 @@ export function LoginPage() {
 
                 <div className="google-box">
                   {googleConfigured ? (
-                    <>
-                      <Text strong className="google-label">Tiếp tục với Google</Text>
-                      <Text type="secondary" className="google-hint">D4U sẽ dùng vai trò bạn chọn ở trên cho tài khoản Google.</Text>
-                      <div className="google-login-frame">
-                        <GoogleLogin
-                          onSuccess={handleGoogleSuccess}
-                          onError={() => message.error('Google login bị hủy hoặc thất bại.')}
-                          locale="vi"
-                          shape="rectangular"
-                          text="continue_with"
-                          width="360"
-                        />
-                      </div>
-                    </>
+                    <div className="google-login-frame">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => message.error('Google login bị hủy hoặc thất bại.')}
+                        locale="vi"
+                        shape="rectangular"
+                        text="continue_with"
+                        width="360"
+                      />
+                    </div>
                   ) : (
                     <>
-                      <Button size="large" block disabled icon={<GoogleOutlined />}>Tiếp tục với Google</Button>
-                      <Text type="secondary" className="google-hint">Cần cấu hình VITE_GOOGLE_CLIENT_ID để bật đăng nhập Google thật.</Text>
+                      <div className="google-login-frame">
+                        <Button size="large" disabled icon={<GoogleOutlined />}>
+                          Tiếp tục sử dụng dịch vụ bằng Google
+                        </Button>
+                      </div>
+                      <Text type="secondary" className="google-hint">
+                        Cần cấu hình `VITE_GOOGLE_CLIENT_ID` để bật đăng nhập Google thật.
+                      </Text>
                     </>
                   )}
                 </div>
