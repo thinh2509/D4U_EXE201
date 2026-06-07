@@ -11,7 +11,6 @@ main
 develop
 feature/*
 hotfix/*
-release/*
 ```
 
 ### main
@@ -19,13 +18,14 @@ release/*
 Purpose:
 
 - Production-ready code.
-- Only receives merges from `release/*` or `hotfix/*`.
+- Production branch currently deployed on Vercel.
+- Receives merges only after feature review is complete, or from `hotfix/*` for urgent fixes.
 - Must always build successfully.
 
 Rules:
 
 - Do not commit directly to `main`.
-- Do not open normal feature PRs directly into `main`.
+- Do not merge unfinished feature work into `main` just to test UI.
 - Protect this branch in GitHub settings.
 
 ### develop
@@ -34,7 +34,7 @@ Purpose:
 
 - Main integration branch for MVP development.
 - All feature branches are created from `develop`.
-- Completed feature PRs merge back into `develop`.
+- Keeps the next round of development organized before review and release.
 
 Rules:
 
@@ -66,32 +66,8 @@ feature/wallet-withdrawal-request
 Flow:
 
 ```text
-develop -> feature/* -> develop
+develop -> feature/* -> review -> main
 ```
-
-### release/*
-
-Purpose:
-
-- Stabilize a release candidate before merging into `main`.
-
-Naming:
-
-```text
-release/v0.1.0
-```
-
-Flow:
-
-```text
-develop -> release/* -> main
-release/* -> develop
-```
-
-Rules:
-
-- Only bug fixes, release docs, version updates, and stabilization changes.
-- After merging to `main`, merge release changes back to `develop`.
 
 ### hotfix/*
 
@@ -124,8 +100,9 @@ Rules:
 - Keep branches small and focused.
 - Use conventional commit messages.
 - Push the branch and open a Pull Request.
+- Review feature work on the feature branch first, either locally or through Vercel Preview Deployment.
 - Every PR must describe scope, validation, and related backlog items.
-- Merge only after build and review are complete.
+- Merge to `main` only after build and review are complete and the user explicitly approves release.
 
 ## 3. Source of Truth Before Coding
 
@@ -221,12 +198,25 @@ git commit -m "feat(scope): summary"
 git push -u origin HEAD
 ```
 
-### 5.5. Create PR into develop
+### 5.5. Review Before Merge
+
+Preferred review options:
+
+1. Local review by checking out the feature branch and running the app.
+2. Vercel Preview Deployment for the feature branch.
+
+Rules:
+
+- Keep `main` stable while review is in progress.
+- Do not merge feature work into `main` until review is complete.
+- If a feature branch is only for review, it may stay open until the user explicitly approves merge.
+
+### 5.6. Create PR into main
 
 If `gh` is installed:
 
 ```powershell
-gh pr create --base develop --head feature/<branch-name> --title "feat(scope): summary" --body-file .github/PULL_REQUEST_TEMPLATE.md
+gh pr create --base main --head feature/<branch-name> --title "feat(scope): summary" --body-file .github/PULL_REQUEST_TEMPLATE.md
 ```
 
 Without GitHub CLI:
@@ -234,31 +224,17 @@ Without GitHub CLI:
 1. Push the branch with `git push -u origin HEAD`.
 2. Open `https://github.com/thinh2509/D4U_EXE201`.
 3. Click "Compare & pull request".
-4. Set base branch to `develop`.
+4. Set base branch to `main`.
 5. Fill in `.github/PULL_REQUEST_TEMPLATE.md`.
 
-## 6. Release Workflow
+## 6. Vercel Deployment Flow
 
-Create a release branch from `develop`:
-
-```powershell
-git switch develop
-git pull --ff-only origin develop
-git switch -c release/v0.1.0
-```
-
-Use release branches only for stabilization:
-
-- Fix release-blocking bugs.
-- Update release notes.
-- Update version metadata if needed.
-- Run full validation.
-
-Open PR:
-
-```text
-release/* -> main
-```
+- Keep `main` as the Production Branch on Vercel.
+- Use Vercel Preview Deployments for `feature/*` review.
+- Do not repoint the main production project to another long-lived review branch unless the deployment strategy is intentionally changed.
+- Before merging to `main`, confirm the feature branch has been reviewed on local or preview and still passes:
+  - `npm run build` in `FE`
+  - `dotnet build D4U.sln` when backend changes are involved
 
 After merge to `main`, merge the same release branch back into `develop`:
 
