@@ -25,7 +25,9 @@ Use the project-local skill at `.codex/skills/d4u-mvp-dotnet` for all D4U MVP im
 - Use `BACKLOG_D4U_MVP.md` as the implementation checklist and update it as slices are completed.
 - Use the branch + PR flow from `GITHUB_WORKFLOW_D4U.md`.
 - Create MVP work from `develop` using `feature/*` branches.
-- Use `release/*` for release stabilization and `hotfix/*` for urgent production fixes.
+- Review feature work on the feature branch first, locally or through Vercel Preview Deployment.
+- Merge into `main` only after the user explicitly approves release.
+- Use `hotfix/*` for urgent production fixes from `main`.
 - Do not commit feature work directly to `main` or `develop`.
 - Preserve the approved MVP entity scope as the first database target.
 - Do not add post-MVP features such as realtime chat, non-Google social login, dispute workflow, dispute appeal, reputation ledger, standalone AI recommendation outside paid AI Matching, or automatic bank payout.
