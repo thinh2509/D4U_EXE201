@@ -4467,13 +4467,12 @@ body {
 
 .landing-hero-image-frame {
   width: min(100%, 548px);
-  padding: 18px;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--d4u-border);
   border-radius: calc(var(--d4u-radius-card) + 10px);
-  background:
-    radial-gradient(circle at 14% 16%, var(--d4u-cyan-10), transparent 180px),
-    linear-gradient(180deg, var(--d4u-surface), var(--d4u-soft));
-  box-shadow: 0 18px 40px rgba(7, 93, 120, 0.08);
+  background: var(--d4u-surface);
+  box-shadow: 0 18px 40px rgba(7, 93, 120, 0.06);
 }
 
 .landing-hero-image-frame img {
@@ -4481,6 +4480,7 @@ body {
   height: auto;
   display: block;
   object-fit: contain;
+  border-radius: inherit;
 }
 
 .landing-proof-grid {
@@ -4570,6 +4570,50 @@ body {
 .landing-cta .ant-btn-primary {
   min-width: 188px;
   justify-self: end;
+}
+
+.landing-footer {
+  padding: 48px 0 28px;
+  border-top: 1px solid var(--d4u-border);
+  background:
+    radial-gradient(circle at 0% 0%, var(--d4u-cyan-10), transparent 220px),
+    linear-gradient(180deg, var(--d4u-surface), var(--d4u-soft));
+}
+
+.landing-footer-inner {
+  gap: 36px;
+}
+
+.landing-footer .d4u-logo {
+  width: 168px;
+  padding: 8px 10px;
+  border: 1px solid var(--d4u-border);
+  border-radius: var(--d4u-radius-card);
+  background: var(--d4u-surface);
+}
+
+.landing-footer h2 {
+  color: var(--d4u-teal-deep);
+}
+
+.landing-footer p,
+.landing-footer span,
+.landing-footer-bottom {
+  color: var(--d4u-text-2);
+}
+
+.landing-footer-contact a,
+.landing-footer-nav a {
+  color: var(--d4u-cyan-hover);
+}
+
+.landing-footer-contact a:hover,
+.landing-footer-nav a:hover {
+  color: var(--d4u-teal-deep);
+}
+
+.landing-footer-bottom {
+  border-top: 1px solid var(--d4u-border);
 }
 
 .dashboard-skeleton {
@@ -4927,7 +4971,7 @@ body {
   }
 
   .landing-hero-image-frame {
-    padding: 12px;
+    padding: 0;
   }
 
   .landing-hero-visual {
