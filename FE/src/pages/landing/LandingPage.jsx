@@ -18,9 +18,21 @@ import { roleHome } from '../../components/RouteGuards.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 const PROOF_ITEMS = [
-  { icon: SafetyCertificateOutlined, title: 'Student được xác thực', copy: 'Hồ sơ và tài liệu được kiểm tra trước khi Student tham gia dự án thật.' },
-  { icon: WalletOutlined, title: 'Escrow trước khi bắt đầu', copy: 'Project chỉ vào execution sau khi backend xác nhận thanh toán PayOS thành công.' },
-  { icon: FileDoneOutlined, title: 'Sketch và Final rõ ràng', copy: 'Mỗi mốc nộp bài có deadline, review và lịch sử phản hồi minh bạch.' },
+  {
+    icon: SafetyCertificateOutlined,
+    title: 'Student được xác thực',
+    copy: 'Hồ sơ và tài liệu được kiểm tra trước khi Student tham gia dự án thật.',
+  },
+  {
+    icon: WalletOutlined,
+    title: 'Escrow trước khi bắt đầu',
+    copy: 'Dự án chỉ vào execution sau khi backend xác nhận thanh toán PayOS thành công.',
+  },
+  {
+    icon: FileDoneOutlined,
+    title: 'Sketch và Final rõ ràng',
+    copy: 'Mỗi mốc nộp bài đều có deadline, review và lịch sử phản hồi minh bạch.',
+  },
 ];
 
 const ROLE_ITEMS = [
@@ -28,9 +40,14 @@ const ROLE_ITEMS = [
     icon: BankOutlined,
     eyebrow: 'Dành cho SME',
     title: 'Từ ý tưởng thô đến brief có thể triển khai',
-    copy: 'Tạo dự án, nhận proposal, gửi offer và theo dõi Sketch/Final trong một workspace thống nhất.',
+    copy: 'Tạo dự án, nhận proposal, gửi offer và theo dõi Sketch hoặc Final trong một workspace thống nhất.',
     action: 'Bắt đầu với vai trò SME',
-    points: ['Brief, ngân sách và deadline rõ ràng', 'Chọn proposal phù hợp trước khi gửi offer', 'Thanh toán escrow qua PayOS', 'Duyệt Sketch, Revision và Final'],
+    points: [
+      'Brief, ngân sách và deadline rõ ràng',
+      'Chọn proposal phù hợp trước khi gửi offer',
+      'Thanh toán escrow qua PayOS',
+      'Duyệt Sketch, revision và Final',
+    ],
   },
   {
     icon: SolutionOutlined,
@@ -38,7 +55,12 @@ const ROLE_ITEMS = [
     title: 'Tìm dự án thật để xây năng lực thiết kế',
     copy: 'Khám phá cơ hội phù hợp, ứng tuyển bằng proposal, làm việc theo milestone và nhận tiền qua ví D4U.',
     action: 'Bắt đầu với vai trò Student',
-    points: ['Xem dự án đang mở theo category', 'Ứng tuyển hoặc phản hồi offer', 'Nộp Sketch và Final đúng quy trình', 'Nhận tiền sau khi Final được duyệt'],
+    points: [
+      'Xem dự án đang mở theo category',
+      'Ứng tuyển hoặc phản hồi offer',
+      'Nộp Sketch và Final đúng quy trình',
+      'Nhận tiền sau khi Final được duyệt',
+    ],
   },
 ];
 
@@ -65,7 +87,7 @@ const TRUST_ITEMS = [
   {
     icon: CheckCircleOutlined,
     title: 'Review theo milestone',
-    copy: 'Sketch, Revision và Final có trạng thái, deadline review và thông báo để hai bên không mất dấu tiến trình.',
+    copy: 'Sketch, revision và Final có trạng thái, deadline review và thông báo để hai bên không mất dấu tiến trình.',
   },
 ];
 
@@ -131,7 +153,7 @@ export function LandingPage() {
               <p className="landing-eyebrow">D4U Outcome 1 marketplace</p>
               <h1>Kết nối SME với Student Designer qua escrow và milestone rõ ràng</h1>
               <p className="landing-hero-copy">
-                SME đăng brief, Student ứng tuyển, hai bên xác nhận offer và làm việc trong workspace có Sketch, Final, review và ví D4U.
+                SME đăng brief, Student ứng tuyển, hai bên xác nhận offer và làm việc trong cùng một workspace có Sketch, Final, review và ví D4U.
               </p>
               <div className="landing-hero-actions">
                 <Button type="primary" size="large" onClick={goToDestination}>
@@ -149,11 +171,11 @@ export function LandingPage() {
               </div>
               <div className="landing-hero-float landing-hero-float-top">
                 <span>Escrow xác nhận</span>
-                <strong>Thanh toán chỉ ghi nhận khi backend xác minh thành công</strong>
+                <strong>Chỉ ghi nhận thanh toán khi backend xác minh thành công.</strong>
               </div>
               <div className="landing-hero-float landing-hero-float-bottom">
                 <span>Workflow rõ ràng</span>
-                <strong>Brief, offer, Sketch, Final và ví D4U đi trong cùng một luồng dễ theo dõi</strong>
+                <strong>Brief, offer, Sketch và Final đi trong cùng một luồng dễ theo dõi.</strong>
               </div>
             </div>
           </div>
@@ -239,7 +261,7 @@ export function LandingPage() {
 
         <section className="landing-cta">
           <div className="landing-container landing-cta-inner">
-            <div>
+            <div className="landing-cta-copy">
               <p className="landing-eyebrow">Bắt đầu với D4U</p>
               <h2>Sẵn sàng cho dự án thiết kế tiếp theo?</h2>
               <p>Tạo tài khoản theo vai trò và đi thẳng vào workflow phù hợp với bạn.</p>
