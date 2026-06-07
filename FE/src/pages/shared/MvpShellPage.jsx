@@ -2,20 +2,24 @@ import {
   ApiOutlined,
   ArrowRightOutlined,
   BulbOutlined,
+  CheckCircleOutlined,
   CreditCardOutlined,
   DashboardOutlined,
   FileDoneOutlined,
   FolderOpenOutlined,
   SafetyCertificateOutlined,
-  StarOutlined,
   TeamOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { Button, Card, Tag } from 'antd';
+import { Button, Card, Skeleton, Tag } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
-import { BackendGapState } from '../../components/StateViews.jsx';
+import { BackendGapState, ErrorState } from '../../components/StateViews.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { profileApi } from '../../services/profileApi.js';
+import { projectApi } from '../../services/projectApi.js';
+import { getApiErrorMessage } from '../../utils/apiError.js';
 
 const dashboardContent = {
   STUDENT: {
@@ -26,10 +30,89 @@ const dashboardContent = {
     primaryLabel: 'Tìm dự án',
     insight: 'Ưu tiên hoàn thiện xác thực trước khi ứng tuyển để SME tin tưởng hơn.',
     cards: [
-      ['Xác thực', 'Hoàn thiện hồ sơ sinh viên để đủ điều kiện ứng tuyển.', '/student/verification', <SafetyCertificateOutlined />, 'Cần làm trước'],
-      ['Dự án đang mở', 'Tìm brief phù hợp và gửi proposal rõ ràng.', '/student/projects', <FolderOpenOutlined />, 'Cơ hội mới'],
-      ['Đề nghị', 'Phản hồi offer trước khi SME mở thanh toán escrow.', '/student/offers', <FileDoneOutlined />, 'Cần phản hồi'],
-      ['Ví D4U', 'Theo dõi ledger nội bộ và yêu cầu rút tiền thủ công.', '/student/wallet', <WalletOutlined />, 'Thanh toán']
+      {
+        title: 'Xác thực',
+        description: 'Hoàn thiện hồ sơ sinh viên để đủ điều kiện ứng tuyển.',
+        path: '/student/verification',
+        icon: <SafetyCertificateOutlined />,
+        badge: 'Ưu tiên'
+      },
+      {
+        title: 'Dự án đang mở',
+        description: 'Tìm brief phù hợp và gửi proposal rõ ràng.',
+        path: '/student/projects',
+        icon: <FolderOpenOutlined />,
+        badge: 'Cơ hội mới'
+      },
+      {
+        title: 'Đề nghị',
+        description: 'Phản hồi offer trước khi SME mở thanh toán escrow.',
+        path: '/student/offers',
+        icon: <FileDoneOutlined />,
+        badge: 'Cần phản hồi'
+      },
+      {
+        title: 'Ví D4U',
+        description: 'Theo dõi ledger nội bộ và yêu cầu rút tiền thủ công.',
+        path: '/student/wallet',
+        icon: <WalletOutlined />,
+        badge: 'Thanh toán'
+      }
+    ],
+    getPrimaryAction: (data) => data.profile ? { path: '/student/projects', label: 'Tìm dự án' } : { path: '/student/profile', label: 'Tạo hồ sơ sinh viên' },
+    getMetrics: (data) => ([
+      {
+        label: 'Hồ sơ sinh viên',
+        value: data.profile ? 'Đã tạo' : 'Chưa tạo',
+        helper: data.profile ? 'Có thể cập nhật thêm bất cứ lúc nào.' : 'Cần lưu hồ sơ trước khi xác thực và dùng ví.',
+      },
+      {
+        label: 'Xác thực',
+        value: data.profile?.verificationStatus === 'VERIFIED' ? 'Đã xác thực' : 'Chưa hoàn tất',
+        helper: data.profile?.verificationStatus === 'VERIFIED'
+          ? 'Bạn đã sẵn sàng ứng tuyển dự án thật.'
+          : 'Hoàn tất xác thực để tăng độ tin cậy với SME.',
+      },
+      {
+        label: 'Dự án đang mở',
+        value: String(data.openProjects.length),
+        helper: data.openProjects.length > 0 ? 'Nguồn brief hiện có để bạn chọn lọc.' : 'Danh sách mở sẽ hiện ở đây khi có brief phù hợp.',
+      },
+      {
+        label: 'Offer chờ phản hồi',
+        value: String(data.offers.filter((offer) => offer.status === 'WAITING_ACCEPTANCE').length),
+        helper: data.offers.length > 0 ? 'Theo dõi các đề nghị hiện có của bạn.' : 'Khi SME gửi offer, bạn sẽ thấy ở đây.',
+      }
+    ]),
+    isEmptyState: (data) =>
+      !data.profile &&
+      data.offers.length === 0 &&
+      data.studentProjects.length === 0,
+    emptyTitle: 'Bắt đầu hành trình Student với vài bước rõ ràng',
+    emptyDescription:
+      'Tạo hồ sơ, xác thực và mở workspace cá nhân để bạn sẵn sàng ứng tuyển những dự án thiết kế đầu tiên.',
+    emptyActions: [
+      {
+        title: 'Tạo hồ sơ sinh viên',
+        description: 'Điền trường học, chuyên ngành và phần giới thiệu ngắn để D4U khởi tạo hồ sơ.',
+        path: '/student/profile',
+        icon: <SafetyCertificateOutlined />,
+        badge: 'Bước 1'
+      },
+      {
+        title: 'Gửi xác thực',
+        description: 'Hoàn thiện email EDU hoặc tài liệu để tăng độ tin cậy khi ứng tuyển.',
+        path: '/student/verification',
+        icon: <CheckCircleOutlined />,
+        badge: 'Bước 2'
+      },
+      {
+        title: 'Tìm dự án phù hợp',
+        description: 'Khám phá các brief đang mở và chuẩn bị proposal khi hồ sơ đã sẵn sàng.',
+        path: '/student/projects',
+        icon: <FolderOpenOutlined />,
+        badge: 'Bước 3'
+      }
     ]
   },
   SME: {
@@ -40,10 +123,87 @@ const dashboardContent = {
     primaryLabel: 'Tạo dự án',
     insight: 'Brief càng rõ, Student càng dễ gửi proposal sát nhu cầu và deadline.',
     cards: [
-      ['Tạo dự án', 'Viết brief, dùng AI hỗ trợ và publish khi sẵn sàng.', '/sme/projects/new', <FolderOpenOutlined />, 'Bắt đầu'],
-      ['Ứng tuyển', 'So sánh proposal trước khi chọn Student phù hợp.', '/sme/applications', <TeamOutlined />, 'Tuyển chọn'],
-      ['Đề nghị & escrow', 'Theo dõi offer đã accept và mở thanh toán PayOS.', '/sme/offers', <CreditCardOutlined />, 'Cần chú ý'],
-      ['AI Brief', 'Nhận gợi ý brief tiếng Việt có thể chỉnh sửa.', '/sme/ai-brief', <BulbOutlined />, 'Hỗ trợ']
+      {
+        title: 'Tạo dự án',
+        description: 'Viết brief, dùng AI hỗ trợ và publish khi sẵn sàng.',
+        path: '/sme/projects/new',
+        icon: <FolderOpenOutlined />,
+        badge: 'Bắt đầu'
+      },
+      {
+        title: 'Ứng tuyển',
+        description: 'So sánh proposal trước khi chọn Student phù hợp.',
+        path: '/sme/applications',
+        icon: <TeamOutlined />,
+        badge: 'Tuyển chọn'
+      },
+      {
+        title: 'Đề nghị & escrow',
+        description: 'Theo dõi offer đã accept và mở thanh toán PayOS.',
+        path: '/sme/offers',
+        icon: <CreditCardOutlined />,
+        badge: 'Cần chú ý'
+      },
+      {
+        title: 'AI Brief',
+        description: 'Nhận gợi ý brief tiếng Việt có thể chỉnh sửa.',
+        path: '/sme/projects/new',
+        icon: <BulbOutlined />,
+        badge: 'Hỗ trợ'
+      }
+    ],
+    getPrimaryAction: (data) => data.profile ? { path: '/sme/projects/new', label: 'Tạo dự án' } : { path: '/sme/profile', label: 'Tạo hồ sơ SME' },
+    getMetrics: (data) => ([
+      {
+        label: 'Hồ sơ doanh nghiệp',
+        value: data.profile ? 'Đã tạo' : 'Chưa tạo',
+        helper: data.profile ? 'Bạn có thể cập nhật thông tin doanh nghiệp bất cứ lúc nào.' : 'Hoàn thiện hồ sơ trước khi publish dự án.',
+      },
+      {
+        label: 'Dự án của bạn',
+        value: String(data.projects.length),
+        helper: data.projects.length > 0 ? 'Bao gồm draft, đang mở và các dự án đã đi vào execution.' : 'Dự án đầu tiên sẽ xuất hiện ngay sau khi bạn lưu draft.',
+      },
+      {
+        label: 'Ứng tuyển nhận được',
+        value: String(data.applications.length),
+        helper: data.applications.length > 0 ? 'Các proposal mới sẽ đi qua một luồng so sánh rõ ràng.' : 'Proposal của Student sẽ xuất hiện ở đây khi dự án bắt đầu nhận ứng tuyển.',
+      },
+      {
+        label: 'Offer đang theo dõi',
+        value: String(data.offers.length),
+        helper: data.offers.length > 0 ? 'Quản lý xác nhận offer và bước thanh toán escrow tại một nơi.' : 'Khi bạn gửi offer, tiến trình sẽ hiện tại đây.',
+      }
+    ]),
+    isEmptyState: (data) =>
+      data.projects.length === 0 &&
+      data.applications.length === 0 &&
+      data.offers.length === 0,
+    emptyTitle: 'Chuẩn bị workspace SME để dự án đầu tiên đi đúng luồng',
+    emptyDescription:
+      'Hoàn thiện hồ sơ doanh nghiệp, viết brief rõ ràng và dùng AI như trợ lý hỗ trợ thay vì thay thế quyết định của bạn.',
+    emptyActions: [
+      {
+        title: 'Hoàn thiện hồ sơ SME',
+        description: 'Lưu thông tin doanh nghiệp để dashboard, project và workflow hiển thị đầy đủ hơn.',
+        path: '/sme/profile',
+        icon: <SafetyCertificateOutlined />,
+        badge: 'Bước 1'
+      },
+      {
+        title: 'Tạo dự án đầu tiên',
+        description: 'Viết brief, ngân sách và deadline để lưu draft hoặc publish khi đã sẵn sàng.',
+        path: '/sme/projects/new',
+        icon: <FolderOpenOutlined />,
+        badge: 'Bước 2'
+      },
+      {
+        title: 'Theo dõi offer & escrow',
+        description: 'Khi có Student phù hợp, bạn sẽ gửi offer và mở thanh toán PayOS trong cùng luồng.',
+        path: '/sme/offers',
+        icon: <CreditCardOutlined />,
+        badge: 'Bước 3'
+      }
     ]
   },
   ADMIN: {
@@ -54,18 +214,238 @@ const dashboardContent = {
     primaryLabel: 'Duyệt xác thực',
     insight: 'Các thao tác tài chính và xác thực cần rõ trạng thái, người xử lý và thời điểm cập nhật.',
     cards: [
-      ['Duyệt xác thực', 'Xem và xử lý yêu cầu xác thực sinh viên.', '/admin/verifications', <SafetyCertificateOutlined />, 'Vận hành'],
-      ['Rút tiền', 'Cập nhật kết quả sau khi Finance chuyển khoản thủ công.', '/admin/withdrawals', <WalletOutlined />, 'Tài chính'],
-      ['Người dùng', 'Theo dõi tài khoản Student, SME và Admin.', '/admin/users', <TeamOutlined />, 'Quản trị'],
-      ['Audit logs', 'Theo dõi các hành động quan trọng của hệ thống.', '/admin/audit-logs', <FileDoneOutlined />, 'Giám sát']
+      {
+        title: 'Duyệt xác thực',
+        description: 'Xem và xử lý yêu cầu xác thực sinh viên.',
+        path: '/admin/verifications',
+        icon: <SafetyCertificateOutlined />,
+        badge: 'Vận hành'
+      },
+      {
+        title: 'Rút tiền',
+        description: 'Cập nhật kết quả sau khi Finance chuyển khoản thủ công.',
+        path: '/admin/withdrawals',
+        icon: <WalletOutlined />,
+        badge: 'Tài chính'
+      },
+      {
+        title: 'Người dùng',
+        description: 'Theo dõi tài khoản Student, SME và Admin.',
+        path: '/admin/users',
+        icon: <TeamOutlined />,
+        badge: 'Quản trị'
+      },
+      {
+        title: 'Audit logs',
+        description: 'Theo dõi các hành động quan trọng của hệ thống.',
+        path: '/admin/audit-logs',
+        icon: <FileDoneOutlined />,
+        badge: 'Giám sát'
+      }
     ]
   }
 };
 
+async function loadStudentDashboard() {
+  const profile = await profileApi.getStudentProfile().catch((error) => {
+    if (error?.response?.status === 404) return null;
+    throw error;
+  });
+
+  const optionalStudentList = (request) => request.catch((error) => {
+    const message = getApiErrorMessage(error, '');
+    if (
+      error?.response?.status === 404 ||
+      /student profile must be created first/i.test(message) ||
+      /student must be verified before/i.test(message)
+    ) {
+      return [];
+    }
+    throw error;
+  });
+
+  const [openProjects, offers, studentProjects] = await Promise.all([
+    projectApi.listOpenProjects(),
+    optionalStudentList(projectApi.listStudentOffers()),
+    optionalStudentList(projectApi.listStudentProjects())
+  ]);
+
+  return { profile, openProjects, offers, studentProjects };
+}
+
+async function loadSmeDashboard() {
+  const profile = await profileApi.getSmeProfile().catch((error) => {
+    if (error?.response?.status === 404) return null;
+    throw error;
+  });
+
+  const optionalSmeList = (request) => request.catch((error) => {
+    const message = getApiErrorMessage(error, '');
+    if (
+      error?.response?.status === 404 ||
+      /sme profile must be created before managing projects/i.test(message)
+    ) {
+      return [];
+    }
+    throw error;
+  });
+
+  const [projects, applications, offers] = await Promise.all([
+    optionalSmeList(projectApi.listMyProjects()),
+    optionalSmeList(projectApi.listMyApplications()),
+    optionalSmeList(projectApi.listSmeOffers())
+  ]);
+
+  return { profile, projects, applications, offers };
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="dashboard-skeleton">
+      <Skeleton active paragraph={{ rows: 3 }} />
+      <div className="dashboard-grid">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="dashboard-card">
+            <Skeleton active paragraph={{ rows: 2 }} />
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OperationalDashboard({ content, data, role, onNavigate }) {
+  const metrics = content.getMetrics(data);
+  const primaryAction = content.getPrimaryAction(data);
+  const isEmptyState = content.isEmptyState(data);
+
+  return (
+    <>
+      <PageHeader
+        icon={<DashboardOutlined />}
+        eyebrow={content.label}
+        title="Tổng quan"
+        description="D4U dùng dữ liệu thật từ API để gợi ý bước tiếp theo. Khi tài khoản còn mới, dashboard sẽ ưu tiên các bước khởi tạo cần thiết."
+        extra={<Button type="primary" onClick={() => onNavigate(primaryAction.path)}>{primaryAction.label}</Button>}
+      />
+
+      <section className="dashboard-hero">
+        <div className="dashboard-hero-copy">
+          <Tag color="cyan">{content.label}</Tag>
+          <h2>{isEmptyState ? content.emptyTitle : content.title}</h2>
+          <p>{isEmptyState ? content.emptyDescription : content.description}</p>
+          <div className="dashboard-insight">
+            <span>{isEmptyState ? 'Ưu tiên khởi tạo' : 'Gợi ý workflow'}</span>
+            <strong>{content.insight}</strong>
+          </div>
+        </div>
+        <div className="dashboard-hero-action">
+          <span>{isEmptyState ? 'Bước nên làm trước' : 'Next action'}</span>
+          <Button type="primary" size="large" onClick={() => onNavigate(primaryAction.path)}>
+            {primaryAction.label} <ArrowRightOutlined />
+          </Button>
+          <p>
+            {role === 'STUDENT'
+              ? 'Ví và xác thực sẽ hoạt động trọn vẹn sau khi hồ sơ sinh viên được tạo.'
+              : 'Project, proposal và thanh toán escrow sẽ đi chung một luồng sau khi bạn có brief đầu tiên.'}
+          </p>
+        </div>
+      </section>
+
+      <section className="dashboard-metric-grid">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className="dashboard-metric-card">
+            <span>{metric.label}</span>
+            <strong>{metric.value}</strong>
+            <p>{metric.helper}</p>
+          </Card>
+        ))}
+      </section>
+
+      <div className="dashboard-section-heading">
+        <span>{isEmptyState ? 'Lộ trình gợi ý' : 'Workflow chính'}</span>
+        <strong>{isEmptyState ? 'Đi tiếp theo từng bước, không cần đoán phải bắt đầu từ đâu' : 'Chọn bước cần xử lý tiếp theo'}</strong>
+      </div>
+
+      <div className={`dashboard-grid ${isEmptyState ? 'dashboard-grid-onboarding' : ''}`}>
+        {(isEmptyState ? content.emptyActions : content.cards).map((card) => (
+          <Card key={card.path} className="dashboard-card" hoverable onClick={() => onNavigate(card.path)}>
+            <div className="dashboard-card-top">
+              <div className="dashboard-card-icon">{card.icon}</div>
+              <Tag>{card.badge}</Tag>
+            </div>
+            <div>
+              <h2>{card.title}</h2>
+              <p>{card.description}</p>
+            </div>
+            <Button type="link">
+              Mở <ArrowRightOutlined />
+            </Button>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const content = dashboardContent[user?.role] || dashboardContent.STUDENT;
+  const role = user?.role || 'STUDENT';
+  const content = dashboardContent[role] || dashboardContent.STUDENT;
+  const isOperationalRole = useMemo(() => role === 'STUDENT' || role === 'SME', [role]);
+  const [loading, setLoading] = useState(isOperationalRole);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  const [reloadSeed, setReloadSeed] = useState(0);
+
+  useEffect(() => {
+    if (!isOperationalRole) return undefined;
+
+    let ignore = false;
+
+    const loadDashboard = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const nextData = role === 'STUDENT'
+          ? await loadStudentDashboard()
+          : await loadSmeDashboard();
+
+        if (!ignore) {
+          setData(nextData);
+        }
+      } catch (requestError) {
+        if (!ignore) {
+          setError(getApiErrorMessage(requestError, 'Không thể tải dashboard lúc này.'));
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDashboard();
+    return () => {
+      ignore = true;
+    };
+  }, [isOperationalRole, reloadSeed, role]);
+
+  if (isOperationalRole && loading) return <DashboardSkeleton />;
+  if (isOperationalRole && error) {
+    return (
+      <ErrorState
+        title="Không thể tải dashboard"
+        description={error}
+        onRetry={() => setReloadSeed((current) => current + 1)}
+      />
+    );
+  }
+
+  if (isOperationalRole && data) {
+    return <OperationalDashboard content={content} data={data} role={role} onNavigate={navigate} />;
+  }
 
   return (
     <>
@@ -101,17 +481,19 @@ export function DashboardPage() {
       </div>
 
       <div className="dashboard-grid">
-        {content.cards.map(([title, description, path, icon, badge]) => (
-          <Card key={path} className="dashboard-card" hoverable onClick={() => navigate(path)}>
+        {content.cards.map((card) => (
+          <Card key={card.path} className="dashboard-card" hoverable onClick={() => navigate(card.path)}>
             <div className="dashboard-card-top">
-              <div className="dashboard-card-icon">{icon}</div>
-              <Tag>{badge}</Tag>
+              <div className="dashboard-card-icon">{card.icon}</div>
+              <Tag>{card.badge}</Tag>
             </div>
             <div>
-              <h2>{title}</h2>
-              <p>{description}</p>
+              <h2>{card.title}</h2>
+              <p>{card.description}</p>
             </div>
-            <Button type="link">Mở <ArrowRightOutlined /></Button>
+            <Button type="link">
+              Mở <ArrowRightOutlined />
+            </Button>
           </Card>
         ))}
       </div>
