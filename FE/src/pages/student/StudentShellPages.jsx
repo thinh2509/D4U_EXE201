@@ -1,4 +1,4 @@
-import { FileDoneOutlined, FolderOpenOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
+import { FileDoneOutlined, FolderOpenOutlined, IdcardOutlined, SafetyCertificateOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
 import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -332,8 +332,14 @@ const getPaymentMethodLabel = (method) => [
   method?.maskedAccountNumber || 'Thiếu số TK'
 ].join(' - ');
 
+const isMissingStudentProfileWalletError = (requestError) => {
+  const message = getApiErrorMessage(requestError, '');
+  return requestError?.response?.status === 404 && /student profile must be created first/i.test(message);
+};
+
 export function StudentWalletPage() {
   const { message } = App.useApp();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [withdrawalForm] = Form.useForm();
@@ -348,12 +354,14 @@ export function StudentWalletPage() {
   const [requestingWithdrawal, setRequestingWithdrawal] = useState(false);
   const [error, setError] = useState(null);
   const [sectionErrors, setSectionErrors] = useState({});
+  const [requiresProfileSetup, setRequiresProfileSetup] = useState(false);
 
   const loadWallet = async ({ silent = false } = {}) => {
     if (!silent) {
       setLoading(true);
       setError(null);
       setSectionErrors({});
+      setRequiresProfileSetup(false);
     }
     try {
       const [walletResult, transactionResult, methodResult, withdrawalResult] = await Promise.allSettled([
@@ -384,6 +392,10 @@ export function StudentWalletPage() {
       });
     } catch (requestError) {
       if (!silent) {
+        if (isMissingStudentProfileWalletError(requestError)) {
+          setRequiresProfileSetup(true);
+          return;
+        }
         setError(getApiErrorMessage(requestError, 'Không thể tải ví D4U.'));
       }
     } finally {
@@ -465,6 +477,56 @@ export function StudentWalletPage() {
       setRequestingWithdrawal(false);
     }
   };
+
+  if (requiresProfileSetup) {
+    return (
+      <>
+        <PageHeader
+          icon={<WalletOutlined />}
+          title="Ví D4U"
+          description="Ví D4U sẽ sẵn sàng sau khi bạn tạo hồ sơ sinh viên lần đầu."
+          extra={<Button type="primary" onClick={() => navigate('/student/profile')}>Tạo hồ sơ sinh viên</Button>}
+        />
+
+        <section className="wallet-onboarding-shell">
+          <Card className="wallet-onboarding-main">
+            <Tag color="cyan">Bắt đầu thiết lập</Tag>
+            <h2>Hoàn tất hồ sơ trước khi dùng ví và nhận tiền</h2>
+            <p>
+              Tài khoản Student mới chưa có hồ sơ nên hệ thống chưa thể khởi tạo ví nội bộ.
+              Sau khi bạn lưu hồ sơ sinh viên, D4U sẽ mở đầy đủ các phần ví, tài khoản nhận tiền và lịch sử giao dịch.
+            </p>
+            <div className="wallet-onboarding-actions">
+              <Button type="primary" size="large" onClick={() => navigate('/student/profile')}>
+                Tạo hồ sơ sinh viên
+              </Button>
+              <Button size="large" onClick={() => navigate('/student/dashboard')}>
+                Về dashboard
+              </Button>
+            </div>
+          </Card>
+
+          <div className="wallet-onboarding-grid">
+            <Card className="wallet-onboarding-card">
+              <div className="dashboard-card-icon"><IdcardOutlined /></div>
+              <h3>Tạo hồ sơ trước</h3>
+              <p>Điền trường học, chuyên ngành và mô tả ngắn để D4U nhận diện đúng vai trò Student của bạn.</p>
+            </Card>
+            <Card className="wallet-onboarding-card">
+              <div className="dashboard-card-icon"><SafetyCertificateOutlined /></div>
+              <h3>Xác thực sau đó</h3>
+              <p>Hoàn thiện xác thực để tăng độ tin cậy khi ứng tuyển và giúp SME yên tâm hơn khi gửi offer.</p>
+            </Card>
+            <Card className="wallet-onboarding-card">
+              <div className="dashboard-card-icon"><WalletOutlined /></div>
+              <h3>Ví sẽ tự sẵn sàng</h3>
+              <p>Sau khi Final được duyệt, escrow sẽ release vào ví và bạn có thể theo dõi rút tiền ngay tại đây.</p>
+            </Card>
+          </div>
+        </section>
+      </>
+    );
+  }
 
   if (error) return <ErrorState description={error} onRetry={loadWallet} />;
 
@@ -553,17 +615,17 @@ export function StudentWalletPage() {
       />
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
-          <Card loading={loading}>
+          <Card className="wallet-summary-card" loading={loading}>
             <Statistic title="Có thể rút" value={wallet?.availableBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card loading={loading}>
+          <Card className="wallet-summary-card" loading={loading}>
             <Statistic title="Đang khóa" value={wallet?.lockedBalance ?? 0} formatter={(value) => formatCurrency(value, wallet?.currency)} />
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card loading={loading}>
+          <Card className="wallet-summary-card" loading={loading}>
             <Statistic title="Trạng thái ví" value={wallet?.status ?? 'ACTIVE'} />
           </Card>
         </Col>
@@ -571,7 +633,7 @@ export function StudentWalletPage() {
 
       <Row gutter={[16, 16]} className="section-grid">
         <Col xs={24} lg={12}>
-          <Card title="Tài khoản nhận tiền">
+          <Card className="wallet-card" title="Tài khoản nhận tiền">
             {sectionErrors.methods ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.methods} /> : null}
             <Form form={form} layout="vertical" onFinish={createPaymentMethod}>
               <Form.Item name="bankName" label="Ngân hàng" rules={[{ required: true, message: 'Nhập tên ngân hàng.' }]}>
@@ -616,7 +678,7 @@ export function StudentWalletPage() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Tạo yêu cầu rút tiền">
+          <Card className="wallet-card" title="Tạo yêu cầu rút tiền">
             {hasActiveWithdrawal && (
               <Alert
                 type="warning"
@@ -665,7 +727,7 @@ export function StudentWalletPage() {
         </Col>
       </Row>
 
-      <Card className="table-card" title="Yêu cầu rút tiền">
+      <Card className="table-card wallet-card" title="Yêu cầu rút tiền">
         {sectionErrors.withdrawals ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.withdrawals} /> : null}
         <Table
           rowKey="id"
@@ -676,7 +738,7 @@ export function StudentWalletPage() {
           rowClassName={(row) => row.id === highlightedWithdrawalId ? 'withdrawal-row-highlight' : ''}
         />
       </Card>
-      <Card className="table-card" title="Ledger">
+      <Card className="table-card wallet-card" title="Ledger">
         {sectionErrors.transactions ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.transactions} /> : null}
         <Table
           rowKey="id"
