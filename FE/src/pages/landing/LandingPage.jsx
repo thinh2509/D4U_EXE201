@@ -138,49 +138,22 @@ export function LandingPage() {
                   Tạo tài khoản <ArrowRightOutlined />
                 </Button>
                 <Button size="large" href="#process">
-                  Xem quy trình <SearchOutlined />
+                  Xem cách hoạt động <SearchOutlined />
                 </Button>
-              </div>
-              <p className="landing-hero-note">
-                D4U không tự chọn Student, không tự publish dự án và chỉ ghi nhận thanh toán khi backend hoặc provider xác nhận.
-              </p>
-              <div className="landing-hero-highlights">
-                <span>Escrow xác nhận qua backend</span>
-                <span>Workspace có Sketch · Final · review</span>
-                <span>Ví D4U chỉ giải ngân sau khi Final được duyệt</span>
               </div>
             </div>
 
-            <div className="landing-demo-panel" aria-label="Tóm tắt flow D4U">
-              <div className="landing-demo-header">
-                <div>
-                  <span>Project flow</span>
-                  <strong>Luồng minh bạch cho SME và Student</strong>
-                </div>
-                <strong className="landing-demo-status">Escrow funded</strong>
+            <div className="landing-hero-visual" aria-label="Hình minh họa D4U">
+              <div className="landing-hero-image-frame">
+                <img src="/brand/hero-laptops.png" alt="Hai màn hình laptop minh họa workflow D4U" />
               </div>
-              <div className="landing-demo-summary">
-                <div>
-                  <span>Trạng thái hiện tại</span>
-                  <strong>Đã xác nhận thanh toán</strong>
-                </div>
-                <div>
-                  <span>Bước tiếp theo</span>
-                  <strong>Student nộp Sketch</strong>
-                </div>
+              <div className="landing-hero-float landing-hero-float-top">
+                <span>Escrow xác nhận</span>
+                <strong>Thanh toán chỉ ghi nhận khi backend xác minh thành công</strong>
               </div>
-              <div className="landing-demo-steps">
-                {['Brief', 'Proposal', 'Offer', 'PayOS', 'Sketch', 'Final'].map((item, index) => (
-                  <div className={index < 4 ? 'is-done' : 'is-current'} key={item}>
-                    <CheckCircleOutlined />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="landing-demo-card">
-                <span>Next action</span>
-                <strong>Student nộp Sketch trước deadline</strong>
-                <p>SME theo dõi tiến trình, phản hồi revision và duyệt Final trong cùng workspace.</p>
+              <div className="landing-hero-float landing-hero-float-bottom">
+                <span>Workflow rõ ràng</span>
+                <strong>Brief, offer, Sketch, Final và ví D4U đi trong cùng một luồng dễ theo dõi</strong>
               </div>
             </div>
           </div>
