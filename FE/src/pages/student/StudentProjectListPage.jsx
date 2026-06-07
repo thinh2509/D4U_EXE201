@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { MarketplaceToolbar } from '../../components/MarketplaceToolbar.jsx';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { ProjectCard } from '../../components/ProjectCard.jsx';
+import { StudentReadinessNotice, useStudentReadiness } from '../../components/StudentReadinessGate.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
@@ -16,6 +17,7 @@ export function StudentProjectListPage() {
   const [category, setCategory] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const readiness = useStudentReadiness();
 
   const loadProjects = async () => {
     setLoading(true);
@@ -49,8 +51,29 @@ export function StudentProjectListPage() {
     });
   }, [category, projects, query]);
 
-  if (loading) return <LoadingState />;
+  if (loading || readiness.loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadProjects} />;
+  if (readiness.error) return <ErrorState description={readiness.error} onRetry={readiness.reload} />;
+
+  const readinessNotice = readiness.needsProfile ? (
+    <StudentReadinessNotice
+      compact
+      mode="profile"
+      title="Tạo hồ sơ trước khi bắt đầu ứng tuyển"
+      description="Bạn vẫn có thể xem marketplace, nhưng D4U sẽ chỉ mở nút ứng tuyển sau khi hồ sơ sinh viên được tạo."
+      secondaryActionLabel="Tiếp tục xem dự án"
+      secondaryActionPath="/student/projects"
+    />
+  ) : readiness.needsVerification ? (
+    <StudentReadinessNotice
+      compact
+      mode="verification"
+      title="Hoàn tất xác thực để gửi ứng tuyển"
+      description="Bạn có thể xem brief và shortlist dự án trước. Khi xác thực xong, D4U sẽ mở hành động ứng tuyển và phản hồi offer."
+      secondaryActionLabel="Tiếp tục xem dự án"
+      secondaryActionPath="/student/projects"
+    />
+  ) : null;
 
   return (
     <>
@@ -60,6 +83,8 @@ export function StudentProjectListPage() {
         description="Tìm brief phù hợp, xem ngân sách và gửi ứng tuyển cho dự án thiết kế."
         extra={<Button onClick={loadProjects}>Làm mới</Button>}
       />
+
+      {readinessNotice}
 
       <MarketplaceToolbar
         query={query}

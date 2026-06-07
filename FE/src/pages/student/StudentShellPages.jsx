@@ -1,8 +1,9 @@
-import { FileDoneOutlined, FolderOpenOutlined, IdcardOutlined, SafetyCertificateOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
+import { FileDoneOutlined, FolderOpenOutlined, StarOutlined, WalletOutlined } from '@ant-design/icons';
 import { App, Alert, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Statistic, Table, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
+import { StudentReadinessGate } from '../../components/StudentReadinessGate.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
@@ -13,6 +14,18 @@ import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
 import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
 export function StudentApplicationsPage() {
+  return (
+    <StudentReadinessGate
+      requireApproved
+      approvedTitle="Hoàn tất xác thực trước khi theo dõi ứng tuyển"
+      approvedDescription="Khi hồ sơ sinh viên đã được xác thực, D4U mới mở phần ứng tuyển, offer và các trạng thái liên quan đến marketplace của bạn."
+    >
+      <StudentApplicationsPageContent />
+    </StudentReadinessGate>
+  );
+}
+
+function StudentApplicationsPageContent() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +107,18 @@ export function StudentApplicationsPage() {
 }
 
 export function StudentOffersPage() {
+  return (
+    <StudentReadinessGate
+      requireApproved
+      approvedTitle="Cần xác thực trước khi xử lý offer"
+      approvedDescription="Offer chỉ hiển thị đầy đủ khi hồ sơ sinh viên đã được xác thực để SME có thể yên tâm gửi đề nghị và mở escrow."
+    >
+      <StudentOffersPageContent />
+    </StudentReadinessGate>
+  );
+}
+
+function StudentOffersPageContent() {
   const { message } = App.useApp();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -224,6 +249,18 @@ export function StudentOffersPage() {
 }
 
 export function StudentMyProjectsPage() {
+  return (
+    <StudentReadinessGate
+      requireApproved
+      approvedTitle="Bạn cần xác thực trước khi vào workspace dự án"
+      approvedDescription="D4U chỉ mở danh sách dự án đã nhận sau khi hồ sơ sinh viên được xác thực và quá trình marketplace đã sẵn sàng."
+    >
+      <StudentMyProjectsPageContent />
+    </StudentReadinessGate>
+  );
+}
+
+function StudentMyProjectsPageContent() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -332,14 +369,19 @@ const getPaymentMethodLabel = (method) => [
   method?.maskedAccountNumber || 'Thiếu số TK'
 ].join(' - ');
 
-const isMissingStudentProfileWalletError = (requestError) => {
-  const message = getApiErrorMessage(requestError, '');
-  return requestError?.response?.status === 404 && /student profile must be created first/i.test(message);
-};
-
 export function StudentWalletPage() {
+  return (
+    <StudentReadinessGate
+      profileTitle="Tạo hồ sơ sinh viên trước khi dùng ví D4U"
+      profileDescription="Ví D4U cần hồ sơ sinh viên để khởi tạo ledger nội bộ, lưu tài khoản nhận tiền và theo dõi các yêu cầu rút tiền của bạn."
+    >
+      <StudentWalletPageContent />
+    </StudentReadinessGate>
+  );
+}
+
+function StudentWalletPageContent() {
   const { message } = App.useApp();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [withdrawalForm] = Form.useForm();
@@ -354,14 +396,12 @@ export function StudentWalletPage() {
   const [requestingWithdrawal, setRequestingWithdrawal] = useState(false);
   const [error, setError] = useState(null);
   const [sectionErrors, setSectionErrors] = useState({});
-  const [requiresProfileSetup, setRequiresProfileSetup] = useState(false);
 
   const loadWallet = async ({ silent = false } = {}) => {
     if (!silent) {
       setLoading(true);
       setError(null);
       setSectionErrors({});
-      setRequiresProfileSetup(false);
     }
     try {
       const [walletResult, transactionResult, methodResult, withdrawalResult] = await Promise.allSettled([
@@ -392,10 +432,6 @@ export function StudentWalletPage() {
       });
     } catch (requestError) {
       if (!silent) {
-        if (isMissingStudentProfileWalletError(requestError)) {
-          setRequiresProfileSetup(true);
-          return;
-        }
         setError(getApiErrorMessage(requestError, 'Không thể tải ví D4U.'));
       }
     } finally {
@@ -477,56 +513,6 @@ export function StudentWalletPage() {
       setRequestingWithdrawal(false);
     }
   };
-
-  if (requiresProfileSetup) {
-    return (
-      <>
-        <PageHeader
-          icon={<WalletOutlined />}
-          title="Ví D4U"
-          description="Ví D4U sẽ sẵn sàng sau khi bạn tạo hồ sơ sinh viên lần đầu."
-          extra={<Button type="primary" onClick={() => navigate('/student/profile')}>Tạo hồ sơ sinh viên</Button>}
-        />
-
-        <section className="wallet-onboarding-shell">
-          <Card className="wallet-onboarding-main">
-            <Tag color="cyan">Bắt đầu thiết lập</Tag>
-            <h2>Hoàn tất hồ sơ trước khi dùng ví và nhận tiền</h2>
-            <p>
-              Tài khoản Student mới chưa có hồ sơ nên hệ thống chưa thể khởi tạo ví nội bộ.
-              Sau khi bạn lưu hồ sơ sinh viên, D4U sẽ mở đầy đủ các phần ví, tài khoản nhận tiền và lịch sử giao dịch.
-            </p>
-            <div className="wallet-onboarding-actions">
-              <Button type="primary" size="large" onClick={() => navigate('/student/profile')}>
-                Tạo hồ sơ sinh viên
-              </Button>
-              <Button size="large" onClick={() => navigate('/student/dashboard')}>
-                Về dashboard
-              </Button>
-            </div>
-          </Card>
-
-          <div className="wallet-onboarding-grid">
-            <Card className="wallet-onboarding-card">
-              <div className="dashboard-card-icon"><IdcardOutlined /></div>
-              <h3>Tạo hồ sơ trước</h3>
-              <p>Điền trường học, chuyên ngành và mô tả ngắn để D4U nhận diện đúng vai trò Student của bạn.</p>
-            </Card>
-            <Card className="wallet-onboarding-card">
-              <div className="dashboard-card-icon"><SafetyCertificateOutlined /></div>
-              <h3>Xác thực sau đó</h3>
-              <p>Hoàn thiện xác thực để tăng độ tin cậy khi ứng tuyển và giúp SME yên tâm hơn khi gửi offer.</p>
-            </Card>
-            <Card className="wallet-onboarding-card">
-              <div className="dashboard-card-icon"><WalletOutlined /></div>
-              <h3>Ví sẽ tự sẵn sàng</h3>
-              <p>Sau khi Final được duyệt, escrow sẽ release vào ví và bạn có thể theo dõi rút tiền ngay tại đây.</p>
-            </Card>
-          </div>
-        </section>
-      </>
-    );
-  }
 
   if (error) return <ErrorState description={error} onRetry={loadWallet} />;
 
