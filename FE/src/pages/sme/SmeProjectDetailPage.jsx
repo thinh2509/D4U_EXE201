@@ -5,12 +5,11 @@ import {
   FileDoneOutlined,
   FileSearchOutlined,
   FolderOpenOutlined,
-  InfoCircleOutlined,
   RocketOutlined,
   StopOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { App, Button, Card, Space, Tag } from 'antd';
+import { App } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
@@ -18,6 +17,14 @@ import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency } from '../../utils/format.js';
+import {
+  ActionButton,
+  ProjectBriefSection,
+  ProjectDetailHeader,
+  ProjectExecutionInfoGrid,
+  ProjectFlowHintCard,
+  ProjectMetadataStrip
+} from '../shared/ProjectDetailUi.jsx';
 
 function formatDetailDate(value) {
   if (!value) return 'Chưa có';
@@ -30,105 +37,37 @@ function formatDetailDate(value) {
   }).format(new Date(value)).replace(',', ' ·');
 }
 
-function ProjectDetailHeader({ project }) {
-  const summaryItems = [
+function buildHeaderMetadata(project) {
+  return [
     { label: 'Loại dự án', value: project.projectType || 'Chưa có' },
     { label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
     { label: 'Hạn review', value: formatDetailDate(project.totalDeadlineAt), muted: !project.totalDeadlineAt },
-    { label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
+    { label: 'Publish status', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
   ];
-  const statItems = [
-    { icon: <FolderOpenOutlined />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có', muted: !project.designCategoryName },
-    { icon: <WalletOutlined />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
-    { icon: <CalendarOutlined />, label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
-  ];
-
-  return (
-    <section className="project-hero-card">
-      <div className="project-hero-main project-detail-hero-main">
-        <div className="project-hero-copy project-detail-hero-copy">
-          <div className="project-hero-eyebrow">
-            <span>Project detail</span>
-          </div>
-          <div className="project-hero-heading-row project-detail-hero-heading">
-            <h1>{project.title}</h1>
-            <StatusBadge status={project.status} />
-          </div>
-          <div className="project-detail-summary-row">
-            {summaryItems.map((item) => (
-              <div className={`project-detail-summary-item ${item.muted ? 'is-muted' : ''}`} key={item.label}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="project-detail-hero-rail">
-          <div className="project-detail-hero-rail-head">
-            <strong>Tổng quan nhanh</strong>
-            <span>Các chỉ số chính để quyết định publish hoặc điều chỉnh dự án.</span>
-          </div>
-          <div className="project-hero-meta project-detail-hero-stats">
-            {statItems.map((item) => (
-              <div className={`project-meta-chip project-detail-stat-card ${item.muted ? 'is-muted' : ''}`} key={item.label}>
-                <span className="project-meta-icon">{item.icon}</span>
-                <div className="project-meta-copy">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
 }
 
-function ProjectBriefCard({ brief }) {
-  return (
-    <Card className="project-brief-card">
-      <div className="project-section-head">
-        <span>Brief dự án</span>
-        <strong>Nội dung SME đang yêu cầu Student thực hiện</strong>
-      </div>
-      <div className="rich-text-block project-brief-copy">{brief}</div>
-    </Card>
-  );
+function buildHeaderStats(project) {
+  return [
+    { icon: <FolderOpenOutlined className="h-5 w-5" />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có', muted: !project.designCategoryName },
+    { icon: <WalletOutlined className="h-5 w-5" />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
+    { icon: <CalendarOutlined className="h-5 w-5" />, label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
+  ];
 }
 
-function ProjectInfoGrid({ project }) {
-  const items = [
+function buildExecutionItems(project) {
+  return [
     { label: 'Trạng thái', value: <StatusBadge status={project.status} /> },
     { label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
-    { label: 'Loại dự án', value: project.projectType },
-    { label: 'Publish lúc', value: formatDetailDate(project.publishedAt) },
-    { label: 'Hạn nộp Sketch', value: formatDetailDate(project.sketchDeadlineAt) },
-    { label: 'Hạn nộp Final', value: formatDetailDate(project.finalDeadlineAt) },
-    { label: 'Hạn hoàn tất review', value: formatDetailDate(project.totalDeadlineAt) },
-    { label: 'Mục đích sử dụng', value: project.usagePurpose || 'Chưa có', wide: true }
+    { label: 'Loại dự án', value: project.projectType || <span className="text-d4u-text-3">Chưa có</span> },
+    { label: 'Publish lúc', value: project.publishedAt ? formatDetailDate(project.publishedAt) : <span className="text-d4u-text-3">Chưa có</span> },
+    { label: 'Hạn nộp Sketch', value: project.sketchDeadlineAt ? formatDetailDate(project.sketchDeadlineAt) : <span className="text-d4u-text-3">Chưa có</span> },
+    { label: 'Hạn nộp Final', value: project.finalDeadlineAt ? formatDetailDate(project.finalDeadlineAt) : <span className="text-d4u-text-3">Chưa có</span> },
+    { label: 'Hạn hoàn tất review', value: project.totalDeadlineAt ? formatDetailDate(project.totalDeadlineAt) : <span className="text-d4u-text-3">Chưa có</span> },
+    { label: 'Mục đích sử dụng', value: project.usagePurpose || <span className="text-d4u-text-3">Chưa có</span>, fullWidth: true }
   ];
-
-  return (
-    <Card className="project-info-card">
-      <div className="project-section-head">
-        <span>Thông tin thực hiện</span>
-        <strong>Các mốc thời gian và metadata để theo dõi dự án</strong>
-      </div>
-      <div className="project-info-grid">
-        {items.map((item) => (
-          <div className={`project-info-item ${item.wide ? 'is-wide' : ''}`} key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
 }
 
-function ProjectActionPanel({
+function ProjectActionSidebar({
   projectId,
   project,
   acting,
@@ -139,64 +78,82 @@ function ProjectActionPanel({
   onCancel,
   onDelete
 }) {
+  const sidebarStats = [
+    { icon: <WalletOutlined className="h-5 w-5" />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
+    { icon: <CalendarOutlined className="h-5 w-5" />, label: 'Hạn review', value: project.totalDeadlineAt ? formatDetailDate(project.totalDeadlineAt) : 'Chưa có', muted: !project.totalDeadlineAt }
+  ];
+
   return (
-    <Card className="project-action-panel" title="Thao tác">
-      <div className="project-action-stack">
-        <Button block size="large" icon={<FileSearchOutlined />} onClick={() => window.location.assign(`/sme/projects/${projectId}/applications`)}>
-          Xem ứng tuyển
-        </Button>
-        <Button
-          block
-          size="large"
-          type="primary"
-          icon={<RocketOutlined />}
-          loading={acting}
-          onClick={onPublish}
-          disabled={project.status !== 'DRAFT'}
-        >
-          Publish
-        </Button>
-        <Button
-          block
-          size="large"
-          icon={<EditOutlined />}
-          disabled={!canEditProject}
-          onClick={() => window.location.assign(`/sme/projects/${projectId}/edit`)}
-        >
-          {project.status === 'DRAFT' ? 'Sửa dự án' : 'Điều chỉnh deadline'}
-        </Button>
-        {canOpenWorkspace ? (
-          <Button
-            block
-            size="large"
-            icon={<FileDoneOutlined />}
-            onClick={() => window.location.assign(`/projects/${projectId}/execution`)}
+    <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+      <section className="rounded-panel border border-d4u-border bg-d4u-surface p-5 shadow-soft">
+        <h2 className="text-base font-semibold text-d4u-text-1">Thao tác</h2>
+
+        <div className="mt-4 flex flex-col gap-3">
+          <ActionButton
+            disabled={project.status !== 'DRAFT'}
+            icon={<RocketOutlined />}
+            loading={acting}
+            onClick={onPublish}
+            title={project.status !== 'DRAFT' ? 'Chỉ publish được khi dự án ở trạng thái bản nháp.' : undefined}
+            variant="primary"
           >
-            Workspace & escrow
-          </Button>
-        ) : null}
-        <Button
-          block
-          size="large"
-          icon={<StopOutlined />}
-          loading={acting}
-          onClick={onCancel}
-          disabled={!canCancelProject}
-        >
-          Hủy dự án
-        </Button>
-        <Button block size="large" danger ghost icon={<DeleteOutlined />} loading={acting} onClick={onDelete}>
-          Xóa
-        </Button>
-      </div>
-      <div className="project-flow-hint-card">
-        <div className="project-flow-hint-head">
-          <InfoCircleOutlined />
-          <strong>Điều kiện chuyển sang execution</strong>
+            Publish
+          </ActionButton>
+          <ActionButton
+            icon={<FileSearchOutlined />}
+            onClick={() => window.location.assign(`/sme/projects/${projectId}/applications`)}
+            variant="secondary"
+          >
+            Xem ứng tuyển
+          </ActionButton>
+          <ActionButton
+            disabled={!canEditProject}
+            icon={<EditOutlined />}
+            onClick={() => window.location.assign(`/sme/projects/${projectId}/edit`)}
+            title={!canEditProject ? 'Trạng thái hiện tại không cho phép chỉnh sửa dự án.' : undefined}
+            variant="secondary"
+          >
+            {project.status === 'DRAFT' ? 'Sửa dự án' : 'Điều chỉnh deadline'}
+          </ActionButton>
+          {canOpenWorkspace ? (
+            <ActionButton
+              icon={<FileDoneOutlined />}
+              onClick={() => window.location.assign(`/projects/${projectId}/execution`)}
+              variant="soft"
+            >
+              Workspace & escrow
+            </ActionButton>
+          ) : null}
+          <ActionButton
+            disabled={!canCancelProject}
+            icon={<StopOutlined />}
+            loading={acting}
+            onClick={onCancel}
+            title={!canCancelProject ? 'Trạng thái hiện tại không cho phép hủy dự án.' : undefined}
+            variant="neutral"
+          >
+            Hủy dự án
+          </ActionButton>
+          <ActionButton
+            icon={<DeleteOutlined />}
+            loading={acting}
+            onClick={onDelete}
+            variant="danger"
+          >
+            Xóa
+          </ActionButton>
         </div>
-        <p>Project chỉ đi vào execution sau khi offer được chấp nhận và PayOS xác nhận escrow thành công.</p>
-      </div>
-    </Card>
+      </section>
+
+      <section className="rounded-panel border border-d4u-border bg-d4u-surface p-5 shadow-soft">
+        <h2 className="text-base font-semibold text-d4u-text-1">Tóm tắt nhanh</h2>
+        <div className="mt-4">
+          <ProjectMetadataStrip items={sidebarStats} />
+        </div>
+      </section>
+
+      <ProjectFlowHintCard />
+    </aside>
   );
 }
 
@@ -241,7 +198,15 @@ export function SmeProjectDetailPage() {
     let reason = '';
     modal.confirm({
       title: 'Hủy dự án?',
-      content: <textarea className="reject-textarea" placeholder="Lý do hủy..." onChange={(event) => { reason = event.target.value; }} />,
+      content: (
+        <textarea
+          className="min-h-32 w-full resize-y rounded-btn border border-d4u-border bg-white px-3 py-3 text-sm leading-6 text-d4u-text-1 placeholder:text-d4u-text-3 transition-colors hover:border-d4u-teal-muted focus:border-d4u-cyan focus:outline-none focus:shadow-focus"
+          onChange={(event) => {
+            reason = event.target.value;
+          }}
+          placeholder="Lý do hủy..."
+        />
+      ),
       okText: 'Hủy dự án',
       okButtonProps: { danger: true },
       cancelText: 'Đóng',
@@ -274,34 +239,49 @@ export function SmeProjectDetailPage() {
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadProject} />;
+
   const canOpenWorkspace = ['OFFER_SELECTED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW', 'COMPLETED', 'CANCELLED'].includes(project.status);
   const canCancelProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW'].includes(project.status);
   const canEditProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'OFFER_SELECTED'].includes(project.status);
 
   return (
-    <>
-      <ProjectDetailHeader project={project} />
+    <div className="min-h-screen bg-d4u-bg text-d4u-text-1">
+      <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <ProjectDetailHeader
+          metadataItems={buildHeaderMetadata(project)}
+          railDescription="Các chỉ số chính để quyết định publish hoặc điều chỉnh dự án."
+          status={project.status}
+          statItems={buildHeaderStats(project)}
+          title={project.title}
+        />
 
-      <div className="project-detail-layout modern-project-detail">
-        <div className="project-detail-main">
-          <ProjectBriefCard brief={project.brief} />
-          <ProjectInfoGrid project={project} />
-        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <main className="flex min-w-0 flex-col gap-6">
+            <ProjectBriefSection
+              description="Nội dung SME đang yêu cầu Student thực hiện"
+              title="Nội dung SME đang yêu cầu Student thực hiện"
+              usagePurpose={project.brief}
+            />
+            <ProjectExecutionInfoGrid
+              description="Các mốc thời gian và metadata để theo dõi dự án"
+              items={buildExecutionItems(project)}
+              title="Các mốc thời gian và metadata để theo dõi dự án"
+            />
+          </main>
 
-        <aside className="project-side-panel">
-          <ProjectActionPanel
-            projectId={projectId}
-            project={project}
+          <ProjectActionSidebar
             acting={acting}
+            canCancelProject={canCancelProject}
             canEditProject={canEditProject}
             canOpenWorkspace={canOpenWorkspace}
-            canCancelProject={canCancelProject}
-            onPublish={publish}
             onCancel={cancel}
             onDelete={remove}
+            onPublish={publish}
+            project={project}
+            projectId={projectId}
           />
-        </aside>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
