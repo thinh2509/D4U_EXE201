@@ -9,7 +9,7 @@
   UploadOutlined,
   WarningOutlined
 } from '@ant-design/icons';
-import { Alert, Button, Card, Descriptions, Empty, Form, Input, Tag, Upload } from 'antd';
+import { Alert, Button, Card, Empty, Form, Input, Tag, Upload } from 'antd';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { formatCurrency, formatFileSize, getFileExtension } from '../../utils/format.js';
 
@@ -19,10 +19,13 @@ const approvedActions = new Set(['APPROVE_SKETCH', 'APPROVE_FINAL', 'AUTO_APPROV
 export function formatWorkspaceDate(value) {
   if (!value) return 'Chưa có';
   return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
     timeZone: TIME_ZONE
-  }).format(new Date(value));
+  }).format(new Date(value)).replace(',', ' ·');
 }
 
 export function formatCountdown(value, now = Date.now()) {
@@ -80,11 +83,11 @@ export function WorkspaceDeadlinePanel({ workspace, now }) {
     ['Hoàn tất review', workspace.totalDeadlineAt]
   ];
   return (
-    <Card className="workspace-side-card" title="Mốc thời gian">
-      <div className="grid gap-4">
+    <Card className="workspace-side-card workspace-summary-card" title="Mốc thời gian">
+      <div className="workspace-summary-grid single-column">
         {deadlines.map(([label, value], index) => (
-          <div className={`workspace-deadline-row ${index < deadlines.length - 1 ? 'has-divider' : ''}`} key={label}>
-            <span className="workspace-label">{label}</span>
+          <div className={`workspace-summary-item workspace-deadline-row ${index < deadlines.length - 1 ? 'has-divider' : ''}`} key={label}>
+            <span className="workspace-summary-label">{label}</span>
             <DeadlineValue value={value} now={now} align="left" />
           </div>
         ))}
@@ -365,11 +368,20 @@ export function SmeReviewWorkspace({
         <div><Tag color="processing">{latestSubmission.milestoneType}</Tag><h2 className="workspace-action-title">{latestSubmission.submissionType === 'REVISION' ? 'Bản chỉnh sửa mới nhất' : `Bản ${latestSubmission.milestoneType} mới nhất`}</h2></div>
         <DeadlineValue value={latestSubmission.reviewDueAt} now={now} />
       </div>
-      <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-        <Descriptions.Item label="Nộp lúc">{formatWorkspaceDate(latestSubmission.submittedAt)}</Descriptions.Item>
-        <Descriptions.Item label="Vòng audit">{latestSubmission.revisionRound}</Descriptions.Item>
-        <Descriptions.Item label="Mô tả" span={2}>{latestSubmission.description || 'Không có mô tả'}</Descriptions.Item>
-      </Descriptions>
+      <div className="workspace-summary-grid compact">
+        <div className="workspace-summary-item">
+          <span className="workspace-summary-label">Nộp lúc</span>
+          <strong>{formatWorkspaceDate(latestSubmission.submittedAt)}</strong>
+        </div>
+        <div className="workspace-summary-item">
+          <span className="workspace-summary-label">Vòng audit</span>
+          <strong>{latestSubmission.revisionRound}</strong>
+        </div>
+        <div className="workspace-summary-item span-full">
+          <span className="workspace-summary-label">Mô tả</span>
+          <strong>{latestSubmission.description || 'Không có mô tả'}</strong>
+        </div>
+      </div>
       <div className="my-4"><SubmissionFiles files={latestSubmission.files} onDownload={onDownload} /></div>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button type="primary" icon={<CheckCircleOutlined />} loading={acting} onClick={onApprove}>Duyệt bài</Button>
@@ -381,24 +393,33 @@ export function SmeReviewWorkspace({
 }
 
 export function WorkspaceSummaryPanel({ workspace }) {
+  const items = [
+    ['Project', <StatusBadge status={workspace.projectStatus} />],
+    ['Vai trò', workspace.viewerRole],
+    ...(workspace.offer?.studentFullName ? [['Student', workspace.offer.studentFullName]] : []),
+    ['Ngân sách', formatCurrency(workspace.budgetAmount, workspace.currency)],
+    ['Feedback đã ghi nhận', workspace.currentRevisionRound],
+    ['Offer', workspace.offer ? <StatusBadge status={workspace.offer.status} /> : 'Chưa có'],
+    ['Payment', workspace.payment ? <StatusBadge status={workspace.payment.status} /> : 'Chưa có'],
+    ['Escrow', workspace.escrow ? <StatusBadge status={workspace.escrow.status} /> : 'Chưa có'],
+    ...(workspace.refund
+      ? [
+          ['Refund', <StatusBadge status={workspace.refund.status} />],
+          ['Hoàn SME', formatCurrency(workspace.refund.amount, workspace.refund.currency)]
+        ]
+      : [])
+  ];
+
   return (
-    <Card className="workspace-side-card" title="Tổng quan dự án">
-      <Descriptions column={1} size="small">
-        <Descriptions.Item label="Project"><StatusBadge status={workspace.projectStatus} /></Descriptions.Item>
-        <Descriptions.Item label="Vai trò">{workspace.viewerRole}</Descriptions.Item>
-        {workspace.offer?.studentFullName ? <Descriptions.Item label="Student">{workspace.offer.studentFullName}</Descriptions.Item> : null}
-        <Descriptions.Item label="Ngân sách">{formatCurrency(workspace.budgetAmount, workspace.currency)}</Descriptions.Item>
-        <Descriptions.Item label="Feedback đã ghi nhận">{workspace.currentRevisionRound}</Descriptions.Item>
-        <Descriptions.Item label="Offer">{workspace.offer ? <StatusBadge status={workspace.offer.status} /> : 'Chưa có'}</Descriptions.Item>
-        <Descriptions.Item label="Payment">{workspace.payment ? <StatusBadge status={workspace.payment.status} /> : 'Chưa có'}</Descriptions.Item>
-        <Descriptions.Item label="Escrow">{workspace.escrow ? <StatusBadge status={workspace.escrow.status} /> : 'Chưa có'}</Descriptions.Item>
-        {workspace.refund ? (
-          <>
-            <Descriptions.Item label="Refund"><StatusBadge status={workspace.refund.status} /></Descriptions.Item>
-            <Descriptions.Item label="Hoàn SME">{formatCurrency(workspace.refund.amount, workspace.refund.currency)}</Descriptions.Item>
-          </>
-        ) : null}
-      </Descriptions>
+    <Card className="workspace-side-card workspace-summary-card" title="Tổng quan dự án">
+      <div className="workspace-summary-grid">
+        {items.map(([label, value]) => (
+          <div className="workspace-summary-item" key={label}>
+            <span className="workspace-summary-label">{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }

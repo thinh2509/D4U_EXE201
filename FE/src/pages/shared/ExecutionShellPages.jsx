@@ -1,18 +1,20 @@
 import {
+  CalendarOutlined,
   FileDoneOutlined,
+  FundOutlined,
   ReloadOutlined,
   StarOutlined,
 } from '@ant-design/icons';
 import { App, Button, Form, Input, Modal, Select, Upload } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
+import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { fileApi } from '../../services/fileApi.js';
 import { paymentApi } from '../../services/paymentApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatFileSize, getFileExtension } from '../../utils/format.js';
+import { formatCurrency, formatFileSize, getFileExtension } from '../../utils/format.js';
 import { FeatureShellPage } from './MvpShellPage.jsx';
 import {
   SmeReviewWorkspace,
@@ -44,6 +46,93 @@ function getSubmissionMilestone(workspace, submissions) {
   if (workspace.nextAction === 'SUBMIT_SKETCH') return 'SKETCH';
   if (workspace.nextAction === 'SUBMIT_FINAL') return 'FINAL';
   return submissions.find((item) => ['REVISION_REQUESTED', 'INVALID_REPORTED'].includes(item.status))?.milestoneType;
+}
+
+function formatHeroDate(value) {
+  if (!value) return 'Chưa cập nhật';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value)).replace(',', ' ·');
+}
+
+function resolveWorkspaceHeadline(workspace) {
+  if (workspace.viewerRole === 'STUDENT') {
+    return 'Nộp bài đúng milestone, theo dõi phản hồi của SME và xử lý revision ngay trong workspace.';
+  }
+
+  if (workspace.nextAction === 'PAY_ESCROW') {
+    return 'Funding escrow qua PayOS để dự án bắt đầu, sau đó theo dõi Sketch, Final và các vòng review tại đây.';
+  }
+
+  return 'Theo dõi tiến trình bàn giao, kiểm tra file Student nộp và duyệt từng milestone trong một luồng rõ ràng.';
+}
+
+function resolveWorkspaceMeta(workspace) {
+  const activeDeadline = workspace.nextAction === 'PAY_ESCROW'
+    ? workspace.offer?.paymentDueAt
+    : workspace.nextAction === 'SUBMIT_SKETCH'
+      ? workspace.sketchDeadlineAt
+      : workspace.nextAction === 'SUBMIT_FINAL'
+        ? workspace.finalDeadlineAt
+        : workspace.totalDeadlineAt;
+
+  return [
+    {
+      label: 'Ngân sách',
+      value: formatCurrency(workspace.budgetAmount, workspace.currency),
+      icon: <FundOutlined />
+    },
+    {
+      label: 'Trạng thái',
+      value: <StatusBadge status={workspace.projectStatus} />,
+      icon: <FileDoneOutlined />
+    },
+    {
+      label: workspace.nextAction === 'PAY_ESCROW' ? 'Hạn thanh toán' : 'Mốc gần nhất',
+      value: formatHeroDate(activeDeadline),
+      icon: <CalendarOutlined />
+    }
+  ];
+}
+
+function WorkspaceHero({ workspace, onRefresh }) {
+  const meta = resolveWorkspaceMeta(workspace);
+
+  return (
+    <section className="project-hero-card workspace-hero-card">
+      <div className="project-hero-main">
+        <div className="project-hero-copy">
+          <span className="project-hero-eyebrow">
+            {workspace.viewerRole === 'STUDENT' ? 'Student workspace' : 'SME workspace'}
+          </span>
+          <div className="project-hero-heading-row">
+            <h1>{workspace.projectTitle}</h1>
+            <StatusBadge status={workspace.projectStatus} />
+          </div>
+          <p className="project-hero-subtitle">{resolveWorkspaceHeadline(workspace)}</p>
+        </div>
+        <Button icon={<ReloadOutlined />} onClick={onRefresh}>
+          Làm mới
+        </Button>
+      </div>
+
+      <div className="project-hero-meta">
+        {meta.map((item) => (
+          <div className="project-meta-chip" key={item.label}>
+            <span className="project-meta-icon">{item.icon}</span>
+            <div className="project-meta-copy">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function ProjectExecutionPage() {
@@ -394,12 +483,7 @@ export function ProjectExecutionPage() {
 
   return (
     <>
-      <PageHeader
-        icon={<FileDoneOutlined />}
-        title={workspace.projectTitle}
-        description={workspace.viewerRole === 'STUDENT' ? 'Nộp bài và theo dõi phản hồi từ SME' : 'Theo dõi tiến trình và duyệt bài Student'}
-        extra={<Button icon={<ReloadOutlined />} onClick={() => loadWorkspace()}>Làm mới</Button>}
-      />
+      <WorkspaceHero workspace={workspace} onRefresh={() => loadWorkspace()} />
 
       <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 

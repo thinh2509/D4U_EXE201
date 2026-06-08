@@ -1,8 +1,7 @@
-import { BulbOutlined, ProjectOutlined, RobotOutlined } from '@ant-design/icons';
+import { BulbOutlined, InfoCircleOutlined, ProjectOutlined, RobotOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Card, Divider, Form, Input, InputNumber, List, Select, Space, Tag, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { aiApi } from '../../services/aiApi.js';
 import { projectApi } from '../../services/projectApi.js';
@@ -64,6 +63,35 @@ function buildBriefWithDeliverables(suggestion) {
     .join('\n');
 
   return `${suggestion.suggestedBrief}\n\nSản phẩm bàn giao:\n${deliverables}`;
+}
+
+function CreateProjectHeader({ deadlineOnly, mode }) {
+  const title = deadlineOnly ? 'Điều chỉnh deadline dự án' : mode === 'edit' ? 'Cập nhật dự án' : 'Tạo dự án mới';
+  const subtitle = deadlineOnly
+    ? 'Chỉnh các mốc Sketch, Final và review trước khi dự án đi vào giai đoạn bị khóa deadline.'
+    : 'Nhập thông tin cơ bản, dùng AI để gợi ý brief tiếng Việt, sau đó review trước khi lưu nháp hoặc publish.';
+  const steps = deadlineOnly
+    ? ['Bước 1 · Kiểm tra timeline hiện tại', 'Bước 2 · Cập nhật deadline', 'Bước 3 · Lưu & thông báo']
+    : ['Bước 1 · Thông tin dự án', 'Bước 2 · AI gợi ý brief', 'Bước 3 · Review & lưu'];
+
+  return (
+    <section className="project-hero-card create-project-hero">
+      <div className="project-hero-main">
+        <div className="project-hero-copy">
+          <span className="project-hero-eyebrow">{deadlineOnly ? 'Project timeline' : 'Create project'}</span>
+          <div className="project-hero-heading-row">
+            <h1>{title}</h1>
+          </div>
+          <p className="project-hero-subtitle">{subtitle}</p>
+        </div>
+      </div>
+      <div className="project-step-strip">
+        {steps.map((step) => (
+          <span key={step}>{step}</span>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function SmeProjectFormPage({ mode }) {
@@ -197,57 +225,195 @@ export function SmeProjectFormPage({ mode }) {
 
   return (
     <>
-      <PageHeader
-        icon={<RobotOutlined />}
-        title={deadlineOnly ? 'Điều chỉnh deadline' : mode === 'edit' ? 'Sửa dự án' : 'Tạo dự án'}
-        description={deadlineOnly
-          ? deadlineLocked
-            ? 'Deadline đã bị khóa vì offer đã được chấp nhận hoặc dự án đã bắt đầu.'
-            : 'Deadline chỉ có thể thay đổi trước khi Student chấp nhận offer.'
-          : 'Dùng AI để khởi tạo brief tiếng Việt rõ ràng, sau đó SME review trước khi lưu hoặc publish.'}
-      />
+      <CreateProjectHeader deadlineOnly={deadlineOnly} mode={mode} />
 
       <div className={`project-form-layout ${deadlineOnly ? 'deadline-only' : ''}`}>
+        <Card className="form-panel create-project-form-card" title={<span className="panel-title-with-icon"><ProjectOutlined /> Thông tin dự án</span>}>
+          <div className="form-section-intro">
+            <strong>{deadlineOnly ? 'Mốc thời gian thực hiện' : 'Form chính để tạo dự án'}</strong>
+            <span>{deadlineOnly
+              ? 'Student đang chờ xác nhận offer sẽ nhận thông báo khi deadline thay đổi.'
+              : 'Điền thông tin cốt lõi trước, sau đó dùng AI để gợi ý brief tiếng Việt rồi review lại trước khi lưu nháp hoặc publish.'}</span>
+          </div>
+          {deadlineOnly ? (
+            <Alert
+              className="page-alert"
+              type="warning"
+              showIcon
+              message={deadlineLocked
+                ? 'Deadline của dự án này đã bị khóa.'
+                : 'Nội dung, loại dự án và ngân sách đã được khóa. Deadline sẽ bị khóa ngay khi Student chấp nhận offer.'}
+            />
+          ) : null}
+
+          <Form className="project-editor-form" form={form} layout="vertical" onFinish={saveProject} requiredMark={false}>
+            {!deadlineOnly ? (
+              <section className="project-form-section">
+                <div className="project-form-section-head">
+                  <div>
+                    <h3>Thông tin cơ bản</h3>
+                    <p>Giúp Student hiểu nhanh loại dự án, phạm vi và mức ngân sách bạn dự kiến.</p>
+                  </div>
+                </div>
+                <div className="form-two-cols">
+                  <Form.Item
+                    name="designCategoryId"
+                    label="Danh mục thiết kế"
+                    rules={[{ required: true, message: 'Vui lòng chọn danh mục thiết kế.' }]}
+                  >
+                    <Select
+                      size="large"
+                      disabled={deadlineOnly}
+                      loading={loadingCategories}
+                      options={categoryOptions}
+                      placeholder="Chọn danh mục phù hợp"
+                      notFoundContent={loadingCategories ? 'Đang tải...' : 'Chưa có danh mục khả dụng'}
+                    />
+                  </Form.Item>
+                  <Form.Item name="projectType" label="Loại dự án" rules={[{ required: true, message: 'Vui lòng chọn loại dự án.' }]}>
+                    <Select
+                      size="large"
+                      disabled={deadlineOnly}
+                      options={[
+                        { value: 'OPEN', label: 'Công khai - nhận ứng tuyển' },
+                        { value: 'PRIVATE', label: 'Riêng tư - mời sinh viên' }
+                      ]}
+                    />
+                  </Form.Item>
+                </div>
+                <Form.Item name="title" label="Tiêu đề dự án" rules={[{ required: true, message: 'Vui lòng nhập tiêu đề.' }]}>
+                  <Input size="large" disabled={deadlineOnly} placeholder="Ví dụ: Thiết kế bộ nhận diện cho quán cà phê take-away" />
+                </Form.Item>
+              </section>
+            ) : null}
+
+            {!deadlineOnly ? (
+              <section className="project-form-section">
+                <div className="project-form-section-head">
+                  <div>
+                    <h3>Brief & mục tiêu</h3>
+                    <p>Nêu bối cảnh, đầu ra và mục đích sử dụng để Student hiểu đúng hướng thiết kế.</p>
+                  </div>
+                </div>
+                <Form.Item name="brief" label="Mô tả yêu cầu / Brief dự án" rules={[{ required: true }, { min: 20, message: 'Brief tối thiểu 20 ký tự.' }]}>
+                  <Input.TextArea rows={8} disabled={deadlineOnly} placeholder="Mô tả bối cảnh thương hiệu, thông điệp chính, deliverables và tiêu chí nghiệm thu." />
+                </Form.Item>
+                <Form.Item name="usagePurpose" label="Mục đích sử dụng">
+                  <Input.TextArea rows={4} disabled={deadlineOnly} placeholder="Ví dụ: dùng cho social media, menu in ấn, landing page, poster sự kiện..." />
+                </Form.Item>
+              </section>
+            ) : null}
+
+            <section className="project-form-section">
+              <div className="project-form-section-head">
+                <div>
+                  <h3>{deadlineOnly ? 'Timeline & review' : 'Ngân sách & deadline'}</h3>
+                  <p>{deadlineOnly
+                    ? 'Điều chỉnh các mốc thời gian còn mở trước khi dự án chuyển sang giai đoạn bị khóa deadline.'
+                    : 'Thiết lập mức ngân sách và các mốc Sketch, Final, review để workflow vận hành rõ ràng.'}</p>
+                </div>
+              </div>
+              {!deadlineOnly ? (
+                <Form.Item name="budgetAmount" label="Ngân sách" rules={[{ required: true }]}>
+                  <InputNumber className="full-width" size="large" min={1} addonAfter="VND" disabled={deadlineOnly} />
+                </Form.Item>
+              ) : null}
+              <div className="form-two-cols">
+                <Form.Item name="sketchDeadlineAt" label="Hạn nộp Sketch" extra="Mốc Student gửi phiên bản Sketch đầu tiên." rules={[{ required: true }]}>
+                  <Input size="large" type="datetime-local" disabled={deadlineLocked} />
+                </Form.Item>
+                <Form.Item name="finalDeadlineAt" label="Hạn nộp Final" extra="Mốc nộp phiên bản Final sau khi xử lý feedback." rules={[{ required: true }]}>
+                  <Input size="large" type="datetime-local" disabled={deadlineLocked} />
+                </Form.Item>
+              </div>
+              <Form.Item
+                name="totalDeadlineAt"
+                label="Hạn hoàn tất review dự án"
+                extra="Đây là thời điểm SME cần hoàn tất review Final, không phải một lượt nộp bài riêng."
+                rules={[{ required: true }]}
+              >
+                <Input size="large" type="datetime-local" disabled={deadlineLocked} />
+              </Form.Item>
+            </section>
+
+            <div className="project-form-footer">
+              <Space wrap>
+                <Button type="primary" size="large" htmlType="submit" loading={saving} disabled={deadlineLocked}>
+                  {deadlineOnly ? 'Lưu deadline' : mode === 'edit' ? 'Cập nhật dự án' : 'Lưu nháp'}
+                </Button>
+                <Button size="large" onClick={() => navigate('/sme/projects')}>Hủy</Button>
+              </Space>
+            </div>
+          </Form>
+        </Card>
+
         {!deadlineOnly ? (
-          <Card className="ai-panel" title={<span className="panel-title-with-icon"><BulbOutlined /> Trợ lý AI viết brief</span>}>
+          <Card className="ai-panel create-project-ai-card" title={<span className="panel-title-with-icon"><RobotOutlined /> Trợ lý AI viết brief</span>}>
+            <div className="form-section-intro compact">
+              <strong>AI hỗ trợ lên brief bằng tiếng Việt</strong>
+              <span>Nhập ý tưởng thô, ngành hàng và mốc mong muốn. AI sẽ tạo một bản nháp để bạn chỉnh sửa trước khi lưu.</span>
+            </div>
             <Alert
               className="page-alert ai-panel-alert"
               type="info"
               showIcon
-              message="AI chỉ hỗ trợ gợi ý nội dung. SME vẫn quyết định brief, ngân sách, deadline và trạng thái publish cuối cùng."
+              message="AI chỉ gợi ý nội dung. SME vẫn quyết định brief, ngân sách, deadline và trạng thái publish cuối cùng."
             />
+
             <Form className="project-ai-form" form={aiForm} layout="vertical" onFinish={generateAiSuggestion} requiredMark={false}>
-              <Form.Item
-                name="rawIdea"
-                label="Ý tưởng thô"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập ý tưởng.' },
-                  { min: 20, message: 'Tối thiểu 20 ký tự.' }
-                ]}
-              >
-                <Input.TextArea rows={5} maxLength={3000} showCount placeholder="Ví dụ: Tôi cần bộ nhận diện cho quán cà phê take-away dành cho sinh viên, phong cách trẻ trung và dễ nhớ." />
-              </Form.Item>
-              <Form.Item name="businessField" label="Lĩnh vực">
-                <Input placeholder="Ví dụ: F&B, giáo dục, mỹ phẩm, thời trang..." />
-              </Form.Item>
-              <Form.Item name="targetAudience" label="Khách hàng mục tiêu">
-                <Input placeholder="Ví dụ: sinh viên 18-24 tuổi, nhân viên văn phòng, phụ huynh..." />
-              </Form.Item>
-              <Form.Item name="preferredStyle" label="Phong cách mong muốn">
-                <Input placeholder="Ví dụ: tối giản, trẻ trung, cao cấp, vui tươi..." />
-              </Form.Item>
-              <div className="form-two-cols">
-                <Form.Item name="budgetAmount" label="Ngân sách tham khảo">
-                  <InputNumber className="full-width" min={1} addonAfter="VND" />
+              <section className="project-form-section compact">
+                <div className="project-form-section-head compact">
+                  <div>
+                    <h3>Ý tưởng đầu vào</h3>
+                    <p>Nêu bối cảnh và đầu ra mong muốn để AI dựng brief sát nhu cầu thực tế hơn.</p>
+                  </div>
+                </div>
+                <Form.Item
+                  name="rawIdea"
+                  label="Ý tưởng thô"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập ý tưởng.' },
+                    { min: 20, message: 'Tối thiểu 20 ký tự.' }
+                  ]}
+                >
+                  <Input.TextArea rows={6} maxLength={3000} showCount placeholder="Ví dụ: Tôi cần bộ nhận diện cho quán cà phê take-away dành cho sinh viên, phong cách trẻ trung và dễ nhớ." />
                 </Form.Item>
-                <Form.Item name="totalDeadline" label="Hạn hoàn tất mong muốn">
-                  <Input type="datetime-local" />
+                <Form.Item name="businessField" label="Ngành / lĩnh vực">
+                  <Input placeholder="Ví dụ: F&B, giáo dục, mỹ phẩm, thời trang..." />
                 </Form.Item>
-              </div>
+                <Form.Item name="targetAudience" label="Khách hàng mục tiêu">
+                  <Input placeholder="Ví dụ: sinh viên 18-24 tuổi, nhân viên văn phòng, phụ huynh..." />
+                </Form.Item>
+                <Form.Item name="preferredStyle" label="Phong cách mong muốn">
+                  <Input placeholder="Ví dụ: tối giản, trẻ trung, cao cấp, vui tươi..." />
+                </Form.Item>
+              </section>
+
+              <section className="project-form-section compact">
+                <div className="project-form-section-head compact">
+                  <div>
+                    <h3>Ngân sách & hạn mong muốn</h3>
+                    <p>AI dùng thông tin này để gợi ý brief phù hợp phạm vi và deadline bạn mong đợi.</p>
+                  </div>
+                </div>
+                <div className="form-two-cols">
+                  <Form.Item name="budgetAmount" label="Ngân sách tham khảo">
+                    <InputNumber className="full-width" min={1} addonAfter="VND" />
+                  </Form.Item>
+                  <Form.Item name="totalDeadline" label="Hạn hoàn tất mong muốn">
+                    <Input type="datetime-local" />
+                  </Form.Item>
+                </div>
+              </section>
+
               <div className="ai-panel-actions">
                 <Button type="primary" size="large" htmlType="submit" loading={aiLoading} icon={<BulbOutlined />}>
                   Gợi ý bằng AI
                 </Button>
+              </div>
+              <div className="ai-assistant-hint">
+                <InfoCircleOutlined />
+                <span>AI sẽ tạo bản nháp brief, bạn vẫn có thể chỉnh sửa trước khi lưu.</span>
               </div>
             </Form>
 
@@ -299,83 +465,6 @@ export function SmeProjectFormPage({ mode }) {
             ) : null}
           </Card>
         ) : null}
-
-        <Card className="form-panel" title={<span className="panel-title-with-icon"><ProjectOutlined /> Thông tin dự án</span>}>
-          <div className="form-section-intro">
-            <strong>{deadlineOnly ? 'Mốc thời gian thực hiện' : 'Thông tin cơ bản'}</strong>
-            <span>{deadlineOnly
-              ? 'Student đang chờ xác nhận offer sẽ nhận thông báo khi deadline thay đổi.'
-              : 'Hoàn thiện brief, ngân sách và deadline để tạo draft có thể publish.'}</span>
-          </div>
-          {deadlineOnly ? (
-            <Alert
-              className="page-alert"
-              type="warning"
-              showIcon
-              message={deadlineLocked
-                ? 'Deadline của dự án này đã bị khóa.'
-                : 'Nội dung, loại dự án và ngân sách đã được khóa. Deadline cũng sẽ bị khóa ngay khi Student chấp nhận offer.'}
-            />
-          ) : null}
-          <Form className="project-editor-form" form={form} layout="vertical" onFinish={saveProject} requiredMark={false}>
-            <Form.Item
-              name="designCategoryId"
-              label="Danh mục thiết kế"
-              rules={[{ required: true, message: 'Vui lòng chọn danh mục thiết kế.' }]}
-            >
-              <Select
-                size="large"
-                disabled={deadlineOnly}
-                loading={loadingCategories}
-                options={categoryOptions}
-                placeholder="Chọn danh mục thiết kế"
-                notFoundContent={loadingCategories ? 'Đang tải...' : 'Chưa có danh mục khả dụng'}
-              />
-            </Form.Item>
-            <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, message: 'Vui lòng nhập tiêu đề.' }]}>
-              <Input size="large" disabled={deadlineOnly} />
-            </Form.Item>
-            <Form.Item name="brief" label="Mô tả yêu cầu / Brief dự án" rules={[{ required: true }, { min: 20, message: 'Brief tối thiểu 20 ký tự.' }]}>
-              <Input.TextArea rows={10} disabled={deadlineOnly} />
-            </Form.Item>
-            <Form.Item name="usagePurpose" label="Mục đích sử dụng">
-              <Input.TextArea rows={3} disabled={deadlineOnly} />
-            </Form.Item>
-            <div className="form-two-cols">
-              <Form.Item name="projectType" label="Loại dự án" rules={[{ required: true, message: 'Vui lòng chọn loại dự án.' }]}>
-                <Select size="large" disabled={deadlineOnly} options={[
-                  { value: 'OPEN', label: 'Công khai - nhận ứng tuyển' },
-                  { value: 'PRIVATE', label: 'Riêng tư - mời sinh viên' }
-                ]} />
-              </Form.Item>
-              <Form.Item name="budgetAmount" label="Ngân sách" rules={[{ required: true }]}>
-                <InputNumber className="full-width" size="large" min={1} addonAfter="VND" disabled={deadlineOnly} />
-              </Form.Item>
-            </div>
-            <div className="form-two-cols">
-              <Form.Item name="sketchDeadlineAt" label="Hạn nộp Sketch" rules={[{ required: true }]}>
-                <Input size="large" type="datetime-local" disabled={deadlineLocked} />
-              </Form.Item>
-              <Form.Item name="finalDeadlineAt" label="Hạn nộp Final" rules={[{ required: true }]}>
-                <Input size="large" type="datetime-local" disabled={deadlineLocked} />
-              </Form.Item>
-            </div>
-            <Form.Item
-              name="totalDeadlineAt"
-              label="Hạn hoàn tất review dự án"
-              extra="Đây là hạn SME hoàn tất review Final, không phải một bản nộp riêng."
-              rules={[{ required: true }]}
-            >
-              <Input size="large" type="datetime-local" disabled={deadlineLocked} />
-            </Form.Item>
-            <Space wrap>
-              <Button type="primary" size="large" htmlType="submit" loading={saving} disabled={deadlineLocked}>
-                {deadlineOnly ? 'Lưu deadline' : mode === 'edit' ? 'Cập nhật' : 'Lưu nháp'}
-              </Button>
-              <Button size="large" onClick={() => navigate('/sme/projects')}>Hủy</Button>
-            </Space>
-          </Form>
-        </Card>
       </div>
     </>
   );

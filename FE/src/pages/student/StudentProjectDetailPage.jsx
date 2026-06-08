@@ -1,16 +1,158 @@
-import { CalendarOutlined, SendOutlined, WalletOutlined } from '@ant-design/icons';
-import { App, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space } from 'antd';
+import { CalendarOutlined, FolderOpenOutlined, SendOutlined, WalletOutlined } from '@ant-design/icons';
+import { App, Button, Card, Form, Input, InputNumber, Modal, Space, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader.jsx';
 import { StudentReadinessNotice, useStudentReadiness } from '../../components/StudentReadinessGate.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatCurrency, formatDate } from '../../utils/format.js';
+import { formatCurrency } from '../../utils/format.js';
 
 const QUICK_APPLY_NOTE = 'Student xác nhận thực hiện theo ngân sách và deadline đã công bố.';
+
+function formatDetailDate(value) {
+  if (!value) return 'Chưa có';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value)).replace(',', ' ·');
+}
+
+function ProjectDetailHeader({ project }) {
+  const metaItems = [
+    { icon: <FolderOpenOutlined />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
+    { icon: <WalletOutlined />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
+    { icon: <CalendarOutlined />, label: 'Review deadline', value: formatDetailDate(project.totalDeadlineAt) }
+  ];
+
+  return (
+    <section className="project-hero-card">
+      <div className="project-hero-main">
+        <div className="project-hero-eyebrow">
+          <span>Project detail</span>
+          <StatusBadge status={project.status} />
+        </div>
+        <h1>{project.title}</h1>
+        <p className="project-hero-subtitle">
+          {project.projectType} · {project.designCategoryName || 'Dự án thiết kế'} · Publish {formatDetailDate(project.publishedAt)}
+        </p>
+        <div className="project-hero-meta">
+          {metaItems.map((item) => (
+            <div className="project-meta-chip" key={item.label}>
+              <span className="project-meta-icon">{item.icon}</span>
+              <div>
+                <small>{item.label}</small>
+                <strong>{item.value}</strong>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProjectBriefCard({ brief }) {
+  return (
+    <Card className="project-brief-card">
+      <div className="project-section-head">
+        <span>Brief dự án</span>
+        <strong>Những gì SME cần bạn thực hiện trong workspace này</strong>
+      </div>
+      <div className="rich-text-block project-brief-copy">{brief}</div>
+    </Card>
+  );
+}
+
+function ProjectInfoGrid({ project }) {
+  const items = [
+    { label: 'Trạng thái', value: <StatusBadge status={project.status} /> },
+    { label: 'Loại dự án', value: project.projectType },
+    { label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
+    { label: 'Publish lúc', value: formatDetailDate(project.publishedAt) },
+    { label: 'Hạn nộp Sketch', value: formatDetailDate(project.sketchDeadlineAt) },
+    { label: 'Hạn nộp Final', value: formatDetailDate(project.finalDeadlineAt) },
+    { label: 'Hạn hoàn tất review', value: formatDetailDate(project.totalDeadlineAt) },
+    { label: 'Mục đích sử dụng', value: project.usagePurpose || 'Chưa có', wide: true }
+  ];
+
+  return (
+    <Card className="project-info-card">
+      <div className="project-section-head">
+        <span>Thông tin thực hiện</span>
+        <strong>Mốc thời gian và metadata quan trọng trước khi bạn gửi ứng tuyển</strong>
+      </div>
+      <div className="project-info-grid">
+        {items.map((item) => (
+          <div className={`project-info-item ${item.wide ? 'is-wide' : ''}`} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function ProjectActionPanel({
+  project,
+  applying,
+  canApply,
+  applyButtonLabel,
+  canAccessMarketplaceActions,
+  readiness,
+  onQuickApply,
+  onCustomProposal
+}) {
+  return (
+    <Card className="project-action-panel" title="Thao tác">
+      <div className="project-action-stack">
+        <Button type="primary" size="large" block icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={onQuickApply}>
+          {applyButtonLabel}
+        </Button>
+        <Button size="large" block disabled={!canApply || applying} onClick={onCustomProposal}>
+          Đề xuất khác
+        </Button>
+      </div>
+
+      <div className="project-side-summary">
+        <div className="side-metric">
+          <WalletOutlined />
+          <div>
+            <span>Ngân sách</span>
+            <strong>{formatCurrency(project.budgetAmount, project.currency)}</strong>
+          </div>
+        </div>
+        <div className="side-metric">
+          <CalendarOutlined />
+          <div>
+            <span>Hoàn tất review</span>
+            <strong>{formatDetailDate(project.totalDeadlineAt)}</strong>
+          </div>
+        </div>
+        <div className="deadline-list modern">
+          <div><span>Sketch</span><strong>{formatDetailDate(project.sketchDeadlineAt)}</strong></div>
+          <div><span>Final</span><strong>{formatDetailDate(project.finalDeadlineAt)}</strong></div>
+        </div>
+      </div>
+
+      {!canAccessMarketplaceActions ? (
+        <div className="project-action-notes">
+          <Tag color="warning">{readiness.needsProfile ? 'Cần hồ sơ' : 'Cần xác thực'}</Tag>
+          <p>
+            {readiness.needsProfile
+              ? 'Tạo hồ sơ sinh viên trước để D4U mở tính năng ứng tuyển.'
+              : 'Hoàn tất xác thực để gửi proposal và phản hồi offer.'}
+          </p>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
 
 export function StudentProjectDetailPage() {
   const { message } = App.useApp();
@@ -121,68 +263,27 @@ export function StudentProjectDetailPage() {
 
   return (
     <>
-      <PageHeader
-        title={project.title}
-        description={project.designCategoryName}
-        extra={<Button type="primary" icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={() => setQuickConfirmationOpen(true)}>{applyButtonLabel}</Button>}
-      />
+      <ProjectDetailHeader project={project} />
 
       {readinessNotice}
 
-      <div className="project-detail-layout">
+      <div className="project-detail-layout modern-project-detail">
         <div className="project-detail-main">
-          <Card title="Brief dự án">
-            <div className="rich-text-block">{project.brief}</div>
-          </Card>
-
-          <Card title="Thông tin thực hiện">
-            <Descriptions column={{ xs: 1, md: 2 }} bordered>
-              <Descriptions.Item label="Trạng thái"><StatusBadge status={project.status} /></Descriptions.Item>
-              <Descriptions.Item label="Loại dự án">{project.projectType}</Descriptions.Item>
-              <Descriptions.Item label="Mục đích sử dụng" span={2}>{project.usagePurpose || 'Chưa có'}</Descriptions.Item>
-            </Descriptions>
-          </Card>
+          <ProjectBriefCard brief={project.brief} />
+          <ProjectInfoGrid project={project} />
         </div>
 
         <aside className="project-side-panel">
-          <Card>
-            <Space direction="vertical" size={18} className="full-width">
-              <div className="side-metric">
-                <WalletOutlined />
-                <div>
-                  <span>Ngân sách</span>
-                  <strong>{formatCurrency(project.budgetAmount, project.currency)}</strong>
-                </div>
-              </div>
-
-              <div className="side-metric">
-                <CalendarOutlined />
-                <div>
-                  <span>Hạn hoàn tất review</span>
-                  <strong>{formatDate(project.totalDeadlineAt)}</strong>
-                </div>
-              </div>
-
-              <div className="deadline-list">
-                <div><span>Sketch</span><strong>{formatDate(project.sketchDeadlineAt)}</strong></div>
-                <div><span>Final</span><strong>{formatDate(project.finalDeadlineAt)}</strong></div>
-              </div>
-
-              <Button type="primary" size="large" block icon={<SendOutlined />} loading={applying} disabled={!canApply} onClick={() => setQuickConfirmationOpen(true)}>
-                {applyButtonLabel}
-              </Button>
-              <Button size="large" block disabled={!canApply || applying} onClick={openCustomProposal}>
-                Đề xuất khác
-              </Button>
-              {!canAccessMarketplaceActions ? (
-                <p className="project-action-note">
-                  {readiness.needsProfile
-                    ? 'Tạo hồ sơ sinh viên trước để D4U mở tính năng ứng tuyển.'
-                    : 'Hoàn tất xác thực để gửi proposal và phản hồi offer.'}
-                </p>
-              ) : null}
-            </Space>
-          </Card>
+          <ProjectActionPanel
+            project={project}
+            applying={applying}
+            canApply={canApply}
+            applyButtonLabel={applyButtonLabel}
+            canAccessMarketplaceActions={canAccessMarketplaceActions}
+            readiness={readiness}
+            onQuickApply={() => setQuickConfirmationOpen(true)}
+            onCustomProposal={openCustomProposal}
+          />
         </aside>
       </div>
 
@@ -202,12 +303,24 @@ export function StudentProjectDetailPage() {
           </>
         )}
       >
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</Descriptions.Item>
-          <Descriptions.Item label="Hạn Sketch">{formatDate(project.sketchDeadlineAt)}</Descriptions.Item>
-          <Descriptions.Item label="Hạn Final">{formatDate(project.finalDeadlineAt)}</Descriptions.Item>
-          <Descriptions.Item label="Hạn hoàn tất review">{formatDate(project.totalDeadlineAt)}</Descriptions.Item>
-        </Descriptions>
+        <div className="project-confirm-grid">
+          <div className="project-confirm-item">
+            <span>Ngân sách</span>
+            <strong>{formatCurrency(project.budgetAmount, project.currency)}</strong>
+          </div>
+          <div className="project-confirm-item">
+            <span>Hạn Sketch</span>
+            <strong>{formatDetailDate(project.sketchDeadlineAt)}</strong>
+          </div>
+          <div className="project-confirm-item">
+            <span>Hạn Final</span>
+            <strong>{formatDetailDate(project.finalDeadlineAt)}</strong>
+          </div>
+          <div className="project-confirm-item">
+            <span>Hoàn tất review</span>
+            <strong>{formatDetailDate(project.totalDeadlineAt)}</strong>
+          </div>
+        </div>
       </Modal>
 
       <Modal title="Đề xuất khác" open={customProposalOpen} footer={null} onCancel={closeApplyFlow}>
@@ -241,10 +354,16 @@ export function StudentProjectDetailPage() {
         onOk={() => submitApplication(customProposal)}
         onCancel={() => setCustomConfirmationOpen(false)}
       >
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="Giá đề xuất">{formatCurrency(customProposal?.proposedPrice, project.currency)}</Descriptions.Item>
-          <Descriptions.Item label="Giải pháp">{customProposal?.coverLetter}</Descriptions.Item>
-        </Descriptions>
+        <div className="project-confirm-grid single-column">
+          <div className="project-confirm-item">
+            <span>Giá đề xuất</span>
+            <strong>{formatCurrency(customProposal?.proposedPrice, project.currency)}</strong>
+          </div>
+          <div className="project-confirm-item is-wide">
+            <span>Giải pháp</span>
+            <strong>{customProposal?.coverLetter}</strong>
+          </div>
+        </div>
       </Modal>
     </>
   );
