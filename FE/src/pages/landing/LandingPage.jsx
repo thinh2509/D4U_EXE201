@@ -9,10 +9,15 @@ import {
   SearchOutlined,
   SolutionOutlined,
   WalletOutlined,
+  FacebookOutlined,
+  TwitterOutlined,
+  InstagramOutlined,
+  LinkedinOutlined,
 } from '@ant-design/icons';
 import { Button, Drawer } from 'antd';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import './LandingPage.css';
 import { D4ULogo } from '../../components/D4ULogo.jsx';
 import { roleHome } from '../../components/RouteGuards.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
@@ -77,14 +82,74 @@ const NAV_ITEMS = [
 
 const CONTACT_EMAIL = 'contact@d4u.vn';
 
+function FadeInSection({ children }) {
+  const [isVisible, setVisible] = useState(false);
+  const domRef = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = domRef.current;
+    if (currentRef) observer.observe(currentRef);
+
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+    };
+  }, []);
+
+  return (
+    <div
+      className={`fade-in-section ${isVisible ? 'is-visible' : ''}`}
+      ref={domRef}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function LandingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const destination = user ? roleHome(user.role) : '/register';
+  
+  const [showIntro, setShowIntro] = useState(() => {
+    return !sessionStorage.getItem('d4u_intro_played');
+  });
 
   const goToDestination = () => navigate(destination);
   const closeMobileNav = () => setMobileNavOpen(false);
+
+  const handleIntroEnded = () => {
+    setShowIntro(false);
+    sessionStorage.setItem('d4u_intro_played', 'true');
+  };
+
+  if (showIntro) {
+    return (
+      <div className="landing-intro-screen" onClick={handleIntroEnded}>
+        <video 
+          className="landing-intro-video" 
+          src="/gif/option 1.mp4" 
+          autoPlay 
+          muted 
+          playsInline 
+          onEnded={handleIntroEnded}
+        />
+        <button className="landing-intro-skip" onClick={handleIntroEnded}>Bỏ qua</button>
+      </div>
+    );
+  }
 
   return (
     <div className="landing-page">
@@ -146,137 +211,139 @@ export function LandingPage() {
               </p>
             </div>
 
-            <div className="landing-demo-panel" aria-label="Tóm tắt flow D4U">
-              <div className="landing-demo-header">
-                <span>Project flow</span>
-                <strong>Escrow funded</strong>
-              </div>
-              <div className="landing-demo-steps">
-                {['Brief', 'Proposal', 'Offer', 'PayOS', 'Sketch', 'Final'].map((item, index) => (
-                  <div className={index < 4 ? 'is-done' : 'is-current'} key={item}>
-                    <CheckCircleOutlined />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="landing-demo-card">
-                <span>Next action</span>
-                <strong>Student nộp Sketch trước deadline</strong>
-                <p>SME theo dõi tiến trình và review trong workspace.</p>
-              </div>
-            </div>
           </div>
         </section>
 
-        <section className="landing-proof" aria-label="Điểm tin cậy D4U">
-          <div className="landing-container landing-proof-grid">
-            {PROOF_ITEMS.map(({ icon: Icon, title, copy }) => (
-              <article className="landing-proof-item" key={title}>
-                <Icon />
-                <div>
-                  <h2>{title}</h2>
-                  <p>{copy}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-section" id="roles">
-          <div className="landing-container">
-            <div className="landing-section-heading">
-              <p className="landing-eyebrow">Một nền tảng, hai phía cộng tác</p>
-              <h2>SME cần kết quả rõ. Student cần dự án thật.</h2>
-              <p>D4U giữ hai nhu cầu đó trong cùng một luồng sản phẩm: đăng dự án, ứng tuyển, offer, escrow, nộp bài và review.</p>
-            </div>
-            <div className="landing-role-grid">
-              {ROLE_ITEMS.map(({ icon: Icon, eyebrow, title, copy, action, points }) => (
-                <article className="landing-role-card" key={eyebrow}>
-                  <div className="landing-icon-tile"><Icon /></div>
-                  <p className="landing-eyebrow">{eyebrow}</p>
-                  <h3>{title}</h3>
-                  <p>{copy}</p>
-                  <ul>
-                    {points.map((point) => <li key={point}><CheckCircleOutlined /> {point}</li>)}
-                  </ul>
-                  <Button className="landing-role-action" onClick={goToDestination}>{action} <ArrowRightOutlined /></Button>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-section landing-section-soft" id="process">
-          <div className="landing-container">
-            <div className="landing-section-heading">
-              <p className="landing-eyebrow">Quy trình tương tác thực tế</p>
-              <h2>Từng bước đều có trạng thái, deadline và người chịu trách nhiệm</h2>
-              <p>Không có khoảng trống mơ hồ giữa ứng tuyển, thanh toán, nộp bài và giải ngân.</p>
-            </div>
-            <div className="landing-process-grid">
-              {PROCESS_ITEMS.map(([step, title, copy]) => (
-                <article className="landing-process-item" key={step}>
-                  <span>{step}</span>
-                  <h3>{title}</h3>
-                  <p>{copy}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-section" id="trust">
-          <div className="landing-container landing-trust-layout">
-            <div className="landing-section-heading landing-trust-heading">
-              <p className="landing-eyebrow">Tin cậy ngay trong sản phẩm</p>
-              <h2>D4U làm rõ các quyết định quan trọng trước khi dự án đi tiếp</h2>
-              <p>Verification, escrow và review milestone xuất hiện đúng lúc hai bên cần xác nhận trách nhiệm.</p>
-            </div>
-            <div className="landing-trust-list">
-              {TRUST_ITEMS.map(({ icon: Icon, title, copy }) => (
-                <article className="landing-trust-item" key={title}>
-                  <div className="landing-icon-tile landing-icon-tile-small"><Icon /></div>
+        <FadeInSection>
+          <section className="landing-proof" aria-label="Điểm tin cậy D4U">
+            <div className="landing-container landing-proof-grid">
+              {PROOF_ITEMS.map(({ icon: Icon, title, copy }) => (
+                <article className="landing-proof-item" key={title}>
+                  <Icon />
                   <div>
-                    <h3>{title}</h3>
+                    <h2>{title}</h2>
                     <p>{copy}</p>
                   </div>
                 </article>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </FadeInSection>
 
-        <section className="landing-cta">
-          <div className="landing-container landing-cta-inner">
-            <div>
-              <p className="landing-eyebrow">Bắt đầu với D4U</p>
-              <h2>Sẵn sàng cho dự án thiết kế tiếp theo?</h2>
-              <p>Tạo tài khoản theo vai trò và đi thẳng vào workflow phù hợp với bạn.</p>
+        <FadeInSection>
+          <section className="landing-section" id="roles">
+            <div className="landing-container">
+              <div className="landing-section-heading">
+                <p className="landing-eyebrow">Một nền tảng, hai phía cộng tác</p>
+                <h2>SME cần kết quả rõ. Student cần dự án thật.</h2>
+                <p>D4U giữ hai nhu cầu đó trong cùng một luồng sản phẩm: đăng dự án, ứng tuyển, offer, escrow, nộp bài và review.</p>
+              </div>
+              <div className="landing-role-grid">
+                {ROLE_ITEMS.map(({ icon: Icon, eyebrow, title, copy, action, points }) => (
+                  <article className="landing-role-card" key={eyebrow}>
+                    <div className="landing-icon-tile"><Icon /></div>
+                    <p className="landing-eyebrow">{eyebrow}</p>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                    <ul>
+                      {points.map((point) => <li key={point}><CheckCircleOutlined /> {point}</li>)}
+                    </ul>
+                    <Button className="landing-role-action" onClick={goToDestination}>{action} <ArrowRightOutlined /></Button>
+                  </article>
+                ))}
+              </div>
             </div>
-            <Button type="primary" size="large" onClick={goToDestination}>
-              {user ? 'Vào dashboard' : 'Tạo tài khoản'} <ArrowRightOutlined />
-            </Button>
-          </div>
-        </section>
+          </section>
+        </FadeInSection>
+
+        <FadeInSection>
+          <section className="landing-section landing-section-soft" id="process">
+            <div className="landing-container">
+              <div className="landing-section-heading">
+                <p className="landing-eyebrow">Quy trình tương tác thực tế</p>
+                <h2>Từng bước đều có trạng thái, deadline và người chịu trách nhiệm</h2>
+                <p>Không có khoảng trống mơ hồ giữa ứng tuyển, thanh toán, nộp bài và giải ngân.</p>
+              </div>
+              <div className="landing-process-grid">
+                {PROCESS_ITEMS.map(([step, title, copy]) => (
+                  <article className="landing-process-item" key={step}>
+                    <span>{step}</span>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        </FadeInSection>
+
+        <FadeInSection>
+          <section className="landing-section" id="trust">
+            <div className="landing-container landing-trust-layout">
+              <div className="landing-section-heading landing-trust-heading">
+                <p className="landing-eyebrow">Tin cậy ngay trong sản phẩm</p>
+                <h2>D4U làm rõ các quyết định quan trọng trước khi dự án đi tiếp</h2>
+                <p>Verification, escrow và review milestone xuất hiện đúng lúc hai bên cần xác nhận trách nhiệm.</p>
+              </div>
+              <div className="landing-trust-list">
+                {TRUST_ITEMS.map(({ icon: Icon, title, copy }) => (
+                  <article className="landing-trust-item" key={title}>
+                    <div className="landing-icon-tile landing-icon-tile-small"><Icon /></div>
+                    <div>
+                      <h3>{title}</h3>
+                      <p>{copy}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        </FadeInSection>
+
+        <FadeInSection>
+          <section className="landing-cta">
+            <div className="landing-container landing-cta-inner">
+              <div>
+                <p className="landing-eyebrow">Bắt đầu với D4U</p>
+                <h2>Sẵn sàng cho dự án thiết kế tiếp theo?</h2>
+                <p>Tạo tài khoản theo vai trò và đi thẳng vào workflow phù hợp với bạn.</p>
+              </div>
+              <Button type="primary" size="large" onClick={goToDestination}>
+                {user ? 'Vào dashboard' : 'Tạo tài khoản'} <ArrowRightOutlined />
+              </Button>
+            </div>
+          </section>
+        </FadeInSection>
       </main>
 
       <footer className="landing-footer">
         <div className="landing-container">
           <div className="landing-footer-inner">
             <div className="landing-footer-brand">
-              <D4ULogo />
+              <div className="footer-logo-wrap">
+                <D4ULogo />
+              </div>
               <p>Nền tảng kết nối doanh nghiệp và sinh viên thiết kế qua quy trình rõ ràng, tin cậy.</p>
+              <div className="footer-social">
+                <a href="#" aria-label="Twitter"><TwitterOutlined /></a>
+                <a href="https://www.facebook.com/share/1DyQ9rpGJS/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><FacebookOutlined /></a>
+                <a href="#" aria-label="Instagram"><InstagramOutlined /></a>
+                <a href="#" aria-label="LinkedIn"><LinkedinOutlined /></a>
+              </div>
             </div>
+            
             <div className="landing-footer-contact">
               <h2>Liên hệ</h2>
-              <a href={`mailto:${CONTACT_EMAIL}`}><MailOutlined /> {CONTACT_EMAIL}</a>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="footer-contact-link"><MailOutlined /> {CONTACT_EMAIL}</a>
               <p>Gửi email để được hỗ trợ về tài khoản, dự án và thanh toán escrow.</p>
             </div>
+            
             <nav className="landing-footer-nav" aria-label="Điều hướng footer">
               <h2>Khám phá D4U</h2>
               {NAV_ITEMS.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
             </nav>
           </div>
+          
           <div className="landing-footer-bottom">
             <span>© 2026 D4U - Design For You.</span>
             <span>Marketplace thiết kế dành cho doanh nghiệp và sinh viên.</span>
