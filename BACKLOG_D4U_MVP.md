@@ -66,6 +66,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Offer creation requires at least 120 hours before the Sketch deadline.
 - [x] SME can update project deadlines before offer acceptance; deadlines lock after acceptance.
 - [x] Waiting Student receives notification when SME updates project deadlines.
+- [x] Overdue pre-execution open projects auto-close when total deadline passes without an accepted offer.
 - [x] Offer starts as `WAITING_ACCEPTANCE`.
 - [x] Student can accept offer before SME funds escrow.
 - [x] Student can reject offer.
