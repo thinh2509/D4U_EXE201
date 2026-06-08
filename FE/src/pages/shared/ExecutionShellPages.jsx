@@ -3,7 +3,7 @@ import {
   FileDoneOutlined,
   FundOutlined,
   ReloadOutlined,
-  StarOutlined,
+  StarOutlined
 } from '@ant-design/icons';
 import { App, Button, Form, Input, Modal, Select, Upload } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -61,14 +61,10 @@ function formatHeroDate(value) {
 
 function resolveWorkspaceHeadline(workspace) {
   if (workspace.viewerRole === 'STUDENT') {
-    return 'Nộp bài đúng milestone, theo dõi phản hồi của SME và xử lý revision ngay trong workspace.';
+    return 'Nộp bài đúng milestone, theo dõi phản hồi và deadline của dự án.';
   }
 
-  if (workspace.nextAction === 'PAY_ESCROW') {
-    return 'Funding escrow qua PayOS để dự án bắt đầu, sau đó theo dõi Sketch, Final và các vòng review tại đây.';
-  }
-
-  return 'Theo dõi tiến trình bàn giao, kiểm tra file Student nộp và duyệt từng milestone trong một luồng rõ ràng.';
+  return 'Theo dõi tiến trình, kiểm tra bài nộp và trạng thái thanh toán của dự án.';
 }
 
 function resolveWorkspaceMeta(workspace) {
@@ -104,8 +100,8 @@ function WorkspaceHero({ workspace, onRefresh }) {
 
   return (
     <section className="project-hero-card workspace-hero-card">
-      <div className="project-hero-main">
-        <div className="project-hero-copy">
+      <div className="project-hero-main workspace-hero-main">
+        <div className="project-hero-copy workspace-hero-copy">
           <span className="project-hero-eyebrow">
             {workspace.viewerRole === 'STUDENT' ? 'Student workspace' : 'SME workspace'}
           </span>
@@ -115,14 +111,14 @@ function WorkspaceHero({ workspace, onRefresh }) {
           </div>
           <p className="project-hero-subtitle">{resolveWorkspaceHeadline(workspace)}</p>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={onRefresh}>
+        <Button className="workspace-refresh-button" icon={<ReloadOutlined />} onClick={onRefresh}>
           Làm mới
         </Button>
       </div>
 
-      <div className="project-hero-meta">
+      <div className="project-hero-meta workspace-hero-meta">
         {meta.map((item) => (
-          <div className="project-meta-chip" key={item.label}>
+          <div className="project-meta-chip workspace-meta-chip" key={item.label}>
             <span className="project-meta-icon">{item.icon}</span>
             <div className="project-meta-copy">
               <span>{item.label}</span>
@@ -487,8 +483,8 @@ export function ProjectExecutionPage() {
 
       <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
-        <div className="grid gap-4">
+      <div className="workspace-layout">
+        <div className="workspace-main-column">
           {workspace.viewerRole === 'STUDENT' ? (
             <StudentSubmissionWorkspace
               workspace={workspace}
@@ -523,6 +519,7 @@ export function ProjectExecutionPage() {
               onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
             />
           )}
+
           <SubmissionMilestoneBoard
             submissions={submissions}
             reviewActions={reviewActions}
@@ -530,7 +527,7 @@ export function ProjectExecutionPage() {
           />
         </div>
 
-        <aside className="order-first grid gap-4 lg:order-none lg:sticky lg:top-[88px]">
+        <aside className="workspace-sidebar">
           <WorkspaceDeadlinePanel workspace={workspace} now={now} />
           <WorkspaceSummaryPanel workspace={workspace} />
         </aside>
