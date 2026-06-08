@@ -100,6 +100,7 @@ public static class DependencyInjection
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddHostedService<OfferPaymentExpiryBackgroundService>();
+        services.AddHostedService<PreExecutionProjectExpiryBackgroundService>();
         services.AddHostedService<SubmissionAutoApprovalBackgroundService>();
         services.AddHostedService<ProjectTotalDeadlineBackgroundService>();
         services.AddHostedService<EscrowReleaseBackgroundService>();

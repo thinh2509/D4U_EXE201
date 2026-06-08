@@ -1,18 +1,20 @@
 import {
+  CalendarOutlined,
   FileDoneOutlined,
+  FundOutlined,
   ReloadOutlined,
-  StarOutlined,
+  StarOutlined
 } from '@ant-design/icons';
 import { App, Button, Form, Input, Modal, Select, Upload } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
+import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { fileApi } from '../../services/fileApi.js';
 import { paymentApi } from '../../services/paymentApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatFileSize, getFileExtension } from '../../utils/format.js';
+import { formatCurrency, formatFileSize, getFileExtension } from '../../utils/format.js';
 import { FeatureShellPage } from './MvpShellPage.jsx';
 import {
   SmeReviewWorkspace,
@@ -44,6 +46,90 @@ function getSubmissionMilestone(workspace, submissions) {
   if (workspace.nextAction === 'SUBMIT_SKETCH') return 'SKETCH';
   if (workspace.nextAction === 'SUBMIT_FINAL') return 'FINAL';
   return submissions.find((item) => ['REVISION_REQUESTED', 'INVALID_REPORTED'].includes(item.status))?.milestoneType;
+}
+
+function formatHeroDate(value) {
+  if (!value) return 'Chưa cập nhật';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value)).replace(',', ' ·');
+}
+
+function resolveWorkspaceHeadline(workspace) {
+  if (workspace.viewerRole === 'STUDENT') {
+    return 'Nộp bài đúng milestone, theo dõi phản hồi và deadline của dự án.';
+  }
+
+  return 'Theo dõi tiến trình, kiểm tra bài nộp và trạng thái thanh toán của dự án.';
+}
+
+function resolveWorkspaceMeta(workspace) {
+  const activeDeadline = workspace.nextAction === 'PAY_ESCROW'
+    ? workspace.offer?.paymentDueAt
+    : workspace.nextAction === 'SUBMIT_SKETCH'
+      ? workspace.sketchDeadlineAt
+      : workspace.nextAction === 'SUBMIT_FINAL'
+        ? workspace.finalDeadlineAt
+        : workspace.totalDeadlineAt;
+
+  return [
+    {
+      label: 'Ngân sách',
+      value: formatCurrency(workspace.budgetAmount, workspace.currency),
+      icon: <FundOutlined />
+    },
+    {
+      label: 'Trạng thái',
+      value: <StatusBadge status={workspace.projectStatus} />,
+      icon: <FileDoneOutlined />
+    },
+    {
+      label: workspace.nextAction === 'PAY_ESCROW' ? 'Mốc thanh toán' : 'Mốc gần nhất',
+      value: formatHeroDate(activeDeadline),
+      icon: <CalendarOutlined />
+    }
+  ];
+}
+
+function WorkspaceHero({ workspace, onRefresh }) {
+  const meta = resolveWorkspaceMeta(workspace);
+
+  return (
+    <section className="workspace-v2-hero">
+      <div className="workspace-v2-hero-main">
+        <div className="workspace-v2-hero-copy">
+          <span className="workspace-v2-hero-eyebrow">
+            {workspace.viewerRole === 'STUDENT' ? 'Student workspace' : 'SME workspace'}
+          </span>
+          <div className="workspace-v2-hero-title-row">
+            <h1>{workspace.projectTitle}</h1>
+            <StatusBadge status={workspace.projectStatus} />
+          </div>
+          <p>{resolveWorkspaceHeadline(workspace)}</p>
+        </div>
+
+        <Button className="workspace-v2-refresh-button" icon={<ReloadOutlined />} onClick={onRefresh}>
+          Làm mới
+        </Button>
+      </div>
+
+      <div className="workspace-v2-stats">
+        {meta.map((item) => (
+          <div className="workspace-v2-stat-card" key={item.label}>
+            <span className="workspace-v2-stat-icon">{item.icon}</span>
+            <div className="workspace-v2-stat-copy">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function ProjectExecutionPage() {
@@ -394,51 +480,49 @@ export function ProjectExecutionPage() {
 
   return (
     <>
-      <PageHeader
-        icon={<FileDoneOutlined />}
-        title={workspace.projectTitle}
-        description={workspace.viewerRole === 'STUDENT' ? 'Nộp bài và theo dõi phản hồi từ SME' : 'Theo dõi tiến trình và duyệt bài Student'}
-        extra={<Button icon={<ReloadOutlined />} onClick={() => loadWorkspace()}>Làm mới</Button>}
-      />
+      <WorkspaceHero workspace={workspace} onRefresh={() => loadWorkspace()} />
 
-      <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
+      <div className="workspace-v2-shell">
+        <div className="workspace-v2-primary-column">
+          <section className="workspace-v2-control-layer">
+            <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_310px]">
-        <div className="grid gap-4">
-          {workspace.viewerRole === 'STUDENT' ? (
-            <StudentSubmissionWorkspace
-              workspace={workspace}
-              canSubmit={canSubmit}
-              milestoneType={milestoneType}
-              latestSubmission={latestSubmission}
-              latestReviewAction={latestReviewAction}
-              now={now}
-              form={submissionForm}
-              draftFiles={draftFiles}
-              acting={acting}
-              canAbandon={canAbandon}
-              onAddFile={addDraftFile}
-              onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
-              onSubmit={openSubmitConfirmation}
-              onAbandon={abandonProject}
-            />
-          ) : (
-            <SmeReviewWorkspace
-              workspace={workspace}
-              canReview={canReview}
-              latestSubmission={latestSubmission}
-              now={now}
-              acting={acting}
-              paymentReturnTimedOut={paymentReturnTimedOut}
-              checkingPayment={checkingPaymentReturn}
-              onPayment={openPayment}
-              onCheckPayment={checkPaymentReturnNow}
-              onDownload={downloadSubmissionFile}
-              onApprove={approveSubmission}
-              onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
-              onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
-            />
-          )}
+            {workspace.viewerRole === 'STUDENT' ? (
+              <StudentSubmissionWorkspace
+                workspace={workspace}
+                canSubmit={canSubmit}
+                milestoneType={milestoneType}
+                latestSubmission={latestSubmission}
+                latestReviewAction={latestReviewAction}
+                now={now}
+                form={submissionForm}
+                draftFiles={draftFiles}
+                acting={acting}
+                canAbandon={canAbandon}
+                onAddFile={addDraftFile}
+                onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
+                onSubmit={openSubmitConfirmation}
+                onAbandon={abandonProject}
+              />
+            ) : (
+              <SmeReviewWorkspace
+                workspace={workspace}
+                canReview={canReview}
+                latestSubmission={latestSubmission}
+                now={now}
+                acting={acting}
+                paymentReturnTimedOut={paymentReturnTimedOut}
+                checkingPayment={checkingPaymentReturn}
+                onPayment={openPayment}
+                onCheckPayment={checkPaymentReturnNow}
+                onDownload={downloadSubmissionFile}
+                onApprove={approveSubmission}
+                onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
+                onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
+              />
+            )}
+          </section>
+
           <SubmissionMilestoneBoard
             submissions={submissions}
             reviewActions={reviewActions}
@@ -446,7 +530,7 @@ export function ProjectExecutionPage() {
           />
         </div>
 
-        <aside className="order-first grid gap-4 lg:order-none lg:sticky lg:top-[88px]">
+        <aside className="workspace-v2-sidebar">
           <WorkspaceDeadlinePanel workspace={workspace} now={now} />
           <WorkspaceSummaryPanel workspace={workspace} />
         </aside>
@@ -462,9 +546,9 @@ export function ProjectExecutionPage() {
         onCancel={() => setConfirmSubmitOpen(false)}
       >
         <p>{submissionForm.getFieldValue('description') || 'Không có mô tả.'}</p>
-        <div className="mt-3 grid gap-2">
+        <div className="workspace-v2-modal-file-list">
           {draftFiles.map((file) => (
-            <div className="workspace-file-row" key={file.uid}>
+            <div className="workspace-v2-draft-file" key={file.uid}>
               <strong>{file.name}</strong>
               <span className="muted-text">{formatFileSize(file.size)}</span>
             </div>

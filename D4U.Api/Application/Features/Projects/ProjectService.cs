@@ -210,6 +210,7 @@ public sealed class ProjectService(
 
         var previousStatus = project.Status;
         var now = DateTimeOffset.UtcNow;
+        EnsureProjectHasNotPassedTotalDeadline(project, now, "Project total deadline has passed. Update deadlines before publishing.");
         project.Status = ProjectStatus.OPEN;
         project.PublishedAt = now;
         project.UpdatedAt = now;
@@ -306,6 +307,7 @@ public sealed class ProjectService(
         CancellationToken cancellationToken = default)
     {
         var user = await RequireUserAsync(userId, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
         var studentProfile = user.Role == UserRole.STUDENT
             ? await unitOfWork.Repository<StudentProfile>().FirstOrDefaultAsync(
                 profile => profile.UserId == userId,
@@ -316,7 +318,9 @@ public sealed class ProjectService(
             from project in unitOfWork.Repository<Project>().Query()
             join category in unitOfWork.Repository<DesignCategory>().Query()
                 on project.DesignCategoryId equals category.Id
-            where project.Status == ProjectStatus.OPEN && project.ProjectType == ProjectType.OPEN
+            where project.Status == ProjectStatus.OPEN &&
+                project.ProjectType == ProjectType.OPEN &&
+                project.TotalDeadlineAt > now
             orderby project.PublishedAt descending
             select new { Project = project, Category = category })
             .ToListAsync(cancellationToken);
@@ -461,6 +465,11 @@ public sealed class ProjectService(
         {
             throw new InvalidOperationException("Students can apply only to open projects.");
         }
+
+        EnsureProjectHasNotPassedTotalDeadline(
+            project,
+            DateTimeOffset.UtcNow,
+            "Project total deadline has passed. This project is no longer accepting applications.");
 
         if (project.SelectedStudentProfileId.HasValue)
         {
@@ -724,6 +733,12 @@ public sealed class ProjectService(
             throw new InvalidOperationException("Project is not available for offer creation.");
         }
 
+        var now = DateTimeOffset.UtcNow;
+        EnsureProjectHasNotPassedTotalDeadline(
+            project,
+            now,
+            "Project total deadline has passed. Update deadlines before creating an offer.");
+
         var studentProfile = await RequireVerifiedStudentProfileByIdAsync(request.StudentProfileId, cancellationToken);
         ProjectApplication? application = null;
 
@@ -765,7 +780,6 @@ public sealed class ProjectService(
             throw new InvalidOperationException("An active offer already exists for this student and project.");
         }
 
-        var now = DateTimeOffset.UtcNow;
         if (project.SketchDeadlineAt - now < MinimumOfferLeadTime)
         {
             throw new ConflictException(
@@ -1925,6 +1939,17 @@ public sealed class ProjectService(
         if (finalDeadlineAt > totalDeadlineAt)
         {
             throw new InvalidOperationException("Final deadline must be before or equal to total deadline.");
+        }
+    }
+
+    private static void EnsureProjectHasNotPassedTotalDeadline(
+        Project project,
+        DateTimeOffset now,
+        string errorMessage)
+    {
+        if (project.TotalDeadlineAt <= now)
+        {
+            throw new ConflictException(errorMessage);
         }
     }
 
