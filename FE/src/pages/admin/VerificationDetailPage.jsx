@@ -10,7 +10,6 @@ import {
   VerificationDecisionPanel,
   VerificationDetailHeader,
   VerificationDocumentViewer,
-  VerificationStatusCard,
   StudentProfileCard
 } from './VerificationDetailSections.jsx';
 
@@ -157,6 +156,7 @@ export function VerificationDetailPage() {
   return (
     <>
       <VerificationDetailHeader
+        detail={detail}
         acting={acting}
         canReview={canReview}
         onApprove={approve}
@@ -177,7 +177,6 @@ export function VerificationDetailPage() {
 
         <aside className="verification-review-sidebar">
           <div className="verification-review-sidebar-sticky">
-            <VerificationStatusCard detail={detail} />
             <VerificationDecisionPanel
               acting={acting}
               canReview={canReview}

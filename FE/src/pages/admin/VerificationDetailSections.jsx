@@ -1,5 +1,6 @@
 import {
   ArrowLeftOutlined,
+  CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
@@ -9,12 +10,13 @@ import {
   EyeOutlined,
   FileImageOutlined,
   FilePdfOutlined,
+  FileProtectOutlined,
   FileTextOutlined,
-  InfoCircleOutlined,
   MailOutlined,
+  ProfileOutlined,
   SafetyCertificateOutlined
 } from '@ant-design/icons';
-import { Alert, Button, Card, Empty, Space, Tag, Tooltip } from 'antd';
+import { Alert, Button, Card, Space, Tag, Tooltip } from 'antd';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { formatDate, formatFileSize } from '../../utils/format.js';
 
@@ -52,6 +54,67 @@ export function buildChecklistItems() {
     label,
     helper: 'Đối chiếu thủ công trước khi đưa ra quyết định.'
   }));
+}
+
+function buildHeaderStats(detail) {
+  const fileKind = getVerificationFileKind(detail);
+
+  return [
+    {
+      key: 'document-kind',
+      icon: fileKind.icon,
+      label: 'Loại tài liệu',
+      value: fileKind.label
+    },
+    {
+      key: 'submitted-at',
+      icon: <CalendarOutlined />,
+      label: 'Ngày gửi',
+      value: formatDate(detail.submittedAt)
+    },
+    {
+      key: 'reviewed-at',
+      icon: <ClockCircleOutlined />,
+      label: 'Ngày xử lý',
+      value: detail.reviewedAt ? formatDate(detail.reviewedAt) : 'Chưa xử lý',
+      muted: !detail.reviewedAt
+    },
+    {
+      key: 'profile-status',
+      icon: <ProfileOutlined />,
+      label: 'Hồ sơ sinh viên',
+      value: <StatusBadge status={detail.verificationStatus} />
+    }
+  ];
+}
+
+function buildDocumentStripItems(detail) {
+  const fileKind = getVerificationFileKind(detail);
+
+  return [
+    {
+      key: 'filename',
+      label: 'Tên file',
+      value: detail.originalFilename,
+      mono: true,
+      wide: true
+    },
+    {
+      key: 'kind',
+      label: 'Loại file',
+      value: fileKind.label
+    },
+    {
+      key: 'size',
+      label: 'Dung lượng',
+      value: formatFileSize(detail.fileSizeBytes)
+    },
+    {
+      key: 'submitted',
+      label: 'Gửi lúc',
+      value: formatDate(detail.submittedAt)
+    }
+  ];
 }
 
 function MetaItem({ label, value, compact = false, mono = false }) {
@@ -92,38 +155,80 @@ function InfoList({ items, allowCopy = false, onCopy }) {
   );
 }
 
-export function VerificationDetailHeader({ acting, canReview, onApprove, onBack, onReject }) {
+export function VerificationDetailHeader({ acting, canReview, detail, onApprove, onBack, onReject }) {
+  const headerStats = buildHeaderStats(detail);
+
   return (
     <div className="verification-header-shell">
-      <div className="verification-header-copy">
-        <h1>Chi tiết xác thực</h1>
-        <p>Kiểm tra giấy tờ và đối chiếu hồ sơ trước khi đưa ra quyết định.</p>
+      <div className="verification-header-main">
+        <div className="verification-header-copy">
+          <div className="verification-header-badges">
+            <StatusBadge status={detail.status} />
+            <Tag className="verification-sensitive-tag" icon={<SafetyCertificateOutlined />}>
+              Dữ liệu nhạy cảm
+            </Tag>
+          </div>
+          <h1>Chi tiết xác thực</h1>
+          <p>Kiểm tra giấy tờ và đối chiếu hồ sơ trước khi đưa ra quyết định.</p>
+        </div>
+
+        <div className="verification-header-stats">
+          {headerStats.map((item) => (
+            <div className={`verification-header-stat ${item.muted ? 'is-muted' : ''}`} key={item.key}>
+              <div className="verification-header-stat-icon" aria-hidden="true">
+                {item.icon}
+              </div>
+              <div className="verification-header-stat-copy">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="verification-sensitive-note">
+          <MailOutlined />
+          <span>Email được mask mặc định để an toàn hơn khi demo và review nội bộ.</span>
+        </div>
       </div>
-      <Space className="verification-header-actions" size={12} wrap>
-        <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-          Quay lại
-        </Button>
-        <Button
-          className="verification-action-button is-primary"
-          disabled={!canReview}
-          icon={<CheckCircleOutlined />}
-          loading={acting}
-          onClick={onApprove}
-          type="primary"
-        >
-          Duyệt
-        </Button>
-        <Button
-          className="verification-action-button is-danger-outline"
-          danger
-          disabled={!canReview}
-          icon={<CloseCircleOutlined />}
-          loading={acting}
-          onClick={onReject}
-        >
-          Từ chối
-        </Button>
-      </Space>
+
+      <div className="verification-header-rail">
+        <div className="verification-header-rail-copy">
+          <strong>{canReview ? 'Sẵn sàng review' : 'Đã có kết quả xử lý'}</strong>
+          <span>
+            {canReview
+              ? 'Ưu tiên đối chiếu metadata và preview trước khi duyệt hoặc từ chối.'
+              : 'Thao tác được khóa để giữ nguyên flow xác thực hiện tại.'}
+          </span>
+        </div>
+        <Space className="verification-header-actions" direction="vertical" size={10}>
+          <Button className="verification-action-button is-secondary" icon={<ArrowLeftOutlined />} onClick={onBack}>
+            Quay lại
+          </Button>
+          <Button
+            block
+            className="verification-action-button is-primary"
+            disabled={!canReview}
+            icon={<CheckCircleOutlined />}
+            loading={acting}
+            onClick={onApprove}
+            type="primary"
+          >
+            Duyệt
+          </Button>
+          <Button
+            block
+            className="verification-action-button is-danger-outline"
+            danger
+            disabled={!canReview}
+            icon={<CloseCircleOutlined />}
+            loading={acting}
+            onClick={onReject}
+          >
+            Từ chối
+          </Button>
+        </Space>
+      </div>
     </div>
   );
 }
@@ -154,6 +259,7 @@ export function VerificationDocumentViewer({
   const isImage = fileKind.key === 'image';
   const isPdf = fileKind.key === 'pdf';
   const hasPreview = documentUrl && (isImage || isPdf);
+  const stripItems = buildDocumentStripItems(detail);
 
   return (
     <Card
@@ -182,12 +288,23 @@ export function VerificationDocumentViewer({
 
       <div className="verification-document-toolbar">
         <div className="verification-document-toolbar-copy">
-          <span>{detail.originalFilename}</span>
-          <small>
-            {detail.mimeType} · {formatFileSize(detail.fileSizeBytes)} · Gửi {formatDate(detail.submittedAt)}
-          </small>
+          <div className="verification-document-toolbar-kicker">
+            <FileProtectOutlined />
+            <span>Metadata tài liệu</span>
+          </div>
+          <div className="verification-document-strip">
+            {stripItems.map((item) => (
+              <div
+                className={`verification-document-strip-item ${item.wide ? 'is-wide' : ''} ${item.mono ? 'is-mono' : ''}`}
+                key={item.key}
+              >
+                <span>{item.label}</span>
+                <strong title={typeof item.value === 'string' ? item.value : undefined}>{item.value}</strong>
+              </div>
+            ))}
+          </div>
         </div>
-        <Space size={8} wrap>
+        <Space className="verification-document-toolbar-actions" size={8} wrap>
           <Button
             aria-label="Mở tài liệu trong tab mới"
             icon={<EyeOutlined />}
@@ -355,32 +472,6 @@ export function VerificationDecisionPanel({
           type="error"
         />
       ) : null}
-    </Card>
-  );
-}
-
-export function VerificationStatusCard({ detail }) {
-  return (
-    <Card className="verification-review-card verification-status-card" title="Trạng thái xác thực">
-      <div className="verification-status-topline">
-        <StatusBadge status={detail.status} />
-        <Tag className="verification-sensitive-tag" icon={<SafetyCertificateOutlined />}>
-          Dữ liệu nhạy cảm
-        </Tag>
-      </div>
-      <p className="verification-sensitive-copy">
-        Chỉ sử dụng thông tin này cho mục đích xác thực tài khoản.
-      </p>
-      <div className="verification-status-grid">
-        <MetaItem compact label="Trạng thái hồ sơ sinh viên" value={<StatusBadge status={detail.verificationStatus} />} />
-        <MetaItem compact label="Ngày gửi" value={formatDate(detail.submittedAt)} />
-        <MetaItem compact label="Ngày xử lý" value={formatDate(detail.reviewedAt)} />
-        <MetaItem compact label="Rút tiền" value={detail.canWithdraw ? 'Được phép' : 'Chưa đủ điều kiện'} />
-      </div>
-      <div className="verification-sensitive-note">
-        <MailOutlined />
-        <span>Email được mask mặc định để an toàn hơn khi demo và review nội bộ.</span>
-      </div>
     </Card>
   );
 }
