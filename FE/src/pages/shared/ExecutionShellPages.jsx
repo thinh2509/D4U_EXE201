@@ -88,7 +88,7 @@ function resolveWorkspaceMeta(workspace) {
       icon: <FileDoneOutlined />
     },
     {
-      label: workspace.nextAction === 'PAY_ESCROW' ? 'Hạn thanh toán' : 'Mốc gần nhất',
+      label: workspace.nextAction === 'PAY_ESCROW' ? 'Mốc thanh toán' : 'Mốc gần nhất',
       value: formatHeroDate(activeDeadline),
       icon: <CalendarOutlined />
     }
@@ -99,28 +99,29 @@ function WorkspaceHero({ workspace, onRefresh }) {
   const meta = resolveWorkspaceMeta(workspace);
 
   return (
-    <section className="project-hero-card workspace-hero-card">
-      <div className="project-hero-main workspace-hero-main">
-        <div className="project-hero-copy workspace-hero-copy">
-          <span className="project-hero-eyebrow">
+    <section className="workspace-v2-hero">
+      <div className="workspace-v2-hero-main">
+        <div className="workspace-v2-hero-copy">
+          <span className="workspace-v2-hero-eyebrow">
             {workspace.viewerRole === 'STUDENT' ? 'Student workspace' : 'SME workspace'}
           </span>
-          <div className="project-hero-heading-row">
+          <div className="workspace-v2-hero-title-row">
             <h1>{workspace.projectTitle}</h1>
             <StatusBadge status={workspace.projectStatus} />
           </div>
-          <p className="project-hero-subtitle">{resolveWorkspaceHeadline(workspace)}</p>
+          <p>{resolveWorkspaceHeadline(workspace)}</p>
         </div>
-        <Button className="workspace-refresh-button" icon={<ReloadOutlined />} onClick={onRefresh}>
+
+        <Button className="workspace-v2-refresh-button" icon={<ReloadOutlined />} onClick={onRefresh}>
           Làm mới
         </Button>
       </div>
 
-      <div className="project-hero-meta workspace-hero-meta">
+      <div className="workspace-v2-stats">
         {meta.map((item) => (
-          <div className="project-meta-chip workspace-meta-chip" key={item.label}>
-            <span className="project-meta-icon">{item.icon}</span>
-            <div className="project-meta-copy">
+          <div className="workspace-v2-stat-card" key={item.label}>
+            <span className="workspace-v2-stat-icon">{item.icon}</span>
+            <div className="workspace-v2-stat-copy">
               <span>{item.label}</span>
               <strong>{item.value}</strong>
             </div>
@@ -483,8 +484,8 @@ export function ProjectExecutionPage() {
 
       <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-      <div className="workspace-layout">
-        <div className="workspace-main-column">
+      <div className="workspace-v2-layout">
+        <div className="workspace-v2-main">
           {workspace.viewerRole === 'STUDENT' ? (
             <StudentSubmissionWorkspace
               workspace={workspace}
@@ -527,7 +528,7 @@ export function ProjectExecutionPage() {
           />
         </div>
 
-        <aside className="workspace-sidebar">
+        <aside className="workspace-v2-sidebar">
           <WorkspaceDeadlinePanel workspace={workspace} now={now} />
           <WorkspaceSummaryPanel workspace={workspace} />
         </aside>
@@ -543,9 +544,9 @@ export function ProjectExecutionPage() {
         onCancel={() => setConfirmSubmitOpen(false)}
       >
         <p>{submissionForm.getFieldValue('description') || 'Không có mô tả.'}</p>
-        <div className="mt-3 grid gap-2">
+        <div className="workspace-v2-modal-file-list">
           {draftFiles.map((file) => (
-            <div className="workspace-file-row" key={file.uid}>
+            <div className="workspace-v2-draft-file" key={file.uid}>
               <strong>{file.name}</strong>
               <span className="muted-text">{formatFileSize(file.size)}</span>
             </div>

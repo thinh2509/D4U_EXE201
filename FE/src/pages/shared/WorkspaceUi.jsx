@@ -12,7 +12,7 @@ import {
   UploadOutlined,
   WarningOutlined
 } from '@ant-design/icons';
-import { Alert, Button, Card, Empty, Form, Input, Tag, Upload } from 'antd';
+import { Button, Card, Empty, Form, Input, Tag, Upload } from 'antd';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { formatCurrency, formatFileSize, getFileExtension } from '../../utils/format.js';
 
@@ -40,21 +40,23 @@ export function formatCountdown(value, now = Date.now()) {
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
   const parts = [];
+
   if (days) parts.push(`${days} ngày`);
   if (hours && parts.length < 2) parts.push(`${hours} giờ`);
   if (!days && minutes && parts.length < 2) parts.push(`${minutes} phút`);
+
   return `${overdue ? 'Quá hạn' : 'Còn'} ${parts.join(' ')}`;
 }
 
-function DeadlineValue({ value, now, align = 'right' }) {
+function DeadlinePill({ value, now }) {
   const countdown = formatCountdown(value, now);
   const isOverdue = countdown?.startsWith('Quá hạn');
 
   return (
-    <div className={`workspace-deadline-value ${align === 'left' ? 'align-left' : 'align-right'}`}>
-      <strong className="workspace-date-value">{formatWorkspaceDate(value)}</strong>
+    <div className="workspace-v2-deadline-pill">
+      <strong>{formatWorkspaceDate(value)}</strong>
       {countdown ? (
-        <span className={`workspace-countdown ${isOverdue ? 'is-overdue' : 'is-active'}`}>
+        <span className={`workspace-v2-countdown ${isOverdue ? 'is-overdue' : 'is-active'}`}>
           <ClockCircleOutlined />
           {countdown}
         </span>
@@ -84,12 +86,12 @@ function resolveActiveDeadline(workspace, latestSubmission, latestReviewAction) 
 
 function WorkspaceStatusAlert({ tone = 'info', icon, title, description, actions = null }) {
   return (
-    <div className={`workspace-status-alert is-${tone}`}>
-      <div className="workspace-status-alert-icon">{icon}</div>
-      <div className="workspace-status-alert-copy">
+    <div className={`workspace-v2-status-alert is-${tone}`}>
+      <div className="workspace-v2-status-alert-icon">{icon}</div>
+      <div className="workspace-v2-status-alert-copy">
         <strong>{title}</strong>
         <p>{description}</p>
-        {actions ? <div className="workspace-status-alert-actions">{actions}</div> : null}
+        {actions ? <div className="workspace-v2-status-alert-actions">{actions}</div> : null}
       </div>
     </div>
   );
@@ -97,11 +99,11 @@ function WorkspaceStatusAlert({ tone = 'info', icon, title, description, actions
 
 function EmptyReviewState() {
   return (
-    <div className="workspace-empty-review">
-      <div className="workspace-empty-review-icon">
+    <div className="workspace-v2-empty-state">
+      <div className="workspace-v2-empty-state-icon">
         <InboxOutlined />
       </div>
-      <div className="workspace-empty-review-copy">
+      <div className="workspace-v2-empty-state-copy">
         <strong>Chưa có bản mới cần xử lý</strong>
         <p>Workspace tự cập nhật mỗi 5 giây.</p>
       </div>
@@ -117,20 +119,21 @@ export function WorkspaceDeadlinePanel({ workspace, now }) {
   ];
 
   return (
-    <Card className="workspace-side-card workspace-summary-card" title="Mốc thời gian">
-      <div className="workspace-deadline-timeline">
+    <Card className="workspace-v2-sidebar-card workspace-v2-timeline-card" title="Mốc thời gian">
+      <div className="workspace-v2-timeline-list">
         {deadlines.map(([label, value], index) => {
           const countdown = formatCountdown(value, now);
           const isOverdue = countdown?.startsWith('Quá hạn');
+
           return (
-            <div className={`workspace-deadline-track ${isOverdue ? 'is-overdue' : 'is-active'}`} key={label}>
-              {index < deadlines.length - 1 ? <span className="workspace-deadline-track-line" /> : null}
-              <span className="workspace-deadline-track-dot">
+            <div className={`workspace-v2-timeline-row ${isOverdue ? 'is-overdue' : 'is-active'}`} key={label}>
+              {index < deadlines.length - 1 ? <span className="workspace-v2-timeline-row-line" /> : null}
+              <span className="workspace-v2-timeline-row-dot">
                 {isOverdue ? <WarningOutlined /> : <ClockCircleOutlined />}
               </span>
-              <div className="workspace-deadline-track-copy">
-                <span className="workspace-summary-label">{label}</span>
-                <DeadlineValue value={value} now={now} align="left" />
+              <div className="workspace-v2-timeline-row-copy">
+                <span className="workspace-v2-label">{label}</span>
+                <DeadlinePill value={value} now={now} />
               </div>
             </div>
           );
@@ -156,6 +159,7 @@ function getMilestoneState(workspace, submissions, milestoneType) {
   if (workspace.nextAction === `SUBMIT_${milestoneType}`) {
     return { tone: 'active', label: isStudent ? `Cần nộp ${milestoneLabel}` : 'Chờ Student nộp' };
   }
+
   return { tone: 'pending', label: 'Chưa bắt đầu' };
 }
 
@@ -175,19 +179,19 @@ export function WorkspaceProgressTimeline({ workspace, submissions }) {
   ];
 
   return (
-    <section className="workspace-timeline">
-      <div className="workspace-progress-grid">
+    <section className="workspace-v2-stepper">
+      <div className="workspace-v2-stepper-grid">
         {steps.map(([title, Icon, state], index) => (
-          <div className={`workspace-timeline-step ${state.tone === 'active' ? 'is-active' : ''}`} key={title}>
+          <div className={`workspace-v2-step ${state.tone === 'active' ? 'is-active' : ''}`} key={title}>
             {index < steps.length - 1 ? (
-              <span className={`workspace-timeline-line ${state.tone === 'complete' ? 'is-complete' : ''}`} />
+              <span className={`workspace-v2-step-line ${state.tone === 'complete' ? 'is-complete' : ''}`} />
             ) : null}
-            <span className={`workspace-timeline-icon is-${state.tone}`}>
+            <span className={`workspace-v2-step-node is-${state.tone}`}>
               {state.tone === 'complete' ? <CheckCircleOutlined /> : <Icon />}
             </span>
-            <div className="workspace-timeline-copy">
+            <div className="workspace-v2-step-copy">
               <strong>{title}</strong>
-              <span className={state.tone === 'active' ? 'is-active' : ''}>{state.label}</span>
+              <span>{state.label}</span>
             </div>
           </div>
         ))}
@@ -205,6 +209,7 @@ function getSubmissionFeedback(submission, reviewActions) {
 function getAttachmentMeta(file) {
   const size = file.size ?? file.sizeBytes ?? file.fileSize;
   const extension = getFileExtension(file.originalFilename || file.fileName || '');
+
   return {
     extension,
     sizeLabel: size ? formatFileSize(size) : extension ? extension.toUpperCase() : 'Tệp đính kèm'
@@ -215,11 +220,11 @@ function AttachmentCard({ file, onDownload }) {
   const meta = getAttachmentMeta(file);
 
   return (
-    <div className="workspace-attachment-card">
-      <span className="workspace-attachment-icon" aria-hidden="true">
+    <div className="workspace-v2-attachment-card">
+      <span className="workspace-v2-attachment-icon" aria-hidden="true">
         {meta.extension === 'pdf' ? <FilePdfOutlined /> : <FileTextOutlined />}
       </span>
-      <div className="workspace-attachment-copy">
+      <div className="workspace-v2-attachment-copy">
         <strong title={file.originalFilename}>{file.originalFilename}</strong>
         <span>{meta.sizeLabel}</span>
       </div>
@@ -231,9 +236,10 @@ function AttachmentCard({ file, onDownload }) {
 }
 
 function SubmissionFiles({ files, onDownload }) {
-  if (!files.length) return <span className="workspace-muted">Không có file đính kèm</span>;
+  if (!files.length) return <span className="workspace-v2-muted">Không có file đính kèm</span>;
+
   return (
-    <div className="workspace-attachment-list">
+    <div className="workspace-v2-attachment-list">
       {files.map((file) => (
         <AttachmentCard key={file.id} file={file} onDownload={onDownload} />
       ))}
@@ -249,81 +255,88 @@ function SubmissionRecord({ submission, reviewActions, onDownload, isLatestWaiti
   const approvedAt = submission.approvedAt || submission.autoApprovedAt;
 
   return (
-    <article className={`workspace-submission-record ${isLatestWaiting ? 'is-waiting' : ''}`}>
-      <div className="workspace-submission-top">
-        <div className="workspace-submission-heading">
-          <div className="workspace-submission-title-row">
-            <h4 className="workspace-submission-title">{title}</h4>
+    <article className={`workspace-v2-submission-card ${isLatestWaiting ? 'is-waiting' : ''}`}>
+      <div className="workspace-v2-submission-card-head">
+        <div>
+          <div className="workspace-v2-submission-title-row">
+            <h4>{title}</h4>
             <StatusBadge status={submission.status} />
             {isLatestWaiting ? <Tag color="processing">Đang chờ SME duyệt</Tag> : null}
           </div>
-          <div className="workspace-submission-meta-grid">
-            <div>
-              <span>Student nộp</span>
-              <strong>{formatWorkspaceDate(submission.submittedAt)}</strong>
-            </div>
-            <div>
-              <span>SME duyệt</span>
-              <strong>{approvedAt ? formatWorkspaceDate(approvedAt) : 'Chưa duyệt'}</strong>
-            </div>
-            <div>
-              <span>Trạng thái</span>
-              <strong>{submission.status}</strong>
-            </div>
-          </div>
+          <span className="workspace-v2-caption">
+            {submission.submissionType === 'REVISION' ? 'Revision submission' : 'Milestone submission'}
+          </span>
+        </div>
+        <span className="workspace-v2-submission-status">
+          {approvedAt ? 'Đã duyệt' : isLatestWaiting ? 'Chờ duyệt' : submission.status}
+        </span>
+      </div>
+
+      <div className="workspace-v2-submission-meta">
+        <div>
+          <span>Student nộp</span>
+          <strong>{formatWorkspaceDate(submission.submittedAt)}</strong>
+        </div>
+        <div>
+          <span>SME duyệt</span>
+          <strong>{approvedAt ? formatWorkspaceDate(approvedAt) : 'Chưa duyệt'}</strong>
+        </div>
+        <div>
+          <span>Trạng thái</span>
+          <strong>{submission.status}</strong>
         </div>
       </div>
 
-      <div className="workspace-submission-body">
-        <div className="workspace-submission-content">
-          <span className="workspace-summary-label">Mô tả</span>
-          <p className="workspace-submission-description">{submission.description || 'Không có mô tả.'}</p>
-        </div>
+      <div className="workspace-v2-submission-block">
+        <span className="workspace-v2-label">Mô tả</span>
+        <p>{submission.description || 'Không có mô tả.'}</p>
+      </div>
 
-        <div className="workspace-submission-content">
-          <span className="workspace-summary-label">File đính kèm</span>
-          <SubmissionFiles files={submission.files} onDownload={onDownload} />
-        </div>
+      <div className="workspace-v2-submission-block">
+        <span className="workspace-v2-label">File đính kèm</span>
+        <SubmissionFiles files={submission.files} onDownload={onDownload} />
+      </div>
 
-        {feedback.length ? (
-          <div className="workspace-feedback-list">
-            {feedback.map((item) => (
-              <div className="workspace-feedback-item" key={item.id}>
-                <div className="workspace-feedback-head">
-                  <strong className={approvedActions.has(item.action) ? 'text-emerald-700' : 'text-amber-700'}>
-                    {approvedActions.has(item.action)
-                      ? 'SME đã duyệt bài'
-                      : item.action === 'REPORT_INVALID_FILE'
-                        ? 'SME báo file lỗi'
-                        : 'SME yêu cầu chỉnh sửa'}
-                  </strong>
-                  <span>{formatWorkspaceDate(item.createdAt)}</span>
-                </div>
-                {item.requestedChanges || item.comment || item.invalidFileReason ? (
-                  <p>{item.requestedChanges || item.comment || item.invalidFileReason}</p>
-                ) : null}
-                {item.reuploadDueAt || item.dueAt ? (
-                  <p className="workspace-feedback-deadline">Hạn nộp lại: {formatWorkspaceDate(item.reuploadDueAt || item.dueAt)}</p>
-                ) : null}
+      {feedback.length ? (
+        <div className="workspace-v2-feedback-list">
+          {feedback.map((item) => (
+            <div className="workspace-v2-feedback-card" key={item.id}>
+              <div className="workspace-v2-feedback-head">
+                <strong className={approvedActions.has(item.action) ? 'is-success' : 'is-warning'}>
+                  {approvedActions.has(item.action)
+                    ? 'SME đã duyệt bài'
+                    : item.action === 'REPORT_INVALID_FILE'
+                      ? 'SME báo file lỗi'
+                      : 'SME yêu cầu chỉnh sửa'}
+                </strong>
+                <span>{formatWorkspaceDate(item.createdAt)}</span>
               </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
+              {item.requestedChanges || item.comment || item.invalidFileReason ? (
+                <p>{item.requestedChanges || item.comment || item.invalidFileReason}</p>
+              ) : null}
+              {item.reuploadDueAt || item.dueAt ? (
+                <p className="workspace-v2-feedback-deadline">
+                  Hạn nộp lại: {formatWorkspaceDate(item.reuploadDueAt || item.dueAt)}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
-      <div className="workspace-submission-footer">
+      <div className="workspace-v2-submission-footer">
         {approvedAt ? (
-          <span className="workspace-submission-footer-state is-approved">
+          <span className="workspace-v2-footer-state is-success">
             <CheckCircleOutlined />
             SME đã duyệt bài · {formatWorkspaceDate(approvedAt)}
           </span>
         ) : isLatestWaiting ? (
-          <span className="workspace-submission-footer-state is-waiting">
+          <span className="workspace-v2-footer-state is-info">
             <ClockCircleOutlined />
             Đang chờ SME duyệt
           </span>
         ) : (
-          <span className="workspace-submission-footer-state">
+          <span className="workspace-v2-footer-state">
             <FileDoneOutlined />
             Theo dõi trong workflow hiện tại
           </span>
@@ -339,28 +352,32 @@ export function SubmissionMilestoneBoard({ submissions, reviewActions, onDownloa
     .find((item) => ['SUBMITTED', 'VALID'].includes(item.status))?.id;
 
   return (
-    <section className="workspace-submission-board">
-      <div className="workspace-board-header">
-        <h2>Bài Student đã nộp</h2>
-        <p>Sketch, các lần chỉnh sửa và Final được nhóm theo milestone để SME review nhanh hơn.</p>
+    <section className="workspace-v2-submission-section">
+      <div className="workspace-v2-section-header">
+        <div>
+          <h2>Bài Student đã nộp</h2>
+          <p>Sketch, các lần chỉnh sửa và Final được nhóm theo milestone để review nhanh hơn.</p>
+        </div>
       </div>
-      <div className="workspace-milestone-grid">
+
+      <div className="workspace-v2-milestone-columns">
         {['SKETCH', 'FINAL'].map((milestoneType) => {
           const milestoneSubmissions = submissions
             .filter((item) => item.milestoneType === milestoneType)
             .sort((left, right) => new Date(left.submittedAt) - new Date(right.submittedAt));
 
           return (
-            <section className="workspace-milestone-column" key={milestoneType}>
-              <div className="workspace-milestone-header">
+            <section className="workspace-v2-milestone-column" key={milestoneType}>
+              <div className="workspace-v2-milestone-column-head">
                 <div>
-                  <h3 className="workspace-milestone-title">{milestoneType}</h3>
+                  <h3>{milestoneType}</h3>
                   <p>{milestoneSubmissions.length ? 'Toàn bộ lượt nộp của milestone này' : 'Chưa có file được gửi lên'}</p>
                 </div>
-                <span className="workspace-milestone-count">{milestoneSubmissions.length} lần nộp</span>
+                <span>{milestoneSubmissions.length} lần nộp</span>
               </div>
+
               {milestoneSubmissions.length ? (
-                <div className="workspace-milestone-records">
+                <div className="workspace-v2-milestone-records">
                   {milestoneSubmissions.map((submission) => (
                     <SubmissionRecord
                       isLatestWaiting={submission.id === latestWaitingId}
@@ -372,7 +389,7 @@ export function SubmissionMilestoneBoard({ submissions, reviewActions, onDownloa
                   ))}
                 </div>
               ) : (
-                <div className="workspace-empty-column">
+                <div className="workspace-v2-empty-column">
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`Student chưa nộp ${milestoneType}`} />
                 </div>
               )}
@@ -384,27 +401,51 @@ export function SubmissionMilestoneBoard({ submissions, reviewActions, onDownloa
   );
 }
 
+function NextActionCardFrame({ title, tag, deadlineLabel, deadlineValue, children }) {
+  return (
+    <Card className="workspace-v2-next-action" title="Việc cần làm tiếp theo">
+      <div className="workspace-v2-next-action-head">
+        <div className="workspace-v2-next-action-copy">
+          {tag}
+          <h2>{title}</h2>
+        </div>
+        {deadlineLabel && deadlineValue ? (
+          <div className="workspace-v2-next-action-deadline">
+            <span className="workspace-v2-label">{deadlineLabel}</span>
+            {deadlineValue}
+          </div>
+        ) : null}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
 export function StudentSubmissionWorkspace({
-  workspace, canSubmit, milestoneType, latestSubmission, latestReviewAction, now, form, draftFiles, acting,
-  canAbandon, onAddFile, onRemoveFile, onSubmit, onAbandon
+  workspace,
+  canSubmit,
+  milestoneType,
+  latestSubmission,
+  latestReviewAction,
+  now,
+  form,
+  draftFiles,
+  acting,
+  canAbandon,
+  onAddFile,
+  onRemoveFile,
+  onSubmit,
+  onAbandon
 }) {
   const deadline = resolveActiveDeadline(workspace, latestSubmission, latestReviewAction);
 
   return (
-    <Card className="workspace-action-card" title="Việc cần làm tiếp theo">
-      <div className="workspace-action-head">
-        <div>
-          <Tag color={canSubmit ? 'processing' : 'success'}>{canSubmit ? milestoneType : 'ĐANG THEO DÕI'}</Tag>
-          <h2 className="workspace-action-title">
-            {canSubmit ? `Nộp ${milestoneType === 'SKETCH' ? 'Sketch' : milestoneType === 'FINAL' ? 'Final' : 'bản chỉnh sửa'}` : 'Đang chờ SME duyệt bài'}
-          </h2>
-        </div>
-        <div className="workspace-action-deadline">
-          <span className="workspace-summary-label">{deadline.label}</span>
-          <DeadlineValue value={deadline.value} now={now} align="left" />
-        </div>
-      </div>
-
+    <NextActionCardFrame
+      title={canSubmit ? `Nộp ${milestoneType === 'SKETCH' ? 'Sketch' : milestoneType === 'FINAL' ? 'Final' : 'bản chỉnh sửa'}` : 'Đang chờ SME duyệt bài'}
+      tag={<Tag color={canSubmit ? 'processing' : 'success'}>{canSubmit ? milestoneType : 'ĐANG THEO DÕI'}</Tag>}
+      deadlineLabel={deadline.label}
+      deadlineValue={<DeadlinePill value={deadline.value} now={now} />}
+    >
       {workspace.projectStatus === 'CANCELLED' ? (
         <WorkspaceStatusAlert
           tone="warning"
@@ -425,18 +466,18 @@ export function StudentSubmissionWorkspace({
           ) : null}
         />
       ) : (
-        <Form form={form} layout="vertical" className="workspace-submit-form">
+        <Form form={form} layout="vertical" className="workspace-v2-submit-form">
           <Form.Item label="Mô tả bản nộp" name="description">
             <Input.TextArea rows={4} placeholder="Tóm tắt nội dung để SME review nhanh hơn" />
           </Form.Item>
           <Upload beforeUpload={onAddFile} fileList={[]} accept=".jpg,.png,.pdf" multiple>
             <Button icon={<UploadOutlined />}>Chọn file nộp bài</Button>
           </Upload>
-          <div className="workspace-upload-drafts">
+          <div className="workspace-v2-draft-files">
             {draftFiles.map((file) => (
-              <div className="workspace-file-row" key={file.uid}>
+              <div className="workspace-v2-draft-file" key={file.uid}>
                 <FileTextOutlined />
-                <div className="grid min-w-0 flex-1 gap-0.5">
+                <div className="workspace-v2-draft-file-copy">
                   <strong>{file.name}</strong>
                   <span>{getFileExtension(file.name).toUpperCase()} · {formatFileSize(file.size)}</span>
                 </div>
@@ -444,7 +485,7 @@ export function StudentSubmissionWorkspace({
               </div>
             ))}
           </div>
-          <div className="workspace-action-buttons">
+          <div className="workspace-v2-action-buttons">
             <Button type="primary" icon={<UploadOutlined />} loading={acting} onClick={onSubmit}>
               Xác nhận nộp bài
             </Button>
@@ -456,7 +497,7 @@ export function StudentSubmissionWorkspace({
           </div>
         </Form>
       )}
-    </Card>
+    </NextActionCardFrame>
   );
 }
 
@@ -480,7 +521,10 @@ export function SmeReviewWorkspace({
     const hasCheckoutUrl = Boolean(workspace.payment?.checkoutUrl);
 
     return (
-      <Card className="workspace-action-card" title="Việc cần làm tiếp theo">
+      <NextActionCardFrame
+        title={paymentReturnTimedOut ? 'Cần kiểm tra lại trạng thái thanh toán' : paymentPending ? 'Escrow đang chờ PayOS xác nhận' : 'Thanh toán escrow qua PayOS'}
+        tag={<Tag color={paymentReturnTimedOut ? 'warning' : 'processing'}>{paymentReturnTimedOut ? 'CẦN KIỂM TRA' : 'PAYOS'}</Tag>}
+      >
         <WorkspaceStatusAlert
           tone={paymentReturnTimedOut ? 'warning' : 'info'}
           icon={paymentReturnTimedOut ? <WarningOutlined /> : <CreditCardOutlined />}
@@ -501,54 +545,46 @@ export function SmeReviewWorkspace({
             </>
           )}
         />
-      </Card>
+      </NextActionCardFrame>
     );
   }
 
   if (!canReview) {
     return (
-      <Card className="workspace-action-card" title="Bản đang chờ duyệt">
+      <NextActionCardFrame title="Chưa có việc mới cần xử lý" tag={<Tag color="default">IDLE</Tag>}>
         <EmptyReviewState />
-      </Card>
+      </NextActionCardFrame>
     );
   }
 
   return (
-    <Card className="workspace-action-card" title="Bản đang chờ duyệt">
-      <div className="workspace-action-head">
-        <div>
-          <Tag color="processing">{latestSubmission.milestoneType}</Tag>
-          <h2 className="workspace-action-title">
-            {latestSubmission.submissionType === 'REVISION' ? 'Bản chỉnh sửa mới nhất' : `Bản ${latestSubmission.milestoneType} mới nhất`}
-          </h2>
-        </div>
-        <div className="workspace-action-deadline">
-          <span className="workspace-summary-label">Hạn SME duyệt bài</span>
-          <DeadlineValue value={latestSubmission.reviewDueAt} now={now} />
-        </div>
-      </div>
-
-      <div className="workspace-summary-grid compact">
-        <div className="workspace-summary-item">
-          <span className="workspace-summary-label">Nộp lúc</span>
+    <NextActionCardFrame
+      title="Có bài nộp đang chờ SME kiểm tra"
+      tag={<Tag color="processing">{latestSubmission.milestoneType}</Tag>}
+      deadlineLabel="Hạn SME duyệt bài"
+      deadlineValue={<DeadlinePill value={latestSubmission.reviewDueAt} now={now} />}
+    >
+      <div className="workspace-v2-next-action-summary">
+        <div className="workspace-v2-next-action-summary-item">
+          <span className="workspace-v2-label">Nộp lúc</span>
           <strong>{formatWorkspaceDate(latestSubmission.submittedAt)}</strong>
         </div>
-        <div className="workspace-summary-item">
-          <span className="workspace-summary-label">Vòng audit</span>
+        <div className="workspace-v2-next-action-summary-item">
+          <span className="workspace-v2-label">Vòng audit</span>
           <strong>{latestSubmission.revisionRound}</strong>
         </div>
-        <div className="workspace-summary-item span-full">
-          <span className="workspace-summary-label">Mô tả</span>
+        <div className="workspace-v2-next-action-summary-item is-wide">
+          <span className="workspace-v2-label">Mô tả</span>
           <strong>{latestSubmission.description || 'Không có mô tả'}</strong>
         </div>
       </div>
 
-      <div className="workspace-submission-content">
-        <span className="workspace-summary-label">File đính kèm</span>
+      <div className="workspace-v2-submission-block">
+        <span className="workspace-v2-label">File đính kèm</span>
         <SubmissionFiles files={latestSubmission.files} onDownload={onDownload} />
       </div>
 
-      <div className="workspace-action-buttons">
+      <div className="workspace-v2-action-buttons">
         <Button type="primary" icon={<CheckCircleOutlined />} loading={acting} onClick={onApprove}>
           Duyệt bài
         </Button>
@@ -559,19 +595,19 @@ export function SmeReviewWorkspace({
           Báo file lỗi
         </Button>
       </div>
-    </Card>
+    </NextActionCardFrame>
   );
 }
 
 function SummaryGroup({ title, rows }) {
   return (
-    <section className="workspace-summary-group">
-      <div className="workspace-summary-group-head">
+    <section className="workspace-v2-summary-group">
+      <div className="workspace-v2-summary-group-head">
         <span>{title}</span>
       </div>
-      <div className="workspace-summary-group-rows">
+      <div className="workspace-v2-summary-group-rows">
         {rows.map(([label, value]) => (
-          <div className="workspace-summary-row" key={label}>
+          <div className="workspace-v2-summary-row" key={label}>
             <span>{label}</span>
             <strong>{value}</strong>
           </div>
@@ -583,8 +619,8 @@ function SummaryGroup({ title, rows }) {
 
 export function WorkspaceSummaryPanel({ workspace }) {
   return (
-    <Card className="workspace-side-card workspace-summary-card" title="Tổng quan dự án">
-      <div className="workspace-summary-groups">
+    <Card className="workspace-v2-sidebar-card workspace-v2-summary-card" title="Tổng quan dự án">
+      <div className="workspace-v2-summary-groups">
         <SummaryGroup
           title="Vai trò & thành viên"
           rows={[
