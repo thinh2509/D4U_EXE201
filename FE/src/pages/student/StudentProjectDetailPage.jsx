@@ -23,33 +23,55 @@ function formatDetailDate(value) {
 }
 
 function ProjectDetailHeader({ project }) {
+  const summaryItems = [
+    { label: 'Loại dự án', value: project.projectType || 'Chưa có' },
+    { label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
+    { label: 'Hạn review', value: formatDetailDate(project.totalDeadlineAt), muted: !project.totalDeadlineAt },
+    { label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
+  ];
   const metaItems = [
-    { icon: <FolderOpenOutlined />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
+    { icon: <FolderOpenOutlined />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có', muted: !project.designCategoryName },
     { icon: <WalletOutlined />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
-    { icon: <CalendarOutlined />, label: 'Review deadline', value: formatDetailDate(project.totalDeadlineAt) }
+    { icon: <CalendarOutlined />, label: 'Review deadline', value: formatDetailDate(project.totalDeadlineAt), muted: !project.totalDeadlineAt }
   ];
 
   return (
     <section className="project-hero-card">
-      <div className="project-hero-main">
-        <div className="project-hero-eyebrow">
-          <span>Project detail</span>
-          <StatusBadge status={project.status} />
-        </div>
-        <h1>{project.title}</h1>
-        <p className="project-hero-subtitle">
-          {project.projectType} · {project.designCategoryName || 'Dự án thiết kế'} · Publish {formatDetailDate(project.publishedAt)}
-        </p>
-        <div className="project-hero-meta">
-          {metaItems.map((item) => (
-            <div className="project-meta-chip" key={item.label}>
-              <span className="project-meta-icon">{item.icon}</span>
-              <div>
-                <small>{item.label}</small>
+      <div className="project-hero-main project-detail-hero-main">
+        <div className="project-hero-copy project-detail-hero-copy">
+          <div className="project-hero-eyebrow">
+            <span>Project detail</span>
+          </div>
+          <div className="project-hero-heading-row project-detail-hero-heading">
+            <h1>{project.title}</h1>
+            <StatusBadge status={project.status} />
+          </div>
+          <div className="project-detail-summary-row">
+            {summaryItems.map((item) => (
+              <div className={`project-detail-summary-item ${item.muted ? 'is-muted' : ''}`} key={item.label}>
+                <span>{item.label}</span>
                 <strong>{item.value}</strong>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        <div className="project-detail-hero-rail">
+          <div className="project-detail-hero-rail-head">
+            <strong>Tổng quan nhanh</strong>
+            <span>Các chỉ số chính trước khi bạn quyết định ứng tuyển dự án này.</span>
+          </div>
+          <div className="project-hero-meta project-detail-hero-stats">
+            {metaItems.map((item) => (
+              <div className={`project-meta-chip project-detail-stat-card ${item.muted ? 'is-muted' : ''}`} key={item.label}>
+                <span className="project-meta-icon">{item.icon}</span>
+                <div className="project-meta-copy">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

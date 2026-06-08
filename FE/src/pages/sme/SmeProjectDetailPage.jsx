@@ -5,6 +5,7 @@ import {
   FileDoneOutlined,
   FileSearchOutlined,
   FolderOpenOutlined,
+  InfoCircleOutlined,
   RocketOutlined,
   StopOutlined,
   WalletOutlined
@@ -30,33 +31,55 @@ function formatDetailDate(value) {
 }
 
 function ProjectDetailHeader({ project }) {
-  const metaItems = [
-    { icon: <FolderOpenOutlined />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
+  const summaryItems = [
+    { label: 'Loại dự án', value: project.projectType || 'Chưa có' },
+    { label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
+    { label: 'Hạn review', value: formatDetailDate(project.totalDeadlineAt), muted: !project.totalDeadlineAt },
+    { label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
+  ];
+  const statItems = [
+    { icon: <FolderOpenOutlined />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có', muted: !project.designCategoryName },
     { icon: <WalletOutlined />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
-    { icon: <CalendarOutlined />, label: 'Publish', value: formatDetailDate(project.publishedAt) }
+    { icon: <CalendarOutlined />, label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
   ];
 
   return (
     <section className="project-hero-card">
-      <div className="project-hero-main">
-        <div className="project-hero-eyebrow">
-          <span>Project detail</span>
-          <StatusBadge status={project.status} />
-        </div>
-        <h1>{project.title}</h1>
-        <p className="project-hero-subtitle">
-          {project.projectType} · {project.designCategoryName || 'Dự án thiết kế'} · Hạn review {formatDetailDate(project.totalDeadlineAt)}
-        </p>
-        <div className="project-hero-meta">
-          {metaItems.map((item) => (
-            <div className="project-meta-chip" key={item.label}>
-              <span className="project-meta-icon">{item.icon}</span>
-              <div>
-                <small>{item.label}</small>
+      <div className="project-hero-main project-detail-hero-main">
+        <div className="project-hero-copy project-detail-hero-copy">
+          <div className="project-hero-eyebrow">
+            <span>Project detail</span>
+          </div>
+          <div className="project-hero-heading-row project-detail-hero-heading">
+            <h1>{project.title}</h1>
+            <StatusBadge status={project.status} />
+          </div>
+          <div className="project-detail-summary-row">
+            {summaryItems.map((item) => (
+              <div className={`project-detail-summary-item ${item.muted ? 'is-muted' : ''}`} key={item.label}>
+                <span>{item.label}</span>
                 <strong>{item.value}</strong>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        <div className="project-detail-hero-rail">
+          <div className="project-detail-hero-rail-head">
+            <strong>Tổng quan nhanh</strong>
+            <span>Các chỉ số chính để quyết định publish hoặc điều chỉnh dự án.</span>
+          </div>
+          <div className="project-hero-meta project-detail-hero-stats">
+            {statItems.map((item) => (
+              <div className={`project-meta-chip project-detail-stat-card ${item.muted ? 'is-muted' : ''}`} key={item.label}>
+                <span className="project-meta-icon">{item.icon}</span>
+                <div className="project-meta-copy">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -119,24 +142,13 @@ function ProjectActionPanel({
   return (
     <Card className="project-action-panel" title="Thao tác">
       <div className="project-action-stack">
-        {canOpenWorkspace ? (
-          <Button
-            block
-            type="primary"
-            size="large"
-            icon={<FileDoneOutlined />}
-            onClick={() => window.location.assign(`/projects/${projectId}/execution`)}
-          >
-            Workspace & escrow
-          </Button>
-        ) : null}
         <Button block size="large" icon={<FileSearchOutlined />} onClick={() => window.location.assign(`/sme/projects/${projectId}/applications`)}>
           Xem ứng tuyển
         </Button>
         <Button
           block
           size="large"
-          type="default"
+          type="primary"
           icon={<RocketOutlined />}
           loading={acting}
           onClick={onPublish}
@@ -153,6 +165,16 @@ function ProjectActionPanel({
         >
           {project.status === 'DRAFT' ? 'Sửa dự án' : 'Điều chỉnh deadline'}
         </Button>
+        {canOpenWorkspace ? (
+          <Button
+            block
+            size="large"
+            icon={<FileDoneOutlined />}
+            onClick={() => window.location.assign(`/projects/${projectId}/execution`)}
+          >
+            Workspace & escrow
+          </Button>
+        ) : null}
         <Button
           block
           size="large"
@@ -167,8 +189,11 @@ function ProjectActionPanel({
           Xóa
         </Button>
       </div>
-      <div className="project-action-notes">
-        <Tag color="processing">Flow hiện tại</Tag>
+      <div className="project-flow-hint-card">
+        <div className="project-flow-hint-head">
+          <InfoCircleOutlined />
+          <strong>Điều kiện chuyển sang execution</strong>
+        </div>
         <p>Project chỉ đi vào execution sau khi offer được chấp nhận và PayOS xác nhận escrow thành công.</p>
       </div>
     </Card>
