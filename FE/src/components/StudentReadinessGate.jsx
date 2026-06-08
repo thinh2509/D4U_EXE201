@@ -1,5 +1,5 @@
 import { IdcardOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { Button, Card, Tag } from 'antd';
+import { Button, Card } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { profileApi } from '../services/profileApi.js';
@@ -72,9 +72,15 @@ export function StudentReadinessNotice({
     <section className={`student-readiness-shell ${compact ? 'is-compact' : ''}`}>
       <Card className="student-readiness-card">
         <div className="student-readiness-copy">
-          <Tag color="cyan">{mode === 'profile' ? 'Bước nên làm trước' : 'Cần xác thực để tiếp tục'}</Tag>
-          <h2>{effectiveTitle}</h2>
-          <p>{effectiveDescription}</p>
+          <div className="student-readiness-head">
+            <div className="student-readiness-icon large">
+              {mode === 'profile' ? <IdcardOutlined /> : <SafetyCertificateOutlined />}
+            </div>
+            <div>
+              <h2>{effectiveTitle}</h2>
+              <p>{effectiveDescription}</p>
+            </div>
+          </div>
           <div className="student-readiness-actions">
             <Button type="primary" size="large" onClick={() => navigate(effectivePrimaryPath)}>
               {effectivePrimaryLabel}

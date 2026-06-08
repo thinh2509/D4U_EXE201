@@ -2,7 +2,6 @@ import {
   AuditOutlined,
   BankOutlined,
   BookOutlined,
-  BuildOutlined,
   BulbOutlined,
   CreditCardOutlined,
   DashboardOutlined,
@@ -18,7 +17,7 @@ import {
   UserOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { Button, Drawer, Layout, Menu, Tag } from 'antd';
+import { Button, Drawer, Layout, Menu } from 'antd';
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -148,18 +147,6 @@ function getSelectedKey(flatItems, pathname) {
     .find((item) => pathname.startsWith(item.key))?.key || flatItems[0]?.key;
 }
 
-function getRoleText(role) {
-  if (role === 'STUDENT') return 'Student workspace';
-  if (role === 'SME') return 'SME workspace';
-  return 'Admin console';
-}
-
-function getRoleCaption(role) {
-  if (role === 'STUDENT') return 'Tìm dự án, nộp bài, quản lý ví';
-  if (role === 'SME') return 'Đăng brief, chọn Student, theo dõi escrow';
-  return 'Vận hành xác thực, ví và audit';
-}
-
 export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -169,8 +156,6 @@ export function AppLayout() {
   const flatItems = flattenMenu(items);
   const selectedKey = getSelectedKey(flatItems, location.pathname);
   const title = pageTitleByPath[selectedKey] || 'D4U';
-  const roleText = getRoleText(user?.role);
-  const roleCaption = getRoleCaption(user?.role);
 
   const handleLogout = async () => {
     await logout();
@@ -182,10 +167,6 @@ export function AppLayout() {
       <Sider className="app-sider" width={280} breakpoint="lg" collapsedWidth="0">
         <div className="sider-brand">
           <D4ULogo />
-          <div className="sider-role-card">
-            <Tag className="role-pill">{roleText}</Tag>
-            <span>{roleCaption}</span>
-          </div>
         </div>
         <AppMenu items={items} selectedKey={selectedKey} />
       </Sider>
@@ -198,10 +179,6 @@ export function AppLayout() {
         width={316}
         title={<D4ULogo />}
       >
-        <div className="sider-role-card mobile-role-card">
-          <Tag className="role-pill mobile-role-pill">{roleText}</Tag>
-          <span>{roleCaption}</span>
-        </div>
         <AppMenu items={items} selectedKey={selectedKey} onClick={() => setDrawerOpen(false)} />
       </Drawer>
 
@@ -213,7 +190,6 @@ export function AppLayout() {
             <strong>{title}</strong>
           </div>
           <div className="header-spacer" />
-          <Tag className="header-chip" icon={<BuildOutlined />}>Public demo</Tag>
           <NotificationBell />
           <UserMenu user={user} onLogout={handleLogout} />
         </Header>

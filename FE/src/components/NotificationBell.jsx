@@ -16,7 +16,7 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const unreadLabel = useMemo(() => unreadCount > 99 ? '99+' : unreadCount, [unreadCount]);
+  const unreadLabel = useMemo(() => (unreadCount > 99 ? '99+' : unreadCount), [unreadCount]);
 
   const loadNotifications = async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -46,7 +46,7 @@ export function NotificationBell() {
     if (notification.status === 'READ') return;
     try {
       const updated = await notificationApi.markRead(notification.id);
-      setItems((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setUnreadCount((current) => Math.max(0, current - 1));
     } catch (requestError) {
       message.error(getApiErrorMessage(requestError, 'Không thể đánh dấu đã đọc.'));
@@ -117,9 +117,7 @@ export function NotificationBell() {
                   <span className="muted-text">{formatDate(item.createdAt)}</span>
                 </Space>
               )}
-              description={(
-                <div className="notification-body">{item.body}</div>
-              )}
+              description={<div className="notification-body">{item.body}</div>}
             />
           </List.Item>
         )}
@@ -138,11 +136,15 @@ export function NotificationBell() {
         if (nextOpen) loadNotifications({ silent: true });
       }}
     >
-      <Button className="notification-button" aria-label="Mở thông báo" icon={(
-        <Badge count={unreadLabel} size="small" offset={[4, -4]}>
-          <BellOutlined />
-        </Badge>
-      )} />
+      <Button
+        className="notification-button"
+        aria-label="Mở thông báo"
+        icon={(
+          <Badge count={unreadLabel} size="small" offset={[4, -4]}>
+            <BellOutlined className="notification-bell-icon" />
+          </Badge>
+        )}
+      />
     </Dropdown>
   );
 }

@@ -9,6 +9,19 @@ import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 
+function renderPrimaryCell(title, subtitle) {
+  return (
+    <div className="table-title-cell">
+      <strong>{title}</strong>
+      {subtitle ? <div className="table-subtext">{subtitle}</div> : null}
+    </div>
+  );
+}
+
+function renderDateCell(value) {
+  return <span className="table-date-cell">{formatDate(value)}</span>;
+}
+
 export function SmeProjectApplicationsPage() {
   const { message } = App.useApp();
   const navigate = useNavigate();
@@ -60,26 +73,54 @@ export function SmeProjectApplicationsPage() {
     }
   };
 
-  const columns = [
+  const tableColumns = [
     {
       title: 'Sinh viên',
       dataIndex: 'studentFullName',
-      render: (value, row) => (
-        <div>
-          <strong>{value}</strong>
-          <div className="muted-text">{row.coverLetter?.slice(0, 90)}{row.coverLetter?.length > 90 ? '...' : ''}</div>
-        </div>
+      width: 280,
+      render: (value, row) => renderPrimaryCell(
+        value,
+        `${row.coverLetter?.slice(0, 90) || ''}${row.coverLetter?.length > 90 ? '...' : ''}`
       )
     },
-    { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: (value) => formatCurrency(value) },
-    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Ngày gửi', dataIndex: 'submittedAt', render: formatDate },
+    {
+      title: 'Giá đề xuất',
+      dataIndex: 'proposedPrice',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value)
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Ngày gửi',
+      dataIndex: 'submittedAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
     {
       title: 'Hành động',
+      width: 176,
+      align: 'right',
+      className: 'table-cell-actions',
       render: (_, row) => (
-        <Button type="primary" ghost disabled={row.status !== 'SUBMITTED'} onClick={() => setSelected(row)}>
-          {row.status === 'SUBMITTED' ? 'Chọn và gửi offer' : 'Đã xử lý'}
-        </Button>
+        <div className="table-actions-stack single">
+          <Button
+            className="table-action-button"
+            type="primary"
+            ghost
+            disabled={row.status !== 'SUBMITTED'}
+            onClick={() => setSelected(row)}
+          >
+            {row.status === 'SUBMITTED' ? 'Chọn & gửi offer' : 'Đã xử lý'}
+          </Button>
+        </div>
       )
     }
   ];
@@ -100,9 +141,10 @@ export function SmeProjectApplicationsPage() {
       />
       <Card className="table-card">
         <Table
+          className="dashboard-data-table"
           rowKey="id"
           loading={loading}
-          columns={columns}
+          columns={tableColumns}
           dataSource={rows}
           scroll={{ x: 820 }}
           expandable={{ expandedRowRender: (row) => <p className="expanded-copy">{row.coverLetter}</p> }}
