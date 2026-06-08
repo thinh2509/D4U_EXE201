@@ -482,44 +482,46 @@ export function ProjectExecutionPage() {
     <>
       <WorkspaceHero workspace={workspace} onRefresh={() => loadWorkspace()} />
 
-      <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
+      <div className="workspace-v2-shell">
+        <div className="workspace-v2-primary-column">
+          <section className="workspace-v2-control-layer">
+            <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-      <div className="workspace-v2-layout">
-        <div className="workspace-v2-main">
-          {workspace.viewerRole === 'STUDENT' ? (
-            <StudentSubmissionWorkspace
-              workspace={workspace}
-              canSubmit={canSubmit}
-              milestoneType={milestoneType}
-              latestSubmission={latestSubmission}
-              latestReviewAction={latestReviewAction}
-              now={now}
-              form={submissionForm}
-              draftFiles={draftFiles}
-              acting={acting}
-              canAbandon={canAbandon}
-              onAddFile={addDraftFile}
-              onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
-              onSubmit={openSubmitConfirmation}
-              onAbandon={abandonProject}
-            />
-          ) : (
-            <SmeReviewWorkspace
-              workspace={workspace}
-              canReview={canReview}
-              latestSubmission={latestSubmission}
-              now={now}
-              acting={acting}
-              paymentReturnTimedOut={paymentReturnTimedOut}
-              checkingPayment={checkingPaymentReturn}
-              onPayment={openPayment}
-              onCheckPayment={checkPaymentReturnNow}
-              onDownload={downloadSubmissionFile}
-              onApprove={approveSubmission}
-              onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
-              onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
-            />
-          )}
+            {workspace.viewerRole === 'STUDENT' ? (
+              <StudentSubmissionWorkspace
+                workspace={workspace}
+                canSubmit={canSubmit}
+                milestoneType={milestoneType}
+                latestSubmission={latestSubmission}
+                latestReviewAction={latestReviewAction}
+                now={now}
+                form={submissionForm}
+                draftFiles={draftFiles}
+                acting={acting}
+                canAbandon={canAbandon}
+                onAddFile={addDraftFile}
+                onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
+                onSubmit={openSubmitConfirmation}
+                onAbandon={abandonProject}
+              />
+            ) : (
+              <SmeReviewWorkspace
+                workspace={workspace}
+                canReview={canReview}
+                latestSubmission={latestSubmission}
+                now={now}
+                acting={acting}
+                paymentReturnTimedOut={paymentReturnTimedOut}
+                checkingPayment={checkingPaymentReturn}
+                onPayment={openPayment}
+                onCheckPayment={checkPaymentReturnNow}
+                onDownload={downloadSubmissionFile}
+                onApprove={approveSubmission}
+                onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
+                onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
+              />
+            )}
+          </section>
 
           <SubmissionMilestoneBoard
             submissions={submissions}
