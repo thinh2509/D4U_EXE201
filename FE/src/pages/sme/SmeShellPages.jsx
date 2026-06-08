@@ -12,6 +12,23 @@ import { formatCurrency, formatDate } from '../../utils/format.js';
 import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
 import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
+function renderPrimaryCell(title, subtitle) {
+  return (
+    <div className="table-title-cell">
+      <strong>{title}</strong>
+      {subtitle ? <div className="table-subtext">{subtitle}</div> : null}
+    </div>
+  );
+}
+
+function renderDateCell(value) {
+  return <span className="table-date-cell">{formatDate(value)}</span>;
+}
+
+function renderStatusOrFallback(value) {
+  return value ? <StatusBadge status={value} /> : <span className="table-subtext">Chưa có</span>;
+}
+
 export function SmeApplicationsPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -36,27 +53,52 @@ export function SmeApplicationsPage() {
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
-  const columns = [
+  const tableColumns = [
     {
       title: 'Dự án',
       dataIndex: 'projectTitle',
-      render: (value, row) => (
-        <div>
-          <strong>{value}</strong>
-          <div className="muted-text">Ứng viên: {row.studentFullName}</div>
-        </div>
-      )
+      width: 280,
+      render: (value, row) => renderPrimaryCell(value, `Ứng viên: ${row.studentFullName}`)
     },
-    { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: (value) => formatCurrency(value) },
-    { title: 'Thời gian', dataIndex: 'estimatedDurationDays', render: (value) => value ? `${value} ngày` : 'Chưa có' },
-    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Ngày gửi', dataIndex: 'submittedAt', render: formatDate },
+    {
+      title: 'Giá đề xuất',
+      dataIndex: 'proposedPrice',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value)
+    },
+    {
+      title: 'Thời gian',
+      dataIndex: 'estimatedDurationDays',
+      width: 128,
+      className: 'table-cell-date',
+      render: (value) => <span className="table-date-cell">{value ? `${value} ngày` : 'Chưa có'}</span>
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Ngày gửi',
+      dataIndex: 'submittedAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
     {
       title: 'Hành động',
+      width: 188,
+      align: 'right',
+      className: 'table-cell-actions',
       render: (_, row) => (
-        <Button type="primary" ghost onClick={() => navigate(`/sme/projects/${row.projectId}/applications`)}>
-          Xem & tạo offer
-        </Button>
+        <div className="table-actions-stack single">
+          <Button className="table-action-button" type="primary" ghost onClick={() => navigate(`/sme/projects/${row.projectId}/applications`)}>
+            Xem & tạo offer
+          </Button>
+        </div>
       )
     }
   ];
@@ -77,9 +119,10 @@ export function SmeApplicationsPage() {
       />
       <Card className="table-card">
         <Table
+          className="dashboard-data-table"
           rowKey="id"
           loading={loading}
-          columns={columns}
+          columns={tableColumns}
           dataSource={rows}
           scroll={{ x: 920 }}
           expandable={{ expandedRowRender: (row) => <p className="expanded-copy">{row.coverLetter}</p> }}
@@ -162,30 +205,60 @@ export function SmeOffersPage() {
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
-  const columns = [
+  const tableColumns = [
     {
       title: 'Dự án',
       dataIndex: 'projectTitle',
-      render: (value, row) => (
-        <div>
-          <strong>{value}</strong>
-          <div className="muted-text">Sinh viên: {row.studentFullName}</div>
-        </div>
-      )
+      width: 260,
+      render: (value, row) => renderPrimaryCell(value, `Sinh viên: ${row.studentFullName}`)
     },
-    { title: 'Offer', dataIndex: 'offerStatus', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Số tiền', dataIndex: 'offeredAmount', render: (value) => formatCurrency(value) },
-    { title: 'Payment', dataIndex: 'paymentStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Ngày tạo', dataIndex: 'createdAt', render: formatDate },
+    {
+      title: 'Offer',
+      dataIndex: 'offerStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Số tiền',
+      dataIndex: 'offeredAmount',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value)
+    },
+    {
+      title: 'Payment',
+      dataIndex: 'paymentStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
+    {
+      title: 'Escrow',
+      dataIndex: 'escrowStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'createdAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
     {
       title: 'Hành động',
+      width: 188,
+      align: 'right',
+      className: 'table-cell-actions',
       render: (_, row) => (
-        <Space wrap>
-          <Button type="primary" ghost onClick={() => window.location.assign(`/projects/${row.projectId}/execution`)}>
+        <Space direction="vertical" size={8} className="table-actions-stack">
+          <Button className="table-action-button" type="primary" ghost onClick={() => window.location.assign(`/projects/${row.projectId}/execution`)}>
             Workspace & escrow
           </Button>
           <Button
+            className="table-action-button"
             disabled={
               row.paymentStatus === 'SUCCESS' ||
               (row.paymentStatus === 'PENDING' && !row.checkoutUrl) ||
@@ -197,7 +270,7 @@ export function SmeOffersPage() {
             {row.paymentStatus === 'PENDING' && row.checkoutUrl ? 'Mở lại PayOS' : 'Thanh toán PayOS'}
           </Button>
           {row.paymentStatus === 'PENDING' ? (
-            <Button loading={checkingPayment === row.paymentId} onClick={() => checkPayment(row)}>
+            <Button className="table-action-button" loading={checkingPayment === row.paymentId} onClick={() => checkPayment(row)}>
               Kiểm tra lại
             </Button>
           ) : null}
@@ -230,9 +303,10 @@ export function SmeOffersPage() {
       ) : null}
       <Card className="table-card">
         <Table
+          className="dashboard-data-table"
           rowKey="offerId"
           loading={loading}
-          columns={columns}
+          columns={tableColumns}
           dataSource={rows}
           scroll={{ x: 1160 }}
           pagination={{ pageSize: 8 }}
@@ -252,7 +326,11 @@ export function SmeAiBriefPage() {
       description="AI Brief dùng OpenAI để biến ý tưởng thô thành brief tiếng Việt có cấu trúc, sau đó SME review và chỉnh sửa trước khi lưu."
       role="SME"
       endpoint="POST /api/v1/ai/project-brief-assistant"
-      notes={['AI không publish dự án tự động.', 'AI không định giá cuối cùng hoặc chọn sinh viên.', 'Nếu OpenAI lỗi, hệ thống dùng fallback tiếng Việt để không chặn SME.']}
+      notes={[
+        'AI không publish dự án tự động.',
+        'AI không định giá cuối cùng hoặc chọn sinh viên.',
+        'Nếu OpenAI lỗi, hệ thống dùng fallback tiếng Việt để không chặn SME.'
+      ]}
       backTo="/sme/dashboard"
     >
       <Button type="primary" onClick={() => navigate('/sme/projects/new')}>Tạo dự án với AI</Button>

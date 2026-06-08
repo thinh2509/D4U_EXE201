@@ -209,14 +209,14 @@ export function SmeProjectFormPage({ mode }) {
 
       <div className={`project-form-layout ${deadlineOnly ? 'deadline-only' : ''}`}>
         {!deadlineOnly ? (
-          <Card className="ai-panel" title={<span><BulbOutlined /> Trợ lý AI viết brief</span>}>
+          <Card className="ai-panel" title={<span className="panel-title-with-icon"><BulbOutlined /> Trợ lý AI viết brief</span>}>
             <Alert
-              className="page-alert"
+              className="page-alert ai-panel-alert"
               type="info"
               showIcon
               message="AI chỉ hỗ trợ gợi ý nội dung. SME vẫn quyết định brief, ngân sách, deadline và trạng thái publish cuối cùng."
             />
-            <Form form={aiForm} layout="vertical" onFinish={generateAiSuggestion} requiredMark={false}>
+            <Form className="project-ai-form" form={aiForm} layout="vertical" onFinish={generateAiSuggestion} requiredMark={false}>
               <Form.Item
                 name="rawIdea"
                 label="Ý tưởng thô"
@@ -244,9 +244,11 @@ export function SmeProjectFormPage({ mode }) {
                   <Input type="datetime-local" />
                 </Form.Item>
               </div>
-              <Button type="primary" size="large" htmlType="submit" loading={aiLoading} block>
-                Gợi ý bằng AI
-              </Button>
+              <div className="ai-panel-actions">
+                <Button type="primary" size="large" htmlType="submit" loading={aiLoading} icon={<BulbOutlined />}>
+                  Gợi ý bằng AI
+                </Button>
+              </div>
             </Form>
 
             {aiSuggestion ? (
@@ -289,7 +291,7 @@ export function SmeProjectFormPage({ mode }) {
                       description={aiSuggestion.warnings.join(' ')}
                     />
                   ) : null}
-                  <Button type="primary" onClick={applyAiSuggestionToForm}>
+                  <Button className="ai-apply-button" type="primary" onClick={applyAiSuggestionToForm}>
                     Áp dụng vào form
                   </Button>
                 </Space>
@@ -298,7 +300,7 @@ export function SmeProjectFormPage({ mode }) {
           </Card>
         ) : null}
 
-        <Card className="form-panel" title={<span><ProjectOutlined /> Thông tin dự án</span>}>
+        <Card className="form-panel" title={<span className="panel-title-with-icon"><ProjectOutlined /> Thông tin dự án</span>}>
           <div className="form-section-intro">
             <strong>{deadlineOnly ? 'Mốc thời gian thực hiện' : 'Thông tin cơ bản'}</strong>
             <span>{deadlineOnly
@@ -315,7 +317,7 @@ export function SmeProjectFormPage({ mode }) {
                 : 'Nội dung, loại dự án và ngân sách đã được khóa. Deadline cũng sẽ bị khóa ngay khi Student chấp nhận offer.'}
             />
           ) : null}
-          <Form form={form} layout="vertical" onFinish={saveProject} requiredMark={false}>
+          <Form className="project-editor-form" form={form} layout="vertical" onFinish={saveProject} requiredMark={false}>
             <Form.Item
               name="designCategoryId"
               label="Danh mục thiết kế"

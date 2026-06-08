@@ -5,14 +5,16 @@ import {
   CheckCircleOutlined,
   CreditCardOutlined,
   DashboardOutlined,
+  ExclamationCircleFilled,
   FileDoneOutlined,
   FolderOpenOutlined,
+  IdcardOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { Button, Card, Skeleton, Tag } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { Button, Card, Modal, Skeleton, Tag } from 'antd';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { BackendGapState, ErrorState } from '../../components/StateViews.jsx';
@@ -20,6 +22,8 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { profileApi } from '../../services/profileApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+
+const approvedStatuses = new Set(['APPROVED', 'VERIFIED']);
 
 const dashboardContent = {
   STUDENT: {
@@ -59,44 +63,44 @@ const dashboardContent = {
         badge: 'Thanh toán'
       }
     ],
-    getPrimaryAction: (data) => data.profile ? { path: '/student/projects', label: 'Tìm dự án' } : { path: '/student/profile', label: 'Tạo hồ sơ sinh viên' },
-    getMetrics: (data) => ([
+    getPrimaryAction: (data) => (
+      data.profile
+        ? { path: '/student/projects', label: 'Tìm dự án' }
+        : { path: '/student/profile', label: 'Tạo hồ sơ sinh viên' }
+    ),
+    getMetrics: (data) => [
       {
         label: 'Hồ sơ sinh viên',
         value: data.profile ? 'Đã tạo' : 'Chưa tạo',
-        helper: data.profile ? 'Có thể cập nhật thêm bất cứ lúc nào.' : 'Cần lưu hồ sơ trước khi xác thực và dùng ví.',
+        helper: data.profile ? 'Có thể cập nhật thêm bất cứ lúc nào.' : 'Cần lưu hồ sơ trước khi xác thực và dùng ví.'
       },
       {
         label: 'Xác thực',
-        value: data.profile?.verificationStatus === 'VERIFIED' ? 'Đã xác thực' : 'Chưa hoàn tất',
-        helper: data.profile?.verificationStatus === 'VERIFIED'
+        value: approvedStatuses.has(data.profile?.verificationStatus) ? 'Đã xác thực' : 'Chưa hoàn tất',
+        helper: approvedStatuses.has(data.profile?.verificationStatus)
           ? 'Bạn đã sẵn sàng ứng tuyển dự án thật.'
-          : 'Hoàn tất xác thực để tăng độ tin cậy với SME.',
+          : 'Hoàn tất xác thực để tăng độ tin cậy với SME.'
       },
       {
         label: 'Dự án đang mở',
         value: String(data.openProjects.length),
-        helper: data.openProjects.length > 0 ? 'Nguồn brief hiện có để bạn chọn lọc.' : 'Danh sách mở sẽ hiện ở đây khi có brief phù hợp.',
+        helper: data.openProjects.length > 0 ? 'Nguồn brief hiện có để bạn chọn lọc.' : 'Danh sách mở sẽ hiện ở đây khi có brief phù hợp.'
       },
       {
         label: 'Offer chờ phản hồi',
         value: String(data.offers.filter((offer) => offer.status === 'WAITING_ACCEPTANCE').length),
-        helper: data.offers.length > 0 ? 'Theo dõi các đề nghị hiện có của bạn.' : 'Khi SME gửi offer, bạn sẽ thấy ở đây.',
+        helper: data.offers.length > 0 ? 'Theo dõi các đề nghị hiện có của bạn.' : 'Khi SME gửi offer, bạn sẽ thấy ở đây.'
       }
-    ]),
-    isEmptyState: (data) =>
-      !data.profile &&
-      data.offers.length === 0 &&
-      data.studentProjects.length === 0,
+    ],
+    isEmptyState: (data) => !data.profile && data.offers.length === 0 && data.studentProjects.length === 0,
     emptyTitle: 'Bắt đầu hành trình Student với vài bước rõ ràng',
-    emptyDescription:
-      'Tạo hồ sơ, xác thực và mở workspace cá nhân để bạn sẵn sàng ứng tuyển những dự án thiết kế đầu tiên.',
+    emptyDescription: 'Tạo hồ sơ, xác thực và mở workspace cá nhân để bạn sẵn sàng ứng tuyển những dự án thiết kế đầu tiên.',
     emptyActions: [
       {
         title: 'Tạo hồ sơ sinh viên',
         description: 'Điền trường học, chuyên ngành và phần giới thiệu ngắn để D4U khởi tạo hồ sơ.',
         path: '/student/profile',
-        icon: <SafetyCertificateOutlined />,
+        icon: <IdcardOutlined />,
         badge: 'Bước 1'
       },
       {
@@ -152,36 +156,36 @@ const dashboardContent = {
         badge: 'Hỗ trợ'
       }
     ],
-    getPrimaryAction: (data) => data.profile ? { path: '/sme/projects/new', label: 'Tạo dự án' } : { path: '/sme/profile', label: 'Tạo hồ sơ SME' },
-    getMetrics: (data) => ([
+    getPrimaryAction: (data) => (
+      data.profile
+        ? { path: '/sme/projects/new', label: 'Tạo dự án' }
+        : { path: '/sme/profile', label: 'Tạo hồ sơ SME' }
+    ),
+    getMetrics: (data) => [
       {
         label: 'Hồ sơ doanh nghiệp',
         value: data.profile ? 'Đã tạo' : 'Chưa tạo',
-        helper: data.profile ? 'Bạn có thể cập nhật thông tin doanh nghiệp bất cứ lúc nào.' : 'Hoàn thiện hồ sơ trước khi publish dự án.',
+        helper: data.profile ? 'Bạn có thể cập nhật thông tin doanh nghiệp bất cứ lúc nào.' : 'Hoàn thiện hồ sơ trước khi publish dự án.'
       },
       {
         label: 'Dự án của bạn',
         value: String(data.projects.length),
-        helper: data.projects.length > 0 ? 'Bao gồm draft, đang mở và các dự án đã đi vào execution.' : 'Dự án đầu tiên sẽ xuất hiện ngay sau khi bạn lưu draft.',
+        helper: data.projects.length > 0 ? 'Bao gồm draft, đang mở và các dự án đã đi vào execution.' : 'Dự án đầu tiên sẽ xuất hiện ngay sau khi bạn lưu draft.'
       },
       {
         label: 'Ứng tuyển nhận được',
         value: String(data.applications.length),
-        helper: data.applications.length > 0 ? 'Các proposal mới sẽ đi qua một luồng so sánh rõ ràng.' : 'Proposal của Student sẽ xuất hiện ở đây khi dự án bắt đầu nhận ứng tuyển.',
+        helper: data.applications.length > 0 ? 'Các proposal mới sẽ đi qua một luồng so sánh rõ ràng.' : 'Proposal của Student sẽ xuất hiện ở đây khi dự án bắt đầu nhận ứng tuyển.'
       },
       {
         label: 'Offer đang theo dõi',
         value: String(data.offers.length),
-        helper: data.offers.length > 0 ? 'Quản lý xác nhận offer và bước thanh toán escrow tại một nơi.' : 'Khi bạn gửi offer, tiến trình sẽ hiện tại đây.',
+        helper: data.offers.length > 0 ? 'Quản lý xác nhận offer và bước thanh toán escrow tại một nơi.' : 'Khi bạn gửi offer, tiến trình sẽ hiện tại đây.'
       }
-    ]),
-    isEmptyState: (data) =>
-      data.projects.length === 0 &&
-      data.applications.length === 0 &&
-      data.offers.length === 0,
+    ],
+    isEmptyState: (data) => data.projects.length === 0 && data.applications.length === 0 && data.offers.length === 0,
     emptyTitle: 'Chuẩn bị workspace SME để dự án đầu tiên đi đúng luồng',
-    emptyDescription:
-      'Hoàn thiện hồ sơ doanh nghiệp, viết brief rõ ràng và dùng AI như trợ lý hỗ trợ thay vì thay thế quyết định của bạn.',
+    emptyDescription: 'Hoàn thiện hồ sơ doanh nghiệp, viết brief rõ ràng và dùng AI như trợ lý hỗ trợ thay vì thay thế quyết định của bạn.',
     emptyActions: [
       {
         title: 'Hoàn thiện hồ sơ SME',
@@ -314,7 +318,7 @@ function DashboardSkeleton() {
   );
 }
 
-function OperationalDashboard({ content, data, role, onNavigate }) {
+function OperationalDashboard({ content, data, onNavigate }) {
   const metrics = content.getMetrics(data);
   const primaryAction = content.getPrimaryAction(data);
   const isEmptyState = content.isEmptyState(data);
@@ -338,17 +342,6 @@ function OperationalDashboard({ content, data, role, onNavigate }) {
             <span>{isEmptyState ? 'Ưu tiên khởi tạo' : 'Gợi ý workflow'}</span>
             <strong>{content.insight}</strong>
           </div>
-        </div>
-        <div className="dashboard-hero-action">
-          <span>{isEmptyState ? 'Bước nên làm trước' : 'Next action'}</span>
-          <Button type="primary" size="large" onClick={() => onNavigate(primaryAction.path)}>
-            {primaryAction.label} <ArrowRightOutlined />
-          </Button>
-          <p>
-            {role === 'STUDENT'
-              ? 'Ví và xác thực sẽ hoạt động trọn vẹn sau khi hồ sơ sinh viên được tạo.'
-              : 'Project, proposal và thanh toán escrow sẽ đi chung một luồng sau khi bạn có brief đầu tiên.'}
-          </p>
         </div>
       </section>
 
@@ -388,6 +381,54 @@ function OperationalDashboard({ content, data, role, onNavigate }) {
   );
 }
 
+function buildOperationalReadinessModal(role, data) {
+  if (role === 'STUDENT') {
+    if (!data.profile) {
+      return {
+        key: 'student-profile',
+        title: 'Bạn cần tạo hồ sơ sinh viên trước',
+        description: 'Tạo hồ sơ để D4U mở ví, lưu trạng thái ứng tuyển và bật đầy đủ workflow Student cho bạn.',
+        actionLabel: 'Tạo hồ sơ sinh viên',
+        actionPath: '/student/profile',
+        notes: [
+          'Bạn vẫn có thể xem marketplace trước khi hoàn tất hồ sơ.',
+          'Ví D4U, đề nghị và dự án của tôi sẽ mở đầy đủ sau khi hồ sơ được tạo.'
+        ]
+      };
+    }
+
+    if (!approvedStatuses.has(data.profile?.verificationStatus)) {
+      return {
+        key: 'student-verification',
+        title: 'Bạn cần hoàn tất xác thực sinh viên',
+        description: 'Sau khi xác thực, D4U mới mở đầy đủ ứng tuyển, offer, ví và workspace dự án cho bạn.',
+        actionLabel: 'Mở trang xác thực',
+        actionPath: '/student/verification',
+        notes: [
+          'SME sẽ tin tưởng proposal hơn khi hồ sơ của bạn đã được xác thực.',
+          'Bạn vẫn có thể xem brief và chuẩn bị nội dung ứng tuyển từ bây giờ.'
+        ]
+      };
+    }
+  }
+
+  if (role === 'SME' && !data.profile) {
+    return {
+      key: 'sme-profile',
+      title: 'Bạn cần hoàn thiện hồ sơ SME trước',
+      description: 'Hoàn thiện hồ sơ doanh nghiệp để tạo project, theo dõi offer và dùng dashboard SME đầy đủ hơn.',
+      actionLabel: 'Tạo hồ sơ SME',
+      actionPath: '/sme/profile',
+      notes: [
+        'Sau khi lưu hồ sơ, bạn có thể tạo brief đầu tiên ngay trong cùng workspace.',
+        'Luồng ứng tuyển, offer và thanh toán escrow sẽ rõ hơn khi thông tin doanh nghiệp đã sẵn sàng.'
+      ]
+    };
+  }
+
+  return null;
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -398,6 +439,8 @@ export function DashboardPage() {
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
   const [reloadSeed, setReloadSeed] = useState(0);
+  const [readinessModal, setReadinessModal] = useState(null);
+  const readinessModalKeyRef = useRef(null);
 
   useEffect(() => {
     if (!isOperationalRole) return undefined;
@@ -432,6 +475,22 @@ export function DashboardPage() {
     };
   }, [isOperationalRole, reloadSeed, role]);
 
+  useEffect(() => {
+    if (!isOperationalRole || !data) return;
+
+    const nextModal = buildOperationalReadinessModal(role, data);
+    if (!nextModal) {
+      readinessModalKeyRef.current = null;
+      setReadinessModal(null);
+      return;
+    }
+
+    if (readinessModalKeyRef.current !== nextModal.key) {
+      readinessModalKeyRef.current = nextModal.key;
+      setReadinessModal(nextModal);
+    }
+  }, [data, isOperationalRole, role]);
+
   if (isOperationalRole && loading) return <DashboardSkeleton />;
   if (isOperationalRole && error) {
     return (
@@ -444,7 +503,53 @@ export function DashboardPage() {
   }
 
   if (isOperationalRole && data) {
-    return <OperationalDashboard content={content} data={data} role={role} onNavigate={navigate} />;
+    return (
+      <>
+        <OperationalDashboard content={content} data={data} onNavigate={navigate} />
+        <Modal
+          open={Boolean(readinessModal)}
+          centered
+          className="workspace-readiness-modal"
+          title={null}
+          footer={[
+            <Button key="later" onClick={() => setReadinessModal(null)}>
+              Để sau
+            </Button>,
+            <Button
+              key="primary"
+              type="primary"
+              onClick={() => {
+                if (readinessModal?.actionPath) {
+                  navigate(readinessModal.actionPath);
+                }
+                setReadinessModal(null);
+              }}
+            >
+              {readinessModal?.actionLabel}
+            </Button>
+          ]}
+          onCancel={() => setReadinessModal(null)}
+        >
+          <div className="workspace-readiness-modal-body">
+            <div className="workspace-readiness-modal-icon">
+              <ExclamationCircleFilled />
+            </div>
+            <div className="workspace-readiness-modal-copy">
+              <h2>{readinessModal?.title}</h2>
+              <p>{readinessModal?.description}</p>
+              <div className="workspace-readiness-modal-notes">
+                {readinessModal?.notes?.map((note) => (
+                  <div key={note} className="workspace-readiness-modal-note">
+                    <span />
+                    <strong>{note}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      </>
+    );
   }
 
   return (
@@ -466,12 +571,6 @@ export function DashboardPage() {
             <span>Gợi ý workflow</span>
             <strong>{content.insight}</strong>
           </div>
-        </div>
-        <div className="dashboard-hero-action">
-          <span>Next action</span>
-          <Button type="primary" size="large" onClick={() => navigate(content.primaryPath)}>
-            {content.primaryLabel} <ArrowRightOutlined />
-          </Button>
         </div>
       </section>
 

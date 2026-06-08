@@ -13,6 +13,33 @@ import { formatCurrency, formatDate } from '../../utils/format.js';
 import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
 import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
+function renderPrimaryCell(title, subtitle) {
+  return (
+    <div className="table-title-cell">
+      <strong>{title}</strong>
+      {subtitle ? <div className="table-subtext">{subtitle}</div> : null}
+    </div>
+  );
+}
+
+function renderDateCell(value) {
+  return <span className="table-date-cell">{formatDate(value)}</span>;
+}
+
+function renderDeadlineCell(row) {
+  return (
+    <div className="table-deadline-cell">
+      <div><strong>Sketch:</strong><span>{formatDate(row.sketchDeadlineAt)}</span></div>
+      <div><strong>Final:</strong><span>{formatDate(row.finalDeadlineAt)}</span></div>
+      <div><strong>Review:</strong><span>{formatDate(row.totalDeadlineAt)}</span></div>
+    </div>
+  );
+}
+
+function renderStatusOrFallback(value) {
+  return value ? <StatusBadge status={value} /> : <span className="table-subtext">Chưa có</span>;
+}
+
 export function StudentApplicationsPage() {
   return (
     <StudentReadinessGate
@@ -49,31 +76,64 @@ function StudentApplicationsPageContent() {
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
-  const columns = [
+  const tableColumns = [
     {
       title: 'Dự án',
       dataIndex: 'projectTitle',
-      render: (value, row) => (
-        <div>
-          <strong>{value}</strong>
-          <div className="muted-text">{row.coverLetter?.slice(0, 90)}{row.coverLetter?.length > 90 ? '...' : ''}</div>
-        </div>
-      )
+      width: 280,
+      render: (value, row) =>
+        renderPrimaryCell(
+          value,
+          `${row.coverLetter?.slice(0, 90) || ''}${row.coverLetter?.length > 90 ? '...' : ''}`
+        )
     },
-    { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: (value) => formatCurrency(value) },
-    { title: 'Application', dataIndex: 'applicationStatus', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Offer', dataIndex: 'offerStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Ngày gửi', dataIndex: 'submittedAt', render: formatDate },
+    {
+      title: 'Giá đề xuất',
+      dataIndex: 'proposedPrice',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value)
+    },
+    {
+      title: 'Application',
+      dataIndex: 'applicationStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Offer',
+      dataIndex: 'offerStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
+    {
+      title: 'Escrow',
+      dataIndex: 'escrowStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
+    {
+      title: 'Ngày gửi',
+      dataIndex: 'submittedAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
     {
       title: 'Hành động',
+      width: 188,
+      align: 'right',
+      className: 'table-cell-actions',
       render: (_, row) => (
-        <Space wrap>
-          <Button type="primary" ghost onClick={() => navigate(`/student/projects/${row.projectId}`)}>
+        <Space direction="vertical" size={8} className="table-actions-stack">
+          <Button className="table-action-button" type="primary" ghost onClick={() => navigate(`/student/projects/${row.projectId}`)}>
             Xem dự án
           </Button>
           {row.offerStatus === 'WAITING_ACCEPTANCE' ? (
-            <Button type="primary" onClick={() => navigate('/student/offers')}>
+            <Button className="table-action-button" type="primary" onClick={() => navigate('/student/offers')}>
               Xử lý offer
             </Button>
           ) : null}
@@ -92,9 +152,10 @@ function StudentApplicationsPageContent() {
       />
       <Card className="table-card">
         <Table
+          className="dashboard-data-table"
           rowKey="applicationId"
           loading={loading}
-          columns={columns}
+          columns={tableColumns}
           dataSource={rows}
           scroll={{ x: 1040 }}
           expandable={{ expandedRowRender: (row) => <p className="expanded-copy">{row.coverLetter}</p> }}
@@ -169,37 +230,57 @@ function StudentOffersPageContent() {
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
-  const columns = [
+  const tableColumns = [
     {
       title: 'Dự án',
       dataIndex: 'projectTitle',
-      render: (value, row) => (
-        <div>
-          <strong>{value}</strong>
-          <div className="muted-text">Offer: {formatCurrency(row.offeredAmount)}</div>
-        </div>
-      )
+      width: 248,
+      render: (value, row) => renderPrimaryCell(value, `Offer: ${formatCurrency(row.offeredAmount)}`)
     },
-    { title: 'Offer', dataIndex: 'offerStatus', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Payment', dataIndex: 'paymentStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
+    {
+      title: 'Offer',
+      dataIndex: 'offerStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Payment',
+      dataIndex: 'paymentStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
+    {
+      title: 'Escrow',
+      dataIndex: 'escrowStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
     {
       title: 'Deadline',
-      render: (_, row) => (
-        <div>
-          <div>Sketch: {formatDate(row.sketchDeadlineAt)}</div>
-          <div>Final: {formatDate(row.finalDeadlineAt)}</div>
-          <div className="muted-text">Hoàn tất review: {formatDate(row.totalDeadlineAt)}</div>
-        </div>
-      )
+      width: 220,
+      className: 'table-cell-deadline',
+      render: (_, row) => renderDeadlineCell(row)
     },
-    { title: 'Ngày tạo', dataIndex: 'createdAt', render: formatDate },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'createdAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
     {
       title: 'Hành động',
+      width: 176,
+      align: 'center',
+      className: 'table-cell-actions',
       render: (_, row) => (
-        <Space wrap>
+        <Space direction="vertical" size={8} className="table-actions-stack">
           <Button
             type="primary"
+            className="table-action-button"
             disabled={row.offerStatus !== 'WAITING_ACCEPTANCE'}
             loading={acting === row.offerId}
             onClick={() => accept(row.offerId)}
@@ -208,6 +289,7 @@ function StudentOffersPageContent() {
           </Button>
           <Button
             danger
+            className="table-action-button"
             disabled={row.offerStatus !== 'WAITING_ACCEPTANCE'}
             loading={acting === row.offerId}
             onClick={() => reject(row.offerId)}
@@ -235,9 +317,10 @@ function StudentOffersPageContent() {
       />
       <Card className="table-card">
         <Table
+          className="dashboard-data-table"
           rowKey="offerId"
           loading={loading}
-          columns={columns}
+          columns={tableColumns}
           dataSource={rows}
           scroll={{ x: 1080 }}
           pagination={{ pageSize: 8 }}
@@ -284,18 +367,52 @@ function StudentMyProjectsPageContent() {
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
-  const columns = [
-    { title: 'Dự án', dataIndex: 'projectTitle' },
-    { title: 'Trạng thái', dataIndex: 'projectStatus', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Ngân sách', dataIndex: 'budgetAmount', render: (value, row) => formatCurrency(value, row.currency) },
-    { title: 'Escrow', dataIndex: 'escrowStatus', render: (value) => value ? <StatusBadge status={value} /> : 'Chưa có' },
-    { title: 'Hạn hoàn tất review', dataIndex: 'totalDeadlineAt', render: formatDate },
+  const tableColumns = [
+    {
+      title: 'Dự án',
+      dataIndex: 'projectTitle',
+      width: 280,
+      render: (value) => renderPrimaryCell(value)
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'projectStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Ngân sách',
+      dataIndex: 'budgetAmount',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value, row) => formatCurrency(value, row.currency)
+    },
+    {
+      title: 'Escrow',
+      dataIndex: 'escrowStatus',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => renderStatusOrFallback(value)
+    },
+    {
+      title: 'Review',
+      dataIndex: 'totalDeadlineAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
     {
       title: 'Hành động',
+      width: 160,
+      align: 'center',
+      className: 'table-cell-actions',
       render: (_, row) => (
-        <Button type="primary" ghost onClick={() => navigate(`/projects/${row.projectId}/execution`)}>
-          Theo dõi
-        </Button>
+        <div className="table-actions-stack single">
+          <Button className="table-action-button" type="primary" ghost onClick={() => navigate(`/projects/${row.projectId}/execution`)}>
+            Theo dõi
+          </Button>
+        </div>
       )
     }
   ];
@@ -310,9 +427,10 @@ function StudentMyProjectsPageContent() {
       />
       <Card className="table-card">
         <Table
+          className="dashboard-data-table"
           rowKey="projectId"
           loading={loading}
-          columns={columns}
+          columns={tableColumns}
           dataSource={rows}
           scroll={{ x: 920 }}
           pagination={{ pageSize: 8 }}
@@ -517,38 +635,138 @@ function StudentWalletPageContent() {
   if (error) return <ErrorState description={error} onRetry={loadWallet} />;
 
   const transactionColumns = [
-    { title: 'Loại', dataIndex: 'type', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Số dư sau GD', dataIndex: 'balanceAfter', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Ghi chú', dataIndex: 'description' },
-    { title: 'Thời gian', dataIndex: 'createdAt', render: formatDate }
+    {
+      title: 'Loại',
+      dataIndex: 'type',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Số tiền',
+      dataIndex: 'amount',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value, wallet?.currency)
+    },
+    {
+      title: 'Số dư sau GD',
+      dataIndex: 'balanceAfter',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value, wallet?.currency)
+    },
+    {
+      title: 'Ghi chú',
+      dataIndex: 'description',
+      render: (value) => <span className="table-subtext strong">{value || 'Không có'}</span>
+    },
+    {
+      title: 'Thời gian',
+      dataIndex: 'createdAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    }
   ];
 
   const withdrawalColumns = [
     {
       title: 'Trạng thái',
       dataIndex: 'status',
-      render: (value) => value === 'COMPLETED' ? <Tag color="success">Đã chuyển khoản</Tag> : <StatusBadge status={value} />
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => (value === 'COMPLETED' ? <Tag className="status-badge" color="success">Đã chuyển khoản</Tag> : <StatusBadge status={value} />)
     },
-    { title: 'Số tiền', dataIndex: 'amount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Phí', dataIndex: 'feeAmount', render: (value) => formatCurrency(value, wallet?.currency) },
-    { title: 'Thực nhận', dataIndex: 'netAmount', render: (value) => formatCurrency(value, wallet?.currency) },
+    {
+      title: 'Số tiền',
+      dataIndex: 'amount',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value, wallet?.currency)
+    },
+    {
+      title: 'Phí',
+      dataIndex: 'feeAmount',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value, wallet?.currency)
+    },
+    {
+      title: 'Thực nhận',
+      dataIndex: 'netAmount',
+      align: 'right',
+      className: 'table-cell-numeric',
+      render: (value) => formatCurrency(value, wallet?.currency)
+    },
     {
       title: 'Tài khoản',
-      render: (_, row) => (
-        <div>
-          <strong>{row.bankName || 'Thiếu ngân hàng'}</strong>
-          <div>{row.accountHolderName}</div>
-          <div className="muted-text">{row.maskedAccountNumber}</div>
-        </div>
+      width: 220,
+      render: (_, row) => renderPrimaryCell(
+        row.bankName || 'Thiếu ngân hàng',
+        `${row.accountHolderName || 'Thiếu chủ tài khoản'} • ${row.maskedAccountNumber || 'Thiếu số TK'}`
       )
     },
-    { title: 'Ngày yêu cầu', dataIndex: 'requestedAt', render: formatDate },
-    { title: 'Bắt đầu xử lý', dataIndex: 'processingStartedAt', render: formatDate },
-    { title: 'Thời gian chuyển', dataIndex: 'transferredAt', render: formatDate },
-    { title: 'Mã giao dịch NH', dataIndex: 'bankTransactionReference' },
-    { title: 'Lý do thất bại', dataIndex: 'failureReason' }
+    {
+      title: 'Ngày yêu cầu',
+      dataIndex: 'requestedAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
+    {
+      title: 'Bắt đầu xử lý',
+      dataIndex: 'processingStartedAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
+    {
+      title: 'Thời gian chuyển',
+      dataIndex: 'transferredAt',
+      width: 148,
+      className: 'table-cell-date',
+      render: renderDateCell
+    },
+    {
+      title: 'Mã giao dịch NH',
+      dataIndex: 'bankTransactionReference',
+      render: (value) => <span className="table-subtext strong">{value || 'Chưa có'}</span>
+    },
+    {
+      title: 'Lý do thất bại',
+      dataIndex: 'failureReason',
+      render: (value) => <span className="table-subtext strong">{value || 'Không có'}</span>
+    }
   ];
+
+  const paymentMethodColumns = [
+    {
+      title: 'Ngân hàng',
+      dataIndex: 'bankName',
+      render: (value, row) => renderPrimaryCell(value || 'Thiếu ngân hàng', row.accountHolderName)
+    },
+    {
+      title: 'Số TK',
+      dataIndex: 'maskedAccountNumber',
+      render: (value) => <span className="table-subtext strong">{value || 'Thiếu số TK'}</span>
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      align: 'center',
+      className: 'table-cell-status',
+      render: (value) => <StatusBadge status={value} />
+    },
+    {
+      title: 'Ghi chú',
+      render: (_, row) => {
+        const issue = getPaymentMethodIssue(row);
+        return issue ? <Tag className="status-badge" color="warning">{issue}</Tag> : <Tag className="status-badge" color="success">Có thể rút</Tag>;
+      }
+    }
+  ];
+
   const hasActiveWithdrawal = withdrawals.some((withdrawal) => ['PENDING', 'PROCESSING'].includes(withdrawal.status));
   const highlightedWithdrawalId = searchParams.get('withdrawalId');
   const validPaymentMethods = paymentMethods.filter(isValidPaymentMethod);
@@ -637,28 +855,12 @@ function StudentWalletPageContent() {
               <Button type="primary" htmlType="submit" loading={savingMethod}>Lưu tài khoản</Button>
             </Form>
             <Table
-              className="embedded-table"
+              className="dashboard-data-table embedded-table"
               size="small"
               rowKey="id"
               dataSource={paymentMethods}
-              columns={[
-                { title: 'Ngân hàng', dataIndex: 'bankName', render: (value) => value || 'Thiếu ngân hàng' },
-                { title: 'Chủ TK', dataIndex: 'accountHolderName' },
-                {
-                  title: 'Số TK',
-                  render: (_, row) => (
-                    <span>{row.maskedAccountNumber || 'Thiếu số TK'}</span>
-                  )
-                },
-                { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-                {
-                  title: 'Ghi chú',
-                  render: (_, row) => {
-                    const issue = getPaymentMethodIssue(row);
-                    return issue ? <Tag color="warning">{issue}</Tag> : <Tag color="success">Có thể rút</Tag>;
-                  }
-                }
-              ]}
+              columns={paymentMethodColumns}
+              scroll={{ x: 720 }}
               pagination={false}
             />
           </Card>
@@ -716,17 +918,19 @@ function StudentWalletPageContent() {
       <Card className="table-card wallet-card" title="Yêu cầu rút tiền">
         {sectionErrors.withdrawals ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.withdrawals} /> : null}
         <Table
+          className="dashboard-data-table"
           rowKey="id"
           loading={loading}
           columns={withdrawalColumns}
           dataSource={withdrawals}
-          scroll={{ x: 1040 }}
+          scroll={{ x: 1180 }}
           rowClassName={(row) => row.id === highlightedWithdrawalId ? 'withdrawal-row-highlight' : ''}
         />
       </Card>
       <Card className="table-card wallet-card" title="Ledger">
         {sectionErrors.transactions ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.transactions} /> : null}
         <Table
+          className="dashboard-data-table"
           rowKey="id"
           loading={loading}
           columns={transactionColumns}
