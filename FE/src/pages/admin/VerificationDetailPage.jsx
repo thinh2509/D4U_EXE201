@@ -1,13 +1,18 @@
-import { ArrowLeftOutlined, CheckCircleOutlined, CloseCircleOutlined, FilePdfOutlined } from '@ant-design/icons';
-import { Alert, App, Button, Card, Descriptions, Space } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { App } from 'antd';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader.jsx';
-import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { adminApi } from '../../services/adminApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatDate, formatFileSize } from '../../utils/format.js';
+import {
+  VerificationAccountCard,
+  VerificationChecklist,
+  VerificationDecisionPanel,
+  VerificationDetailHeader,
+  VerificationDocumentViewer,
+  VerificationStatusCard,
+  StudentProfileCard
+} from './VerificationDetailSections.jsx';
 
 export function VerificationDetailPage() {
   const { message, modal } = App.useApp();
@@ -19,9 +24,6 @@ export function VerificationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [error, setError] = useState(null);
-
-  const isImage = useMemo(() => detail?.mimeType?.startsWith('image/'), [detail?.mimeType]);
-  const isPdf = detail?.mimeType === 'application/pdf';
 
   const loadDetail = async () => {
     setLoading(true);
@@ -55,10 +57,40 @@ export function VerificationDetailPage() {
       });
 
     return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
       setDocumentUrl(null);
     };
   }, [detail?.id]);
+
+  const copyText = async (value, successText = 'Đã sao chép.') => {
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(String(value));
+      message.success(successText);
+    } catch {
+      message.warning('Không thể sao chép tự động. Hãy sao chép thủ công.');
+    }
+  };
+
+  const openDocument = () => {
+    if (!documentUrl) return;
+    window.open(documentUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadDocument = () => {
+    if (!documentUrl || !detail?.originalFilename) return;
+
+    const link = document.createElement('a');
+    link.href = documentUrl;
+    link.download = detail.originalFilename;
+    link.rel = 'noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
   const approve = () => {
     modal.confirm({
@@ -85,15 +117,24 @@ export function VerificationDetailPage() {
     let reason = '';
     modal.confirm({
       title: 'Từ chối xác thực',
-      content: <textarea className="reject-textarea" placeholder="Nhập lý do từ chối..." onChange={(event) => { reason = event.target.value; }} />,
-      okText: 'Từ chối',
+      content: (
+        <textarea
+          className="reject-textarea"
+          onChange={(event) => {
+            reason = event.target.value;
+          }}
+          placeholder="Nhập lý do từ chối..."
+        />
+      ),
       okButtonProps: { danger: true },
+      okText: 'Từ chối',
       cancelText: 'Hủy',
       async onOk() {
         if (!reason.trim()) {
           message.error('Vui lòng nhập lý do từ chối.');
           return Promise.reject(new Error('Missing reason'));
         }
+
         setActing(true);
         try {
           await adminApi.rejectStudentVerification(verificationId, reason.trim());
@@ -115,62 +156,39 @@ export function VerificationDetailPage() {
 
   return (
     <>
-      <PageHeader
-        title="Chi tiết xác thực"
-        description="Kiểm tra hồ sơ và file giấy tờ trước khi quyết định."
-        extra={(
-          <Space wrap>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin/verifications')}>Quay lại</Button>
-            <Button type="primary" icon={<CheckCircleOutlined />} disabled={!canReview} loading={acting} onClick={approve}>Duyệt</Button>
-            <Button danger icon={<CloseCircleOutlined />} disabled={!canReview} loading={acting} onClick={reject}>Từ chối</Button>
-          </Space>
-        )}
+      <VerificationDetailHeader
+        acting={acting}
+        canReview={canReview}
+        onApprove={approve}
+        onBack={() => navigate('/admin/verifications')}
+        onReject={reject}
       />
 
-      {detail.rejectionReason && <Alert className="page-alert" type="error" showIcon message="Lý do từ chối" description={detail.rejectionReason} />}
+      <div className="verification-review-layout">
+        <div className="verification-review-main">
+          <VerificationDocumentViewer
+            detail={detail}
+            documentError={documentError}
+            documentUrl={documentUrl}
+            onDownload={downloadDocument}
+            onOpenDocument={openDocument}
+          />
+        </div>
 
-      <div className="review-layout">
-        <Card className="review-main" title="File xác thực">
-          {documentError && <Alert className="page-alert" type="error" showIcon message={documentError} />}
-
-          <div className="document-preview">
-            {documentUrl && isImage && <img src={documentUrl} alt={detail.originalFilename} />}
-            {documentUrl && isPdf && <iframe title={detail.originalFilename} src={documentUrl} />}
-            {documentUrl && !isImage && !isPdf && (
-              <a href={documentUrl} target="_blank" rel="noreferrer">
-                <FilePdfOutlined /> Mở file xác thực
-              </a>
-            )}
-            {!documentUrl && !documentError && <span className="muted-text">Đang tải file xác thực...</span>}
+        <aside className="verification-review-sidebar">
+          <div className="verification-review-sidebar-sticky">
+            <VerificationStatusCard detail={detail} />
+            <VerificationDecisionPanel
+              acting={acting}
+              canReview={canReview}
+              detail={detail}
+              onApprove={approve}
+              onReject={reject}
+            />
           </div>
-
-          <Descriptions className="document-meta" column={{ xs: 1, md: 2 }} bordered size="small">
-            <Descriptions.Item label="Tên file">{detail.originalFilename}</Descriptions.Item>
-            <Descriptions.Item label="Định dạng">{detail.fileExtension}</Descriptions.Item>
-            <Descriptions.Item label="Dung lượng">{formatFileSize(detail.fileSizeBytes)}</Descriptions.Item>
-            <Descriptions.Item label="Mime type">{detail.mimeType}</Descriptions.Item>
-            <Descriptions.Item label="Ngày gửi">{formatDate(detail.submittedAt)}</Descriptions.Item>
-            <Descriptions.Item label="Ngày xử lý">{formatDate(detail.reviewedAt)}</Descriptions.Item>
-          </Descriptions>
-        </Card>
-
-        <aside className="review-side">
-          <Card title="Tài khoản">
-            <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Họ tên">{detail.studentFullName}</Descriptions.Item>
-              <Descriptions.Item label="Email">{detail.studentEmail}</Descriptions.Item>
-              <Descriptions.Item label="Username">{detail.studentUsername}</Descriptions.Item>
-              <Descriptions.Item label="Trạng thái"><StatusBadge status={detail.status} /></Descriptions.Item>
-            </Descriptions>
-          </Card>
-          <Card title="Hồ sơ sinh viên">
-            <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Trường">{detail.school}</Descriptions.Item>
-              <Descriptions.Item label="Chuyên ngành">{detail.major}</Descriptions.Item>
-              <Descriptions.Item label="Năm bắt đầu">{detail.studyStartYear}</Descriptions.Item>
-              <Descriptions.Item label="Bio">{detail.bio || 'Chưa có'}</Descriptions.Item>
-            </Descriptions>
-          </Card>
+          <VerificationAccountCard detail={detail} onCopy={copyText} />
+          <StudentProfileCard detail={detail} />
+          <VerificationChecklist />
         </aside>
       </div>
     </>
