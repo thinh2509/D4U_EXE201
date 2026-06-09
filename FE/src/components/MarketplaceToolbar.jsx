@@ -1,6 +1,6 @@
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Input, Select } from 'antd';
-import { DataPanel } from './PageShell.jsx';
+import { ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Input, Select } from "antd";
+import { DataPanel } from "./PageShell.jsx";
 
 export function MarketplaceToolbar({
   query,
@@ -10,23 +10,27 @@ export function MarketplaceToolbar({
   categories = [],
   onRefresh,
   resultCount,
-  placeholder = 'TÃ¬m theo tiÃªu Ä‘á», brief, danh má»¥c...'
+  placeholder = "Tìm theo tiêu đề, brief, danh mục...",
 }) {
   return (
     <DataPanel
       className="overflow-visible"
       headerClassName="items-start"
-      header={(
+      header={
         <>
           <div className="grid gap-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-d4u-text-3">Bá»™ lá»c</span>
-            <strong className="text-base font-semibold leading-tight text-d4u-text-1">TÃ¬m dá»± Ã¡n phÃ¹ há»£p</strong>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-d4u-text-3">
+              Bộ lọc
+            </span>
+            <strong className="text-base font-semibold leading-tight text-d4u-text-1">
+              Tìm dự án phù hợp
+            </strong>
           </div>
           <span className="inline-flex min-h-[32px] items-center rounded-full bg-d4u-soft px-3 text-xs font-bold text-d4u-teal-deep">
-            {resultCount} káº¿t quáº£
+            {resultCount} kết quả
           </span>
         </>
-      )}
+      }
       contentClassName="grid gap-3 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto]"
     >
       <Input
@@ -45,12 +49,12 @@ export function MarketplaceToolbar({
           onChange={onCategoryChange}
           className="w-full sm:w-[240px]"
           options={[
-            { value: 'ALL', label: 'Táº¥t cáº£ danh má»¥c' },
-            ...categories.map((item) => ({ value: item, label: item }))
+            { value: "ALL", label: "Tất cả danh mục" },
+            ...categories.map((item) => ({ value: item, label: item })),
           ]}
         />
         <Button size="large" icon={<ReloadOutlined />} onClick={onRefresh}>
-          LÃ m má»›i
+          Làm mới
         </Button>
       </div>
     </DataPanel>
