@@ -352,8 +352,8 @@ export function SmeProjectFormPage({ mode }) {
               <div className="form-two-cols">
                 <Form.Item
                   name="sketchDeadlineAt"
-                  label={'H?n n?p Sketch'}
-                  extra={'M?c Student g?i phi?n b?n Sketch ??u ti?n.'}
+                  label={'H\u1ea1n n\u1ed9p Sketch'}
+                  extra={'M\u1ed1c Student g\u1eedi phi\u00ean b\u1ea3n Sketch \u0111\u1ea7u ti\u00ean.'}
                   rules={[{ validator: buildDeadlineValidator('sketchDeadlineAt', getDeadlineValues) }]}
                   validateTrigger={['onChange', 'onBlur']}
                 >
@@ -361,8 +361,8 @@ export function SmeProjectFormPage({ mode }) {
                 </Form.Item>
                 <Form.Item
                   name="finalDeadlineAt"
-                  label={'H?n n?p Final'}
-                  extra={'M?c n?p phi?n b?n Final sau khi x? l? feedback.'}
+                  label={'H\u1ea1n n\u1ed9p Final'}
+                  extra={'M\u1ed1c n\u1ed9p phi\u00ean b\u1ea3n Final sau khi x\u1eed l\u00fd feedback.'}
                   dependencies={['sketchDeadlineAt']}
                   rules={[{ validator: buildDeadlineValidator('finalDeadlineAt', getDeadlineValues) }]}
                   validateTrigger={['onChange', 'onBlur']}
@@ -372,8 +372,8 @@ export function SmeProjectFormPage({ mode }) {
               </div>
               <Form.Item
                 name="totalDeadlineAt"
-                label={'H?n ho?n t?t review d? ?n'}
-                extra={'??y l? th?i ?i?m SME c?n ho?n t?t review Final, kh?ng ph?i m?t l??t n?p b?i ri?ng.'}
+                label={'H\u1ea1n ho\u00e0n t\u1ea5t review d\u1ef1 \u00e1n'}
+                extra={'\u0110\u00e2y l\u00e0 th\u1eddi \u0111i\u1ec3m SME c\u1ea7n ho\u00e0n t\u1ea5t review Final, kh\u00f4ng ph\u1ea3i m\u1ed9t l\u01b0\u1ee3t n\u1ed9p b\u00e0i ri\u00eang.'}
                 dependencies={['finalDeadlineAt']}
                 rules={[{ validator: buildDeadlineValidator('totalDeadlineAt', getDeadlineValues) }]}
                 validateTrigger={['onChange', 'onBlur']}
