@@ -171,11 +171,11 @@ export function NotificationBell() {
       }}
     >
       <Button
-        className="notification-button"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border/80 bg-white/90 p-0 text-d4u-teal-deep shadow-sm backdrop-blur transition-all duration-150 hover:!border-d4u-cyan hover:!bg-white hover:!text-d4u-cyan focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus"
         aria-label="Mở thông báo"
         icon={(
           <Badge count={unreadLabel} size="small" offset={[4, -4]}>
-            <BellOutlined className="notification-bell-icon" />
+            <BellOutlined className="text-[20px] font-black text-current" />
           </Badge>
         )}
       />

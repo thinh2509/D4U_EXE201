@@ -674,38 +674,6 @@ a:hover {
   display: none;
 }
 
-.notification-button {
-  width: 46px;
-  height: 46px;
-  padding: 0 !important;
-  display: inline-grid;
-  place-items: center;
-  border-color: var(--d4u-border);
-  border-radius: 999px;
-  background: var(--d4u-surface);
-  box-shadow: none;
-}
-
-.notification-bell-icon {
-  color: var(--d4u-teal-deep);
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.notification-button:hover .notification-bell-icon,
-.notification-button:focus-visible .notification-bell-icon {
-  color: var(--d4u-cyan-hover);
-}
-
-.notification-button .ant-badge {
-  display: inline-grid;
-  place-items: center;
-}
-
-.notification-button .ant-badge-count {
-  font-weight: 900;
-}
-
 .role-card-group .ant-radio-button-wrapper span:not(.anticon) {
   display: grid;
   gap: 4px;
@@ -770,30 +738,6 @@ a:hover {
 
 .notification-item.unread {
   background: var(--d4u-soft);
-}
-
-.user-menu-button {
-  min-height: 44px;
-  padding: 5px 12px 5px 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  border-color: var(--d4u-border);
-  border-radius: 999px;
-  background: var(--d4u-surface);
-  box-shadow: none;
-}
-
-.user-avatar {
-  color: var(--d4u-surface);
-  background: var(--d4u-cyan) !important;
-  font-weight: 900;
-}
-
-.user-menu-text {
-  display: grid;
-  line-height: 1.18;
-  text-align: left;
 }
 
 .app-content {
@@ -1923,9 +1867,7 @@ a:hover {
   color: var(--d4u-cyan-hover) !important;
 }
 
-.ant-btn:focus-visible,
-.notification-button:focus-visible,
-.user-menu-button:focus-visible {
+.ant-btn:focus-visible {
   outline: none;
   box-shadow: var(--ring);
 }
@@ -2142,15 +2084,6 @@ a:hover {
 
   .header-context {
     display: none;
-  }
-
-  .user-menu-text {
-    display: none;
-  }
-
-  .user-menu-button {
-    width: 48px;
-    padding: 5px;
   }
 
   .page-header,

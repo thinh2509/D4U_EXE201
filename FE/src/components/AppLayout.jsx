@@ -151,7 +151,7 @@ function SidebarNav({ items, selectedKey, onNavigate }) {
     <nav className="flex flex-col gap-6">
       {items.map((group) => (
         <section key={group.label} className="flex flex-col gap-2">
-          <h2 className="px-3 text-[11px] font-black uppercase tracking-[0.16em] text-white/50">
+          <h2 className="px-3 text-[11px] font-black uppercase tracking-[0.16em] text-d4u-teal-deep/60">
             {group.label}
           </h2>
           <div className="flex flex-col gap-1">
@@ -165,13 +165,13 @@ function SidebarNav({ items, selectedKey, onNavigate }) {
                   to={href}
                   onClick={onNavigate}
                   className={[
-                    'group flex min-h-[46px] items-center gap-3 rounded-btn border-l-2 px-3 py-2.5 text-sm font-semibold transition-all duration-150',
+                    'group flex min-h-[48px] items-center gap-3 rounded-btn border border-transparent px-3.5 py-2.5 text-sm font-semibold transition-all duration-150',
                     active
-                      ? 'border-d4u-cyan bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
-                      : 'border-transparent text-white/80 hover:bg-white/10 hover:text-white'
+                      ? 'border-d4u-cyan/60 bg-white/90 text-d4u-teal-deep shadow-soft ring-1 ring-d4u-cyan/15'
+                      : 'text-d4u-text-2 hover:border-white/60 hover:bg-white/65 hover:text-d4u-teal-deep'
                   ].join(' ')}
                 >
-                  <span className={active ? 'text-white' : 'text-white/70 group-hover:text-white'}>
+                  <span className={active ? 'text-d4u-cyan' : 'text-d4u-teal-deep/80 group-hover:text-d4u-teal-deep'}>
                     {item.icon}
                   </span>
                   <span className="leading-5">{getItemLabel(item)}</span>
@@ -207,15 +207,17 @@ export function AppLayout() {
   };
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-gradient-to-b from-d4u-teal-deep via-d4u-teal-deep to-d4u-nav-dark text-white">
-      <div className="border-b border-white/10 px-5 py-5">
-        <div className="rounded-card border border-white/10 bg-white/10 p-3 backdrop-blur-sm">
+    <div className="flex h-full flex-col bg-gradient-to-b from-d4u-soft-2 via-white to-d4u-soft text-d4u-text-1">
+      <div className="border-b border-d4u-cyan/15 px-5 py-5">
+        <div className="rounded-card border border-white/70 bg-white/75 p-3 shadow-soft ring-1 ring-white/60 backdrop-blur-sm">
           <D4ULogo className="w-[186px]" />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        <SidebarNav items={items} selectedKey={selectedKey} onNavigate={() => setDrawerOpen(false)} />
+        <div className="rounded-panel border border-white/55 bg-white/35 p-2.5 shadow-soft backdrop-blur-sm">
+          <SidebarNav items={items} selectedKey={selectedKey} onNavigate={() => setDrawerOpen(false)} />
+        </div>
       </div>
     </div>
   );
@@ -226,13 +228,13 @@ export function AppLayout() {
         width={280}
         breakpoint="lg"
         collapsedWidth="0"
-        className="hidden !fixed !inset-y-0 !left-0 !z-40 !h-screen overflow-hidden border-r border-white/10 bg-d4u-teal-deep shadow-none lg:!block"
+        className="hidden !fixed !inset-y-0 !left-0 !z-40 !h-screen overflow-hidden border-r border-d4u-cyan/15 bg-d4u-soft-2 shadow-none lg:!block"
       >
         {sidebarContent}
       </Sider>
 
       <Drawer
-        className="[&_.ant-drawer-body]:!p-0 [&_.ant-drawer-content]:!bg-d4u-nav-dark"
+        className="[&_.ant-drawer-body]:!p-0 [&_.ant-drawer-content]:!bg-d4u-soft-2"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="left"
@@ -240,40 +242,44 @@ export function AppLayout() {
         closable={false}
         title={null}
       >
-        <div className="flex h-full flex-col bg-gradient-to-b from-d4u-teal-deep via-d4u-teal-deep to-d4u-nav-dark text-white">
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <div className="rounded-card border border-white/10 bg-white/10 p-3">
+        <div className="flex h-full flex-col bg-gradient-to-b from-d4u-soft-2 via-white to-d4u-soft text-d4u-text-1">
+          <div className="flex items-center justify-between border-b border-d4u-cyan/15 px-5 py-4">
+            <div className="rounded-card border border-white/70 bg-white/75 p-3 shadow-soft ring-1 ring-white/60">
               <D4ULogo className="w-[170px]" />
             </div>
             <Button
               type="text"
               aria-label="Đóng menu"
               icon={<CloseOutlined />}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white hover:!bg-white/15 hover:!text-white"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/80 text-d4u-teal-deep shadow-sm hover:!border-d4u-cyan hover:!bg-white hover:!text-d4u-cyan"
               onClick={() => setDrawerOpen(false)}
             />
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-5">
-            <SidebarNav items={items} selectedKey={selectedKey} onNavigate={() => setDrawerOpen(false)} />
+            <div className="rounded-panel border border-white/55 bg-white/35 p-2.5 shadow-soft backdrop-blur-sm">
+              <SidebarNav items={items} selectedKey={selectedKey} onNavigate={() => setDrawerOpen(false)} />
+            </div>
           </div>
         </div>
       </Drawer>
 
       <Layout className="min-w-0 bg-transparent">
-        <Header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-d4u-border bg-d4u-surface px-4 sm:px-6">
+        <Header className="sticky top-0 z-20 flex h-[70px] items-center gap-3 border-b border-d4u-border/80 bg-white/90 px-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:px-6">
           <Button
             aria-label="Mở menu"
             icon={<MenuOutlined />}
             onClick={() => setDrawerOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border bg-white text-d4u-teal-deep shadow-sm hover:!border-d4u-cyan hover:!text-d4u-cyan lg:!hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border/80 bg-white/90 text-d4u-teal-deep shadow-sm backdrop-blur hover:!border-d4u-cyan hover:!text-d4u-cyan focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus lg:!hidden"
           />
           <div className="grid min-w-0 gap-0.5">
-            <span className="text-[11px] font-black uppercase tracking-[0.14em] text-d4u-text-3">D4U Outcome 1</span>
-            <strong className="truncate text-[18px] font-semibold leading-tight text-d4u-text-1">{title}</strong>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-d4u-text-3">D4U Outcome 1</span>
+            <strong className="truncate text-[17px] font-semibold leading-tight text-d4u-text-1 sm:text-[18px]">{title}</strong>
           </div>
           <div className="flex-1" />
-          <NotificationBell />
-          <UserMenu user={user} onLogout={handleLogout} />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <NotificationBell />
+            <UserMenu user={user} onLogout={handleLogout} />
+          </div>
         </Header>
 
         <Content className="px-4 py-6 sm:px-6 lg:px-8">
