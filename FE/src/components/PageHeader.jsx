@@ -4,7 +4,7 @@ function joinClasses(...values) {
 
 export function PageHeader({ icon, title, description, extra, eyebrow }) {
   return (
-    <header className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <header className="flex w-full min-w-0 flex-col gap-4 sm:gap-5 lg:flex-row lg:items-start lg:justify-between">
       <div className="flex min-w-0 items-start gap-4">
         {icon ? (
           <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-card border border-d4u-cyan/20 bg-d4u-soft text-[22px] text-d4u-cyan shadow-sm sm:inline-flex">
@@ -39,7 +39,7 @@ export function PageHeader({ icon, title, description, extra, eyebrow }) {
       </div>
 
       {extra ? (
-        <div className={joinClasses('flex flex-wrap items-center gap-2 sm:justify-end lg:max-w-[40%]')}>
+        <div className={joinClasses('flex w-full flex-wrap items-center gap-2 sm:justify-end lg:w-auto lg:max-w-[40%]')}>
           {extra}
         </div>
       ) : null}

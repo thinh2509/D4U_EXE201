@@ -18,7 +18,7 @@ export function PageShell({ children, size = 'standard', density = 'standard', c
   return (
     <div
       className={joinClasses(
-        'mx-auto grid w-full',
+        'mx-auto grid w-full min-w-0',
         shellWidthBySize[size] || shellWidthBySize.standard,
         shellGapByDensity[density] || shellGapByDensity.standard,
         className
