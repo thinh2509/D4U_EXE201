@@ -34,16 +34,16 @@ const menuByRole = {
       label: 'T\u1ed5ng quan',
       children: [
         { key: '/student/dashboard', icon: <DashboardOutlined />, label: <Link to="/student/dashboard">Dashboard</Link> },
-        { key: '/student/projects', icon: <FolderOpenOutlined />, label: <Link to="/student/projects">D\u1ef1 \u00e1n \u0111ang m\u1edf</Link> }
+        { key: '/student/projects', icon: <FolderOpenOutlined />, label: <Link to="/student/projects">{'Dự án đang mở'}</Link> }
       ]
     },
     {
       type: 'group',
       label: 'C\u00f4ng vi\u1ec7c',
       children: [
-        { key: '/student/applications', icon: <FileDoneOutlined />, label: <Link to="/student/applications">\u1ee8ng tuy\u1ec3n</Link> },
-        { key: '/student/offers', icon: <MessageOutlined />, label: <Link to="/student/offers">\u0110\u1ec1 ngh\u1ecb</Link> },
-        { key: '/student/my-projects', icon: <BookOutlined />, label: <Link to="/student/my-projects">D\u1ef1 \u00e1n c\u1ee7a t\u00f4i</Link> }
+        { key: '/student/applications', icon: <FileDoneOutlined />, label: <Link to="/student/applications">{'Ứng tuyển'}</Link> },
+        { key: '/student/offers', icon: <MessageOutlined />, label: <Link to="/student/offers">{'Đề nghị'}</Link> },
+        { key: '/student/my-projects', icon: <BookOutlined />, label: <Link to="/student/my-projects">{'Dự án của tôi'}</Link> }
       ]
     },
     {
@@ -51,10 +51,10 @@ const menuByRole = {
       label: 'H\u1ed3 s\u01a1',
       children: [
         { key: '/student/portfolio', icon: <StarOutlined />, label: <Link to="/student/portfolio">Portfolio</Link> },
-        { key: '/student/wallet', icon: <WalletOutlined />, label: <Link to="/student/wallet">V\u00ed D4U</Link> },
-        { key: '/student/profile', icon: <UserOutlined />, label: <Link to="/student/profile">H\u1ed3 s\u01a1 sinh vi\u00ean</Link> },
-        { key: '/student/verification', icon: <SafetyCertificateOutlined />, label: <Link to="/student/verification">X\u00e1c th\u1ef1c</Link> },
-        { key: '/student/ratings', icon: <StarOutlined />, label: <Link to="/student/ratings">\u0110\u00e1nh gi\u00e1</Link> }
+        { key: '/student/wallet', icon: <WalletOutlined />, label: <Link to="/student/wallet">{'Ví D4U'}</Link> },
+        { key: '/student/profile', icon: <UserOutlined />, label: <Link to="/student/profile">{'Hồ sơ sinh viên'}</Link> },
+        { key: '/student/verification', icon: <SafetyCertificateOutlined />, label: <Link to="/student/verification">{'Xác thực'}</Link> },
+        { key: '/student/ratings', icon: <StarOutlined />, label: <Link to="/student/ratings">{'Đánh giá'}</Link> }
       ]
     }
   ],
@@ -64,16 +64,16 @@ const menuByRole = {
       label: 'T\u1ed5ng quan',
       children: [
         { key: '/sme/dashboard', icon: <DashboardOutlined />, label: <Link to="/sme/dashboard">Dashboard</Link> },
-        { key: '/sme/projects', icon: <FolderOpenOutlined />, label: <Link to="/sme/projects">D\u1ef1 \u00e1n c\u1ee7a t\u00f4i</Link> },
-        { key: '/sme/projects/new', icon: <PlusCircleOutlined />, label: <Link to="/sme/projects/new">T\u1ea1o d\u1ef1 \u00e1n</Link> }
+        { key: '/sme/projects', icon: <FolderOpenOutlined />, label: <Link to="/sme/projects">{'Dự án của tôi'}</Link> },
+        { key: '/sme/projects/new', icon: <PlusCircleOutlined />, label: <Link to="/sme/projects/new">{'Tạo dự án'}</Link> }
       ]
     },
     {
       type: 'group',
       label: 'Tuy\u1ec3n ch\u1ecdn',
       children: [
-        { key: '/sme/applications', icon: <FileSearchOutlined />, label: <Link to="/sme/applications">\u1ee8ng tuy\u1ec3n</Link> },
-        { key: '/sme/offers', icon: <MessageOutlined />, label: <Link to="/sme/offers">\u0110\u1ec1 ngh\u1ecb</Link> },
+        { key: '/sme/applications', icon: <FileSearchOutlined />, label: <Link to="/sme/applications">{'Ứng tuyển'}</Link> },
+        { key: '/sme/offers', icon: <MessageOutlined />, label: <Link to="/sme/offers">{'Đề nghị'}</Link> },
         { key: '/sme/ai-brief', icon: <BulbOutlined />, label: <Link to="/sme/ai-brief">AI Brief</Link> },
         { key: '/sme/ai-matching', icon: <TeamOutlined />, label: <Link to="/sme/ai-matching">AI Matching</Link> }
       ]
@@ -82,9 +82,9 @@ const menuByRole = {
       type: 'group',
       label: 'T\u00e0i kho\u1ea3n',
       children: [
-        { key: '/sme/billing', icon: <CreditCardOutlined />, label: <Link to="/sme/billing">G\u00f3i & thanh to\u00e1n</Link> },
-        { key: '/sme/profile', icon: <BankOutlined />, label: <Link to="/sme/profile">H\u1ed3 s\u01a1 doanh nghi\u1ec7p</Link> },
-        { key: '/sme/ratings', icon: <StarOutlined />, label: <Link to="/sme/ratings">\u0110\u00e1nh gi\u00e1</Link> }
+        { key: '/sme/billing', icon: <CreditCardOutlined />, label: <Link to="/sme/billing">{'Gói & thanh toán'}</Link> },
+        { key: '/sme/profile', icon: <BankOutlined />, label: <Link to="/sme/profile">{'Hồ sơ doanh nghiệp'}</Link> },
+        { key: '/sme/ratings', icon: <StarOutlined />, label: <Link to="/sme/ratings">{'Đánh giá'}</Link> }
       ]
     }
   ],
@@ -94,10 +94,10 @@ const menuByRole = {
       label: 'V\u1eadn h\u00e0nh',
       children: [
         { key: '/admin/dashboard', icon: <DashboardOutlined />, label: <Link to="/admin/dashboard">Dashboard</Link> },
-        { key: '/admin/verifications', icon: <FileSearchOutlined />, label: <Link to="/admin/verifications">Duy\u1ec7t x\u00e1c th\u1ef1c</Link> },
+        { key: '/admin/verifications', icon: <FileSearchOutlined />, label: <Link to="/admin/verifications">{'Duyệt xác thực'}</Link> },
         { key: '/admin/portfolio', icon: <StarOutlined />, label: <Link to="/admin/portfolio">Portfolio</Link> },
-        { key: '/admin/withdrawals', icon: <WalletOutlined />, label: <Link to="/admin/withdrawals">R\u00fat ti\u1ec1n</Link> },
-        { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">Ng\u01b0\u1eddi d\u00f9ng</Link> },
+        { key: '/admin/withdrawals', icon: <WalletOutlined />, label: <Link to="/admin/withdrawals">{'Rút tiền'}</Link> },
+        { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">{'Người dùng'}</Link> },
         { key: '/admin/audit-logs', icon: <AuditOutlined />, label: <Link to="/admin/audit-logs">Audit logs</Link> }
       ]
     }
@@ -237,7 +237,7 @@ export function AppLayout() {
             </div>
             <Button
               type="text"
-              aria-label="\u0110\u00f3ng menu"
+              aria-label={'Đóng menu'}
               icon={<CloseOutlined />}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/80 text-d4u-teal-deep shadow-sm hover:!border-d4u-cyan hover:!bg-white hover:!text-d4u-cyan"
               onClick={() => setDrawerOpen(false)}
@@ -254,7 +254,7 @@ export function AppLayout() {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-20 flex h-[70px] items-center gap-3 border-b border-d4u-border/80 bg-white/90 px-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:px-6">
           <Button
-            aria-label="M\u1edf menu"
+            aria-label={'Mở menu'}
             icon={<MenuOutlined />}
             onClick={() => setDrawerOpen(true)}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border/80 bg-white/90 text-d4u-teal-deep shadow-sm backdrop-blur hover:!border-d4u-cyan hover:!text-d4u-cyan focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus lg:!hidden"
