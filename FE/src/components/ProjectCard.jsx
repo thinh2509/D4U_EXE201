@@ -9,11 +9,7 @@ import { Button, Tag } from "antd";
 import { StatusBadge } from "./StatusBadge.jsx";
 import { formatCurrency, formatDate } from "../utils/format.js";
 
-export function ProjectCard({
-  project,
-  onOpen,
-  actionLabel = "Xem chi tiáº¿t",
-}) {
+export function ProjectCard({ project, onOpen, actionLabel = "Xem chi tiết" }) {
   return (
     <article
       className="group relative flex h-full flex-col overflow-hidden rounded-panel border border-d4u-border/80 bg-white/92 p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card"
