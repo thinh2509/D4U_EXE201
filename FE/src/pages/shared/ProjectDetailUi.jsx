@@ -9,6 +9,159 @@ const BUTTON_VARIANTS = {
   danger: 'border border-red-200 bg-white text-d4u-error hover:bg-red-50'
 };
 
+const BRIEF_SECTION_DEFINITIONS = [
+  { key: 'context', title: 'Bối cảnh', patterns: [/^bối cảnh\s*:?\s*/i, /^bối cảnh thương hiệu\s*:?\s*/i] },
+  { key: 'objective', title: 'Mục tiêu', patterns: [/^mục tiêu\s*:?\s*/i, /^mục đích\s*:?\s*/i] },
+  { key: 'audience', title: 'Khách hàng mục tiêu', patterns: [/^khách hàng mục tiêu\s*:?\s*/i, /^đối tượng mục tiêu\s*:?\s*/i, /^target audience\s*:?\s*/i] },
+  { key: 'style', title: 'Phong cách', patterns: [/^phong cách\s*:?\s*/i, /^style\s*:?\s*/i] },
+  { key: 'content', title: 'Yêu cầu nội dung/hình ảnh', patterns: [/^yêu cầu nội dung\/hình ảnh\s*:?\s*/i, /^yêu cầu nội dung\s*:?\s*/i, /^yêu cầu hình ảnh\s*:?\s*/i, /^yêu cầu\s*:?\s*/i] },
+  { key: 'acceptance', title: 'Tiêu chí nghiệm thu', patterns: [/^tiêu chí nghiệm thu\s*:?\s*/i, /^criteria\s*:?\s*/i] },
+  { key: 'deliverables', title: 'Sản phẩm bàn giao', patterns: [/^sản phẩm bàn giao\s*:?\s*/i, /^deliverables\s*:?\s*/i] }
+];
+
+function normalizeBriefText(value) {
+  return (value || '').replace(/\r\n/g, '\n').trim();
+}
+
+function getMatchedBriefSection(line) {
+  const trimmedLine = line.trim();
+  if (!trimmedLine) return null;
+
+  for (const section of BRIEF_SECTION_DEFINITIONS) {
+    for (const pattern of section.patterns) {
+      if (pattern.test(trimmedLine)) {
+        return { ...section, pattern };
+      }
+    }
+  }
+
+  return null;
+}
+
+function parseStructuredBrief(value) {
+  const text = normalizeBriefText(value);
+  if (!text) return { sections: [], paragraphs: [] };
+
+  const lines = text.split('\n');
+  const sections = [];
+  let currentSection = null;
+
+  for (const line of lines) {
+    const matchedSection = getMatchedBriefSection(line);
+
+    if (matchedSection) {
+      const cleanedLine = line.trim().replace(matchedSection.pattern, '').trim();
+      currentSection = {
+        key: matchedSection.key,
+        title: matchedSection.title,
+        content: cleanedLine ? [cleanedLine] : []
+      };
+      sections.push(currentSection);
+      continue;
+    }
+
+    if (currentSection) {
+      currentSection.content.push(line);
+    }
+  }
+
+  const cleanedSections = sections
+    .map((section) => ({
+      ...section,
+      content: section.content.join('\n').trim()
+    }))
+    .filter((section) => section.content);
+
+  const matchedLineCount = cleanedSections.reduce((count, section) => count + section.content.split('\n').filter(Boolean).length, 0);
+  const paragraphFallback = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  const hasEnoughStructure = cleanedSections.length >= 2 || (cleanedSections.length === 1 && matchedLineCount >= 3);
+
+  return {
+    sections: hasEnoughStructure ? cleanedSections : [],
+    paragraphs: hasEnoughStructure ? [] : paragraphFallback
+  };
+}
+
+function splitBulletItems(value) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[-•]\s*/, '').replace(/^\d+[\.)]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function isBulletLikeContent(value) {
+  const lines = value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) return false;
+
+  return lines.every((line) => /^[-•]\s+/.test(line) || /^\d+[\.)]\s+/.test(line));
+}
+
+function StructuredBriefBlock({ section }) {
+  const shouldRenderAsList = section.key === 'deliverables' || isBulletLikeContent(section.content);
+  const items = shouldRenderAsList ? splitBulletItems(section.content) : [];
+
+  return (
+    <article className="rounded-card border border-d4u-border bg-d4u-soft/35 p-4 sm:p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">{section.title}</p>
+      {shouldRenderAsList ? (
+        <ul className="mt-3 space-y-2 text-sm leading-7 text-d4u-text-1">
+          {items.map((item) => (
+            <li className="flex items-start gap-3" key={`${section.key}-${item}`}>
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-d4u-cyan" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-3 space-y-3 text-sm leading-7 text-d4u-text-1">
+          {section.content.split(/\n+/).map((paragraph) => (
+            <p key={`${section.key}-${paragraph}`}>{paragraph}</p>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function FallbackBriefContent({ paragraphs }) {
+  const listParagraphIndex = paragraphs.findIndex((paragraph) => isBulletLikeContent(paragraph));
+
+  return (
+    <div className="space-y-4">
+      {paragraphs.map((paragraph, index) => {
+        if (index === listParagraphIndex) {
+          return (
+            <ul className="space-y-2 text-sm leading-7 text-d4u-text-1" key={`fallback-list-${index}`}>
+              {splitBulletItems(paragraph).map((item) => (
+                <li className="flex items-start gap-3" key={`fallback-item-${item}`}>
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-d4u-cyan" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <p className="text-sm leading-7 text-d4u-text-1" key={`fallback-paragraph-${index}`}>
+            {paragraph}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function LoadingSpinner() {
   return (
     <span
@@ -125,6 +278,9 @@ export function ProjectDetailHeader({
 }
 
 export function ProjectBriefSection({ description, title, usagePurpose }) {
+  const briefContent = normalizeBriefText(usagePurpose);
+  const parsedBrief = parseStructuredBrief(briefContent);
+
   return (
     <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
       <div className="border-b border-d4u-border bg-gradient-to-r from-white via-d4u-soft/35 to-white px-5 py-5 sm:px-6">
@@ -135,9 +291,21 @@ export function ProjectBriefSection({ description, title, usagePurpose }) {
 
       <div className="p-5 sm:p-6">
         <div className="rounded-card border border-d4u-border bg-white p-5 shadow-sm">
-          <div className="max-w-[76ch] text-sm leading-7 text-d4u-text-1">
-            {usagePurpose || <span className="text-d4u-text-3">Chưa có</span>}
-          </div>
+          {!briefContent ? (
+            <span className="text-sm leading-7 text-d4u-text-3">Chưa có</span>
+          ) : parsedBrief.sections.length ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {parsedBrief.sections.map((section) => (
+                <div className={section.key === 'deliverables' ? 'xl:col-span-2' : ''} key={section.key}>
+                  <StructuredBriefBlock section={section} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="max-w-[78ch]">
+              <FallbackBriefContent paragraphs={parsedBrief.paragraphs} />
+            </div>
+          )}
         </div>
       </div>
     </section>
