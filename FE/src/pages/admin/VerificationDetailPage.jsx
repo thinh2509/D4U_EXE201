@@ -157,15 +157,12 @@ export function VerificationDetailPage() {
     <>
       <VerificationDetailHeader
         detail={detail}
-        acting={acting}
         canReview={canReview}
-        onApprove={approve}
         onBack={() => navigate('/admin/verifications')}
-        onReject={reject}
       />
 
-      <div className="verification-review-layout">
-        <div className="verification-review-main">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.65fr)_360px] xl:items-start">
+        <div className="min-w-0">
           <VerificationDocumentViewer
             detail={detail}
             documentError={documentError}
@@ -175,8 +172,8 @@ export function VerificationDetailPage() {
           />
         </div>
 
-        <aside className="verification-review-sidebar">
-          <div className="verification-review-sidebar-sticky">
+        <aside className="min-w-0">
+          <div className="grid gap-5 xl:sticky xl:top-24">
             <VerificationDecisionPanel
               acting={acting}
               canReview={canReview}
@@ -184,10 +181,10 @@ export function VerificationDetailPage() {
               onApprove={approve}
               onReject={reject}
             />
+            <VerificationAccountCard detail={detail} onCopy={copyText} />
+            <StudentProfileCard detail={detail} />
+            <VerificationChecklist />
           </div>
-          <VerificationAccountCard detail={detail} onCopy={copyText} />
-          <StudentProfileCard detail={detail} />
-          <VerificationChecklist />
         </aside>
       </div>
     </>
