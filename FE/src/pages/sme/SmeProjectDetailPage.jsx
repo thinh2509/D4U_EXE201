@@ -77,6 +77,7 @@ function ProjectActionSidebar({
   canEditProject,
   canOpenWorkspace,
   canCancelProject,
+  canDeleteProject,
   onPublish,
   onCancel,
   onDelete
@@ -163,8 +164,10 @@ function ProjectActionSidebar({
           </ActionButton>
           <ActionButton
             icon={<DeleteOutlined />}
+            disabled={!canDeleteProject}
             loading={acting}
             onClick={onDelete}
+            title={!canDeleteProject ? 'Chỉ xóa được khi dự án còn sạch và chưa phát sinh dữ liệu liên quan.' : undefined}
             variant="danger"
           >
             Xóa
@@ -261,16 +264,25 @@ export function SmeProjectDetailPage() {
   };
 
   const remove = async () => {
-    setActing(true);
-    try {
-      await projectApi.deleteProject(projectId);
-      message.success('Đã xóa/hủy dự án.');
-      navigate('/sme/projects');
-    } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Không thể xóa dự án.'));
-    } finally {
-      setActing(false);
-    }
+    modal.confirm({
+      title: 'Xóa vĩnh viễn dự án?',
+      content: 'Xóa sẽ xóa hẳn dự án khỏi hệ thống và không thể khôi phục. Chỉ dùng khi dự án chưa phát sinh dữ liệu liên quan.',
+      okText: 'Xóa vĩnh viễn',
+      okButtonProps: { danger: true },
+      cancelText: 'Đóng',
+      async onOk() {
+        setActing(true);
+        try {
+          await projectApi.deleteProject(projectId);
+          message.success('Đã xóa dự án vĩnh viễn.');
+          navigate('/sme/projects');
+        } catch (requestError) {
+          message.error(getApiErrorMessage(requestError, 'Không thể xóa dự án.'));
+        } finally {
+          setActing(false);
+        }
+      }
+    });
   };
 
   if (loading) return <LoadingState />;
@@ -278,6 +290,7 @@ export function SmeProjectDetailPage() {
 
   const canOpenWorkspace = ['OFFER_SELECTED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW', 'COMPLETED', 'CANCELLED'].includes(project.status);
   const canCancelProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW'].includes(project.status);
+  const canDeleteProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED'].includes(project.status);
   const canEditProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'OFFER_SELECTED'].includes(project.status);
 
   return (
@@ -306,6 +319,7 @@ export function SmeProjectDetailPage() {
           <ProjectActionSidebar
             acting={acting}
             canCancelProject={canCancelProject}
+            canDeleteProject={canDeleteProject}
             canEditProject={canEditProject}
             canOpenWorkspace={canOpenWorkspace}
             onCancel={cancel}

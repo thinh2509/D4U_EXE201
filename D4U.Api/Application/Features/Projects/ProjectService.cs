@@ -270,6 +270,33 @@ public sealed class ProjectService(
         return ToProjectResponse(project, category);
     }
 
+    public async Task<ProjectResponse> DeleteAsync(
+        Guid userId,
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+
+        if (project.SmeProfileId != smeProfile.Id)
+        {
+            throw new UnauthorizedAccessException("Only the owner SME can delete this project.");
+        }
+
+        if (!await CanHardDeleteProjectAsync(projectId, cancellationToken))
+        {
+            throw new ConflictException("Dự án đã phát sinh dữ liệu liên quan nên không thể xóa. Hãy dùng Hủy dự án.");
+        }
+
+        var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
+        var response = ToProjectResponse(project, category);
+        unitOfWork.Repository<Project>().Remove(project);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return response;
+    }
+
     public async Task<ProjectResponse> AbandonAsync(
         Guid userId,
         Guid projectId,
@@ -1954,6 +1981,65 @@ public sealed class ProjectService(
         return exception.ToString().Contains(
             "IX_project_applications_project_id_student_profile_id",
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<bool> CanHardDeleteProjectAsync(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var hasApplications = await unitOfWork.Repository<ProjectApplication>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+        if (hasApplications)
+        {
+            return false;
+        }
+
+        var hasOffers = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+        if (hasOffers)
+        {
+            return false;
+        }
+
+        var hasSubmissions = await unitOfWork.Repository<ProjectSubmission>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+        if (hasSubmissions)
+        {
+            return false;
+        }
+
+        var hasReviewActions = await unitOfWork.Repository<ReviewAction>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+        if (hasReviewActions)
+        {
+            return false;
+        }
+
+        var hasEscrow = await unitOfWork.Repository<Escrow>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+        if (hasEscrow)
+        {
+            return false;
+        }
+
+        var hasAttachments = await unitOfWork.Repository<ProjectAttachment>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+        if (hasAttachments)
+        {
+            return false;
+        }
+
+        var hasRatings = await unitOfWork.Repository<Rating>().AnyAsync(
+            value => value.ProjectId == projectId,
+            cancellationToken);
+
+        return !hasRatings;
     }
 
     private static void ValidateProjectRules(UpsertProjectDraftRequest request)

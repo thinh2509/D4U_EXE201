@@ -30,6 +30,11 @@ public interface IProjectService
         CancelProjectRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ProjectResponse> DeleteAsync(
+        Guid userId,
+        Guid projectId,
+        CancellationToken cancellationToken = default);
+
     Task<ProjectResponse> AbandonAsync(
         Guid userId,
         Guid projectId,

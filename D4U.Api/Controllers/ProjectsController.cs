@@ -134,10 +134,9 @@ public sealed class ProjectsController(
         Guid projectId,
         CancellationToken cancellationToken)
     {
-        var response = await projectService.CancelAsync(
+        var response = await projectService.DeleteAsync(
             GetRequiredUserId(),
             projectId,
-            new CancelProjectRequest("Deleted by SME."),
             cancellationToken);
 
         return Ok(response);
