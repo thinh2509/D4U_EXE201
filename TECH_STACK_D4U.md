@@ -246,8 +246,8 @@ MVP can start with hosted services. Upgrade to a durable job runner later if nee
 
 Use background jobs for:
 
-- Expiring offers after the 48-hour Student decision window.
-- Expiring accepted offers and pending payments after the 72-hour SME payment window.
+- Expiring offers after the 24-hour Student decision window.
+- Expiring accepted offers and pending payments after the 24-hour SME payment window.
 - Auto-approving overdue Sketch/Final reviews after 5 business days.
 - Notification retries.
 - Withdrawal processing reminders.
@@ -427,8 +427,8 @@ Tables:
 Rules:
 
 - Offer starts as `WAITING_ACCEPTANCE`.
-- Student has 48 hours to accept or reject.
-- Accepted offer gives SME 72 hours to complete escrow payment.
+- Student has 24 hours to accept or reject.
+- Accepted offer gives SME 24 hours to complete escrow payment.
 - Expired/rejected offers must not require refund because escrow is not funded before Student acceptance.
 
 ### 5.7. Payments and Escrow
@@ -762,8 +762,8 @@ PENDING_PAYMENT -> PAYMENT_FAILED
 
 Offer timing rules:
 
-- `WAITING_ACCEPTANCE` expires after 48 hours if the Student does not decide.
-- `ACCEPTED` expires after 72 hours if the SME does not complete escrow payment.
+- `WAITING_ACCEPTANCE` expires after 24 hours if the Student does not decide.
+- `ACCEPTED` expires after 24 hours if the SME does not complete escrow payment.
 - `ACTIVE` means escrow has been funded and execution has started; project/escrow status remains the stronger source for execution state.
 
 ### 9.3. Escrow

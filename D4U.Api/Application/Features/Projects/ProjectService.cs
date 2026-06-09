@@ -18,7 +18,6 @@ public sealed class ProjectService(
     private const string BasicPlanCode = "BASIC";
     private const string ActiveSubscriptionStatus = "ACTIVE";
     private const int ReviewBusinessDays = 5;
-    private static readonly TimeSpan MinimumOfferLeadTime = TimeSpan.FromHours(120);
 
     public async Task<ProjectResponse> CreateDraftAsync(
         Guid userId,
@@ -127,10 +126,9 @@ public sealed class ProjectService(
             .ToListAsync(cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
-        if (waitingOffers.Count > 0 && request.SketchDeadlineAt - now < MinimumOfferLeadTime)
+        if (waitingOffers.Count > 0 && request.SketchDeadlineAt - now < OfferTimingPolicy.MinimumSketchLeadTime)
         {
-            throw new ConflictException(
-                "Sketch deadline quá gần. Cần ít nhất 5 ngày để Student xác nhận offer và SME hoàn tất thanh toán.");
+            throw new ConflictException(OfferTimingPolicy.SketchDeadlineTooCloseMessage);
         }
 
         var previousSketchDeadlineAt = project.SketchDeadlineAt;
@@ -780,10 +778,9 @@ public sealed class ProjectService(
             throw new InvalidOperationException("An active offer already exists for this student and project.");
         }
 
-        if (project.SketchDeadlineAt - now < MinimumOfferLeadTime)
+        if (project.SketchDeadlineAt - now < OfferTimingPolicy.MinimumSketchLeadTime)
         {
-            throw new ConflictException(
-                "Sketch deadline quá gần. Cần ít nhất 5 ngày để Student xác nhận offer và SME hoàn tất thanh toán.");
+            throw new ConflictException(OfferTimingPolicy.SketchDeadlineTooCloseMessage);
         }
 
         var offer = new ProjectOffer
@@ -794,7 +791,7 @@ public sealed class ProjectService(
             ApplicationId = request.ApplicationId,
             Status = OfferStatus.WAITING_ACCEPTANCE,
             OfferedAmount = application?.ProposedPrice ?? request.OfferedAmount,
-            ExpiresAt = now.AddHours(48),
+            ExpiresAt = now.Add(OfferTimingPolicy.StudentDecisionWindow),
             CreatedAt = now
         };
 

@@ -235,17 +235,17 @@ Kỳ vọng:
 
 - Offer tạo status `WAITING_ACCEPTANCE`.
 - Student accept trước khi SME thanh toán.
-- Accept chuyển offer `ACCEPTED`, set `paymentDueAt` sau 72 giờ.
+- Accept chuyển offer `ACCEPTED`, set `paymentDueAt` sau 24 giờ.
 - Reject/expired release project về `OPEN` hoặc `PRIVATE_INVITED` nếu không còn active offer.
 - Notification `NEW_OFFER` được tạo cho Student.
 
 Business rules:
 
-- Offer waiting acceptance hết 48 giờ chuyển `EXPIRED`.
-- Accepted offer hết 72 giờ chưa paid chuyển `EXPIRED`.
+- Offer waiting acceptance hết 24 giờ chuyển `EXPIRED`.
+- Accepted offer hết 24 giờ chưa paid chuyển `EXPIRED`.
 - SME không được start escrow payment trước khi Student accept offer.
 - Active offer duplicate cho cùng student/project bị chặn.
-- Tạo offer khi hạn Sketch còn dưới `120 giờ` bị chặn với `409 Conflict`.
+- Tạo offer khi hạn Sketch còn dưới `48 giờ` bị chặn với `409 Conflict`.
 - SME được sửa deadline khi offer còn `WAITING_ACCEPTANCE`; Student thấy deadline mới và nhận notification.
 - Deadline bị khóa sau khi offer chuyển `ACCEPTED`.
 
@@ -509,9 +509,9 @@ Kỳ vọng có logs:
 | BR-APP-01 | Application | Student chưa verified apply | Bị chặn. |
 | BR-APP-02 | Application | Apply duplicate same project | Bị chặn. |
 | BR-OFFER-01 | Offer | SME tạo active offer duplicate same student/project | Bị chặn. |
-| BR-OFFER-02 | Offer | Offer `WAITING_ACCEPTANCE` quá 48 giờ | `EXPIRED`, project release nếu không còn active offer. |
-| BR-OFFER-03 | Offer | Accepted offer quá 72 giờ chưa paid | `EXPIRED`, payment/escrow pending được xử lý an toàn. |
-| BR-OFFER-04 | Offer | Hạn Sketch còn dưới 120 giờ khi SME tạo offer | `409 Conflict`, yêu cầu SME điều chỉnh deadline. |
+| BR-OFFER-02 | Offer | Offer `WAITING_ACCEPTANCE` quá 24 giờ | `EXPIRED`, project release nếu không còn active offer. |
+| BR-OFFER-03 | Offer | Accepted offer quá 24 giờ chưa paid | `EXPIRED`, payment/escrow pending được xử lý an toàn. |
+| BR-OFFER-04 | Offer | Hạn Sketch còn dưới 48 giờ khi SME tạo offer | `409 Conflict`, yêu cầu SME điều chỉnh deadline. |
 | BR-OFFER-05 | Offer | SME sửa deadline sau khi Student accept | Bị chặn. |
 | BR-PAY-01 | Payment | SME tạo payment khi offer chưa accepted | Bị chặn. |
 | BR-PAY-02 | Payment | Client tự mở success URL | Không đổi payment/escrow/project. |

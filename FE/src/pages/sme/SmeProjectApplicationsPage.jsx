@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
+import {
+  minimumSketchLeadTimeDays,
+  minimumSketchLeadTimeHours,
+  smeOfferPaymentHours,
+  studentOfferDecisionHours
+} from '../../constants/offerTiming.js';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
@@ -63,7 +69,7 @@ export function SmeProjectApplicationsPage() {
         offeredAmount: selected.proposedPrice,
         expiresAt: null
       });
-      message.success('Đã gửi offer. Student có 48 giờ để chấp nhận hoặc từ chối.');
+      message.success(`Đã gửi offer. Student có ${studentOfferDecisionHours} giờ để chấp nhận hoặc từ chối.`);
       setSelected(null);
       await loadRows();
     } catch (requestError) {
@@ -129,7 +135,7 @@ export function SmeProjectApplicationsPage() {
   const offerLeadTimeHours = project
     ? (new Date(project.sketchDeadlineAt).getTime() - Date.now()) / 3600000
     : 0;
-  const deadlineTooClose = offerLeadTimeHours < 120;
+  const deadlineTooClose = offerLeadTimeHours < minimumSketchLeadTimeHours;
 
   return (
     <>
@@ -158,8 +164,8 @@ export function SmeProjectApplicationsPage() {
           showIcon
           className="form-alert"
           message={deadlineTooClose
-            ? 'Hạn Sketch còn dưới 5 ngày nên chưa thể gửi offer.'
-            : 'Student có 48 giờ để chấp nhận. Sau đó SME có tối đa 72 giờ để hoàn tất thanh toán.'}
+            ? `Hạn Sketch còn dưới ${minimumSketchLeadTimeDays} ngày nên chưa thể gửi offer.`
+            : `Student có ${studentOfferDecisionHours} giờ để chấp nhận. Sau đó SME có tối đa ${smeOfferPaymentHours} giờ để hoàn tất thanh toán.`}
           description={deadlineTooClose
             ? 'Hãy điều chỉnh deadline trước khi gửi offer để tránh project bắt đầu sau hạn Sketch.'
             : 'Deadline sẽ bị khóa ngay khi Student chấp nhận offer.'}
@@ -168,7 +174,7 @@ export function SmeProjectApplicationsPage() {
           <Descriptions.Item label="Student">{selected?.studentFullName}</Descriptions.Item>
           <Descriptions.Item label="Giá offer">{formatCurrency(selected?.proposedPrice)}</Descriptions.Item>
           <Descriptions.Item label="Giải pháp hoặc xác nhận">{selected?.coverLetter}</Descriptions.Item>
-          <Descriptions.Item label="Hạn phản hồi">48 giờ kể từ khi gửi offer</Descriptions.Item>
+          <Descriptions.Item label="Hạn phản hồi">{studentOfferDecisionHours} giờ kể từ khi gửi offer</Descriptions.Item>
           <Descriptions.Item label="Hạn nộp Sketch">{formatDate(project?.sketchDeadlineAt)}</Descriptions.Item>
           <Descriptions.Item label="Hạn nộp Final">{formatDate(project?.finalDeadlineAt)}</Descriptions.Item>
           <Descriptions.Item label="Hạn hoàn tất review">{formatDate(project?.totalDeadlineAt)}</Descriptions.Item>

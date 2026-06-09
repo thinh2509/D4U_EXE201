@@ -63,7 +63,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Application captures proposed price, cover letter/solution note, and optional estimated duration.
 - [x] SME can view applications for own project.
 - [x] SME can select an application and create offer.
-- [x] Offer creation requires at least 120 hours before the Sketch deadline.
+- [x] Offer creation requires at least 48 hours before the Sketch deadline.
 - [x] SME can update project deadlines before offer acceptance; deadlines lock after acceptance.
 - [x] Waiting Student receives notification when SME updates project deadlines.
 - [x] Overdue pre-execution open projects auto-close when total deadline passes without an accepted offer.
@@ -71,8 +71,8 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Student can accept offer before SME funds escrow.
 - [x] Student can reject offer.
 - [x] Accepted offer selects student and waits for SME escrow payment.
-- [x] Offer expires if Student does not accept or reject within 48 hours.
-- [x] Accepted offer expires if SME does not pay within 72 hours.
+- [x] Offer expires if Student does not accept or reject within 24 hours.
+- [x] Accepted offer expires if SME does not pay within 24 hours.
 - [x] Expired/rejected offers release the project back to `OPEN` or `PRIVATE_INVITED` when no other active offer blocks it.
 - [x] Offer state transitions are validated by a single service/state machine helper.
 - [x] SME cannot start escrow payment before Student accepts the offer.
@@ -93,7 +93,7 @@ This backlog is scoped to the Outcome 1 demo path only. Items moved to `Post-Out
 - [x] Project cannot start unless escrow is funded.
 - [x] Payment `FAILED`, `CANCELLED`, or `EXPIRED` cannot start a project.
 - [x] Pending payment expiry marks stale payment records safely and releases the accepted offer when appropriate.
-- [x] Expired checkout records move from `PENDING` to `EXPIRED` independently of the 72-hour SME payment window.
+- [x] Expired checkout records move from `PENDING` to `EXPIRED` independently of the 24-hour SME payment window.
 - [x] Background job or hosted service handles offer/payment expiry idempotently.
 - [x] Keep a mock/sandbox payment provider only for local development and automated tests.
 - [x] Frontend SME offer/application screen shows escrow payment CTA only after Student acceptance.

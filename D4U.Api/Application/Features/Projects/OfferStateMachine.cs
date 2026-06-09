@@ -43,7 +43,7 @@ public static class OfferStateMachine
         if (status == OfferStatus.ACCEPTED)
         {
             offer.AcceptedAt ??= now;
-            offer.PaymentDueAt ??= now.AddHours(72);
+            offer.PaymentDueAt ??= now.Add(OfferTimingPolicy.SmePaymentWindow);
         }
         else if (status == OfferStatus.REJECTED)
         {
