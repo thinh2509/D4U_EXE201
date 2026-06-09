@@ -13,6 +13,11 @@ import { paymentApi } from '../../services/paymentApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatFileSize, getFileExtension } from '../../utils/format.js';
+import {
+  getReviewDeadlineError,
+  getReviewDeadlineMinimum,
+  toReviewDeadlineIso
+} from '../../utils/reviewDeadlineValidation.js';
 import { FeatureShellPage } from './MvpShellPage.jsx';
 import {
   SmeReviewWorkspace,
@@ -118,6 +123,51 @@ export function ProjectExecutionPage() {
     && workspace.viewerRole === 'STUDENT'
     && ['IN_PROGRESS', 'SKETCH_REVIEW', 'REVISION_REQUESTED'].includes(workspace.projectStatus)
     && !hasFinalSubmitted;
+  const minimumReviewDeadline = useMemo(
+    () => getReviewDeadlineMinimum(workspace, latestSubmission, latestReviewAction),
+    [latestReviewAction, latestSubmission, workspace]
+  );
+
+  const getDeadlineValidationMessage = (value, options) => getReviewDeadlineError(value, {
+    minimumDate: minimumReviewDeadline,
+    ...options
+  });
+
+  const validateRevisionDueAt = async (_, value) => {
+    const errorMessage = getDeadlineValidationMessage(value, {
+      requiredMessage: 'Chọn hạn nộp lại.',
+      invalidMessage: 'Hạn nộp lại không hợp lệ.',
+      futureMessage: 'Hạn nộp lại phải sau thời điểm hiện tại.',
+      minimumMessage: 'Hạn nộp lại phải sau hạn nộp trước đó.'
+    });
+
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
+  };
+
+  const validateReuploadDueAt = async (_, value) => {
+    const errorMessage = getDeadlineValidationMessage(value, {
+      requiredMessage: 'Chọn hạn upload lại.',
+      invalidMessage: 'Hạn upload lại không hợp lệ.',
+      futureMessage: 'Hạn upload lại phải sau thời điểm hiện tại.',
+      minimumMessage: 'Hạn upload lại phải sau hạn nộp trước đó.'
+    });
+
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
+  };
+
+  const closeReviewModal = () => {
+    reviewForm.resetFields();
+    setReviewMode(null);
+  };
+
+  const openReviewModal = (mode) => {
+    reviewForm.resetFields();
+    setReviewMode(mode);
+  };
 
   useEffect(() => {
     if (!isPaymentReturn || workspace?.viewerRole !== 'SME' || !paymentReturnPaymentId) return;
@@ -367,19 +417,28 @@ export function ProjectExecutionPage() {
     setActing(true);
     try {
       if (reviewMode === 'revision') {
+        const dueAtIso = toReviewDeadlineIso(values.dueAt);
+        if (!dueAtIso) {
+          reviewForm.setFields([{ name: 'dueAt', errors: ['Hạn nộp lại không hợp lệ.'] }]);
+          return;
+        }
         await projectApi.requestRevision(projectId, latestSubmission.id, {
           requestedChanges: values.requestedChanges,
-          dueAt: new Date(values.dueAt).toISOString()
+          dueAt: dueAtIso
         });
       } else {
+        const reuploadDueAtIso = toReviewDeadlineIso(values.reuploadDueAt);
+        if (!reuploadDueAtIso) {
+          reviewForm.setFields([{ name: 'reuploadDueAt', errors: ['Hạn upload lại không hợp lệ.'] }]);
+          return;
+        }
         await projectApi.reportInvalidFile(projectId, latestSubmission.id, {
           reason: values.reason,
           description: values.description,
-          reuploadDueAt: new Date(values.reuploadDueAt).toISOString()
+          reuploadDueAt: reuploadDueAtIso
         });
       }
-      setReviewMode(null);
-      reviewForm.resetFields();
+      closeReviewModal();
       message.success('Đã gửi phản hồi cho Student.');
       await loadWorkspace();
     } catch (requestError) {
@@ -435,8 +494,8 @@ export function ProjectExecutionPage() {
               onCheckPayment={checkPaymentReturnNow}
               onDownload={downloadSubmissionFile}
               onApprove={approveSubmission}
-              onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
-              onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
+              onRevision={() => openReviewModal('revision')}
+              onInvalid={() => openReviewModal('invalid')}
             />
           )}
           <SubmissionMilestoneBoard
@@ -479,7 +538,7 @@ export function ProjectExecutionPage() {
         okText="Gửi phản hồi"
         cancelText="Hủy"
         onOk={submitReviewDecision}
-        onCancel={() => setReviewMode(null)}
+        onCancel={closeReviewModal}
       >
         <Form form={reviewForm} layout="vertical">
           {reviewMode === 'revision' ? (
@@ -487,9 +546,8 @@ export function ProjectExecutionPage() {
               <Form.Item label="Nội dung cần sửa" name="requestedChanges" rules={[{ required: true, message: 'Nhập nội dung cần sửa.' }]}>
                 <Input.TextArea rows={4} />
               </Form.Item>
-              <Form.Item label="Hạn nộp lại" name="dueAt" rules={[{ required: true, message: 'Chọn hạn nộp lại.' }]}>
-                <Input type="datetime-local" />
-                <div className="workspace-helper-text">Thời gian nhập theo múi giờ Việt Nam.</div>
+              <Form.Item label={"H\u1ea1n n\u1ed9p l\u1ea1i"} name="dueAt" validateTrigger={['onChange', 'onBlur']} extra={"Th\u1eddi gian nh\u1eadp theo m\u00fai gi\u1edd Vi\u1ec7t Nam."} rules={[{ validator: validateRevisionDueAt }]}>
+                <Input type="datetime-local" onChange={() => reviewForm.validateFields(['dueAt']).catch(() => {})} />
               </Form.Item>
             </>
           ) : (
@@ -500,9 +558,8 @@ export function ProjectExecutionPage() {
               <Form.Item label="Mô tả" name="description">
                 <Input.TextArea rows={3} />
               </Form.Item>
-              <Form.Item label="Hạn upload lại" name="reuploadDueAt" rules={[{ required: true, message: 'Chọn hạn upload lại.' }]}>
-                <Input type="datetime-local" />
-                <div className="workspace-helper-text">Thời gian nhập theo múi giờ Việt Nam.</div>
+              <Form.Item label={"H\u1ea1n upload l\u1ea1i"} name="reuploadDueAt" validateTrigger={['onChange', 'onBlur']} extra={"Th\u1eddi gian nh\u1eadp theo m\u00fai gi\u1edd Vi\u1ec7t Nam."} rules={[{ validator: validateReuploadDueAt }]}>
+                <Input type="datetime-local" onChange={() => reviewForm.validateFields(['reuploadDueAt']).catch(() => {})} />
               </Form.Item>
             </>
           )}
