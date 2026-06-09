@@ -13,6 +13,11 @@ import {
   TwitterOutlined,
   InstagramOutlined,
   LinkedinOutlined,
+  FormOutlined,
+  SendOutlined,
+  TeamOutlined,
+  CreditCardOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import { Button, Drawer } from 'antd';
 import { useEffect, useRef, useState } from 'react';
@@ -48,12 +53,12 @@ const ROLE_ITEMS = [
 ];
 
 const PROCESS_ITEMS = [
-  ['01', 'SME đăng dự án', 'Brief, ngân sách, category và deadline được nhập rõ ngay từ đầu.'],
-  ['02', 'Student gửi proposal', 'Student nêu giải pháp, thời gian và mức giá trong phạm vi project.'],
-  ['03', 'Hai bên xác nhận offer', 'SME chọn ứng viên, Student accept trước khi bước thanh toán mở ra.'],
-  ['04', 'SME thanh toán escrow', 'PayOS và backend xác nhận giao dịch trước khi dự án bắt đầu.'],
-  ['05', 'Student nộp Sketch và Final', 'Bản nộp, revision và review được lưu theo từng milestone.'],
-  ['06', 'Duyệt Final và giải ngân', 'Escrow chỉ release vào ví Student khi Final được duyệt hoặc auto-approve đúng luật.'],
+  { icon: FormOutlined, title: 'SME đăng dự án', copy: 'Brief, ngân sách, category và deadline được nhập rõ ngay từ đầu.' },
+  { icon: SendOutlined, title: 'Student gửi proposal', copy: 'Student nêu giải pháp, thời gian và mức giá trong phạm vi project.' },
+  { icon: TeamOutlined, title: 'Hai bên xác nhận offer', copy: 'SME chọn ứng viên, Student accept trước khi bước thanh toán mở ra.' },
+  { icon: CreditCardOutlined, title: 'SME thanh toán escrow', copy: 'PayOS và backend xác nhận giao dịch trước khi dự án bắt đầu.' },
+  { icon: UploadOutlined, title: 'Student nộp Sketch và Final', copy: 'Bản nộp, revision và review được lưu theo từng milestone.' },
+  { icon: SafetyCertificateOutlined, title: 'Duyệt Final và giải ngân', copy: 'Escrow chỉ release vào ví Student khi Final được duyệt hoặc auto-approve đúng luật.' },
 ];
 
 const TRUST_ITEMS = [
@@ -265,9 +270,9 @@ export function LandingPage() {
                 <p>Không có khoảng trống mơ hồ giữa ứng tuyển, thanh toán, nộp bài và giải ngân.</p>
               </div>
               <div className="landing-process-grid">
-                {PROCESS_ITEMS.map(([step, title, copy]) => (
-                  <article className="landing-process-item" key={step}>
-                    <span>{step}</span>
+                {PROCESS_ITEMS.map(({ icon: Icon, title, copy }) => (
+                  <article className="landing-process-item" key={title}>
+                    <span><Icon /></span>
                     <h3>{title}</h3>
                     <p>{copy}</p>
                   </article>

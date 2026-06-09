@@ -310,7 +310,7 @@ a:hover {
   box-shadow: var(--shadow-sm);
 }
 
-.auth-feature-card > span {
+.auth-feature-card>span {
   width: 38px;
   height: 38px;
   display: inline-grid;
@@ -828,7 +828,7 @@ a:hover {
   gap: 12px;
 }
 
-.toolbar-head > div {
+.toolbar-head>div {
   display: grid;
   gap: 4px;
 }
@@ -893,7 +893,7 @@ a:hover {
   order: 2;
 }
 
-.profile-layout > .form-panel {
+.profile-layout>.form-panel {
   order: 1;
 }
 
@@ -1097,7 +1097,7 @@ a:hover {
   overflow: hidden;
 }
 
-.table-card .ant-table-thead > tr > th {
+.table-card .ant-table-thead>tr>th {
   color: var(--ink);
   font-weight: 900;
 }
@@ -1153,7 +1153,7 @@ a:hover {
   gap: 16px;
 }
 
-.withdrawal-toolbar > div:first-child {
+.withdrawal-toolbar>div:first-child {
   display: grid;
   gap: 4px;
 }
@@ -1291,7 +1291,7 @@ a:hover {
 }
 
 .withdrawal-detail-field,
-.withdrawal-detail-grid > div {
+.withdrawal-detail-grid>div {
   display: grid;
   gap: 5px;
 }
@@ -1486,7 +1486,7 @@ a:hover {
   order: 2;
 }
 
-.project-form-layout > .form-panel {
+.project-form-layout>.form-panel {
   order: 1;
 }
 
@@ -1529,7 +1529,7 @@ a:hover {
   gap: 12px;
 }
 
-.side-metric > .anticon {
+.side-metric>.anticon {
   width: 42px;
   height: 42px;
   display: grid;
@@ -1612,7 +1612,7 @@ a:hover {
   background: linear-gradient(135deg, var(--d4u-surface), var(--d4u-soft));
 }
 
-.dashboard-hero > div {
+.dashboard-hero>div {
   max-width: 760px;
   display: grid;
   gap: 10px;
@@ -1918,7 +1918,7 @@ a:hover {
   box-shadow: var(--d4u-shadow-focus) !important;
 }
 
-.ant-form-item-label > label {
+.ant-form-item-label>label {
   color: var(--d4u-text-1);
   font-weight: 700;
 }
@@ -2226,7 +2226,7 @@ html {
   justify-content: center;
 }
 
-.withdrawal-row-highlight > td {
+.withdrawal-row-highlight>td {
   background: #eaf8ff !important;
 }
 
@@ -2345,7 +2345,7 @@ html {
   border-left: 1px solid var(--border);
 }
 
-.landing-proof-item > .anticon {
+.landing-proof-item>.anticon {
   color: var(--primary);
   font-size: 26px;
 }
@@ -2395,7 +2395,7 @@ html {
   line-height: 1.16;
 }
 
-.landing-section-heading > p:last-child,
+.landing-section-heading>p:last-child,
 .landing-cta p {
   margin: 14px 0 0;
   color: var(--muted-strong);
@@ -2539,7 +2539,7 @@ html {
   gap: 28px;
 }
 
-.landing-cta-inner > div {
+.landing-cta-inner>div {
   max-width: 780px;
 }
 
@@ -2610,6 +2610,7 @@ html {
 }
 
 @media (max-width: 992px) {
+
   .landing-nav,
   .landing-header-actions {
     display: none;
@@ -2648,6 +2649,7 @@ html {
 }
 
 @media (max-width: 768px) {
+
   .landing-container,
   .landing-header-inner {
     width: min(100% - 32px, 1280px);
@@ -2734,7 +2736,7 @@ html {
     font-size: 31px;
   }
 
-  .landing-section-heading > p:last-child,
+  .landing-section-heading>p:last-child,
   .landing-cta p {
     font-size: 16px;
   }
@@ -3179,7 +3181,7 @@ body {
   gap: 10px;
 }
 
-.landing-demo-steps > div {
+.landing-demo-steps>div {
   padding: 12px 14px;
   display: flex;
   align-items: center;
@@ -3246,7 +3248,7 @@ body {
   gap: 14px;
 }
 
-.landing-proof-item > .anticon {
+.landing-proof-item>.anticon {
   margin-top: 3px;
   color: var(--d4u-cyan-hover);
   font-size: 22px;
@@ -3611,6 +3613,7 @@ body {
 }
 
 @media (max-width: 1100px) {
+
   .landing-hero-inner,
   .landing-trust-layout,
   .auth-shell {
@@ -3628,6 +3631,7 @@ body {
 }
 
 @media (max-width: 760px) {
+
   .landing-nav,
   .landing-header-actions,
   .header-chip {
@@ -3816,7 +3820,7 @@ body {
   background: var(--d4u-soft);
 }
 
-.project-meta-item > .anticon {
+.project-meta-item>.anticon {
   color: var(--d4u-cyan-hover);
 }
 
@@ -3864,13 +3868,13 @@ body {
   min-width: 100%;
 }
 
-.table-card .ant-table-thead > tr > th {
+.table-card .ant-table-thead>tr>th {
   color: var(--d4u-text-1);
   background: var(--d4u-soft);
   font-weight: 900;
 }
 
-.table-card .ant-table-tbody > tr > td {
+.table-card .ant-table-tbody>tr>td {
   color: var(--d4u-text-1);
   vertical-align: top;
 }
@@ -4119,7 +4123,7 @@ body {
   background: var(--d4u-soft);
 }
 
-.workspace-file-row > .anticon {
+.workspace-file-row>.anticon {
   color: var(--d4u-cyan-hover);
 }
 
@@ -4144,6 +4148,7 @@ body {
 }
 
 @media (max-width: 760px) {
+
   .marketplace-toolbar-inner,
   .project-meta-grid {
     grid-template-columns: 1fr;
@@ -4371,6 +4376,7 @@ body {
 }
 
 @media (max-width: 1100px) {
+
   .project-form-layout,
   .review-layout {
     grid-template-columns: 1fr;
@@ -4383,6 +4389,7 @@ body {
 }
 
 @media (max-width: 760px) {
+
   .form-two-cols,
   .wallet-summary-grid,
   .withdrawal-summary-grid {
