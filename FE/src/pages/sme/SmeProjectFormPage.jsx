@@ -117,6 +117,12 @@ export function SmeProjectFormPage({ mode }) {
     [categories]
   );
 
+  const renderCategoryOption = (option) => (
+    <div className="whitespace-normal break-words px-3 py-2.5 text-sm leading-5 text-d4u-text-1">
+      {option.data.label}
+    </div>
+  );
+
   useEffect(() => {
     const loadCategories = async () => {
       setLoadingCategories(true);
@@ -266,6 +272,15 @@ export function SmeProjectFormPage({ mode }) {
                       disabled={deadlineOnly}
                       loading={loadingCategories}
                       options={categoryOptions}
+                      optionRender={renderCategoryOption}
+                      popupMatchSelectWidth={false}
+                      virtual={false}
+                      listHeight={320}
+                      classNames={{
+                        popup: {
+                          root: 'w-[min(520px,calc(100vw-2rem))] max-w-[min(520px,calc(100vw-2rem))]'
+                        }
+                      }}
                       placeholder="Chọn danh mục phù hợp"
                       notFoundContent={loadingCategories ? 'Đang tải...' : 'Chưa có danh mục khả dụng'}
                     />
