@@ -9,32 +9,43 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
     {
         RuleFor(request => request.Email)
             .NotEmpty()
+            .WithMessage("Vui lòng nhập email.")
             .EmailAddress()
-            .MaximumLength(255);
+            .WithMessage("Email không hợp lệ.")
+            .MaximumLength(255)
+            .WithMessage("Email không được vượt quá 255 ký tự.");
 
         RuleFor(request => request.Username)
             .NotEmpty()
+            .WithMessage("Vui lòng nhập username.")
             .MinimumLength(3)
+            .WithMessage("Username cần ít nhất 3 ký tự.")
             .MaximumLength(100)
+            .WithMessage("Username không được vượt quá 100 ký tự.")
             .Matches("^[a-zA-Z0-9._-]+$")
-            .WithMessage("Username can only contain letters, numbers, dots, underscores, and hyphens.");
+            .WithMessage("Username chỉ được chứa chữ, số, dấu chấm, gạch dưới và gạch ngang.");
 
         RuleFor(request => request.Password)
             .NotEmpty()
+            .WithMessage("Vui lòng nhập mật khẩu.")
             .MinimumLength(8)
+            .WithMessage("Mật khẩu cần ít nhất 8 ký tự.")
             .MaximumLength(128)
+            .WithMessage("Mật khẩu không được vượt quá 128 ký tự.")
             .Matches("[A-Za-z]")
-            .WithMessage("Password must contain at least one letter.")
+            .WithMessage("Mật khẩu phải có ít nhất một chữ cái.")
             .Matches("[0-9]")
-            .WithMessage("Password must contain at least one number.");
+            .WithMessage("Mật khẩu phải có ít nhất một chữ số.");
 
         RuleFor(request => request.FullName)
             .NotEmpty()
-            .MaximumLength(255);
+            .WithMessage("Vui lòng nhập họ và tên.")
+            .MaximumLength(255)
+            .WithMessage("Họ và tên không được vượt quá 255 ký tự.");
 
         RuleFor(request => request.Role)
             .Must(role => role is UserRole.STUDENT or UserRole.SME)
-            .WithMessage("Only STUDENT and SME accounts can self-register.");
+            .WithMessage("Vai trò đăng ký không hợp lệ.");
     }
 }
 

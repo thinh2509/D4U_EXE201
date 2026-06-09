@@ -31,7 +31,7 @@ public sealed class AuthService(
 
         if (request.Role is not (UserRole.STUDENT or UserRole.SME))
         {
-            throw new InvalidOperationException("Only STUDENT and SME accounts can self-register.");
+            throw new InvalidOperationException("Vai trò đăng ký không hợp lệ.");
         }
 
         if (string.IsNullOrWhiteSpace(email) ||
@@ -39,19 +39,19 @@ public sealed class AuthService(
             string.IsNullOrWhiteSpace(fullName) ||
             string.IsNullOrWhiteSpace(request.Password))
         {
-            throw new InvalidOperationException("Email, username, password, and full name are required.");
+            throw new InvalidOperationException("Vui lòng nhập đầy đủ email, username, họ và tên, mật khẩu.");
         }
 
         var users = unitOfWork.Repository<User>();
 
         if (await users.AnyAsync(user => user.Email == email, cancellationToken))
         {
-            throw new InvalidOperationException("Email is already registered.");
+            throw new InvalidOperationException("Email này đã được đăng ký.");
         }
 
         if (await users.AnyAsync(user => user.Username == username, cancellationToken))
         {
-            throw new InvalidOperationException("Username is already registered.");
+            throw new InvalidOperationException("Username này đã được đăng ký.");
         }
 
         var now = DateTimeOffset.UtcNow;
