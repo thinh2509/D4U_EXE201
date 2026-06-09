@@ -1,21 +1,28 @@
-import { FolderOpenOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MarketplaceToolbar } from '../../components/MarketplaceToolbar.jsx';
-import { PageHeader } from '../../components/PageHeader.jsx';
-import { PageShell } from '../../components/PageShell.jsx';
-import { ProjectCard } from '../../components/ProjectCard.jsx';
-import { StudentReadinessNotice, useStudentReadiness } from '../../components/StudentReadinessGate.jsx';
-import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews.jsx';
-import { projectApi } from '../../services/projectApi.js';
-import { getApiErrorMessage } from '../../utils/apiError.js';
+import { FolderOpenOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { MarketplaceToolbar } from "../../components/MarketplaceToolbar.jsx";
+import { PageHeader } from "../../components/PageHeader.jsx";
+import { PageShell } from "../../components/PageShell.jsx";
+import { ProjectCard } from "../../components/ProjectCard.jsx";
+import {
+  StudentReadinessNotice,
+  useStudentReadiness,
+} from "../../components/StudentReadinessGate.jsx";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../../components/StateViews.jsx";
+import { projectApi } from "../../services/projectApi.js";
+import { getApiErrorMessage } from "../../utils/apiError.js";
 
 export function StudentProjectListPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('ALL');
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const readiness = useStudentReadiness();
@@ -37,16 +44,23 @@ export function StudentProjectListPage() {
   }, []);
 
   const categories = useMemo(() => {
-    return [...new Set(projects.map((project) => project.designCategoryName).filter(Boolean))].sort();
+    return [
+      ...new Set(
+        projects.map((project) => project.designCategoryName).filter(Boolean),
+      ),
+    ].sort();
   }, [projects]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return projects.filter((project) => {
-      const matchesCategory = category === 'ALL' || project.designCategoryName === category;
-      const matchesQuery = !normalized || [project.title, project.brief, project.designCategoryName]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(normalized));
+      const matchesCategory =
+        category === "ALL" || project.designCategoryName === category;
+      const matchesQuery =
+        !normalized ||
+        [project.title, project.brief, project.designCategoryName]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(normalized));
 
       return matchesCategory && matchesQuery;
     });
@@ -54,24 +68,27 @@ export function StudentProjectListPage() {
 
   if (loading || readiness.loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadProjects} />;
-  if (readiness.error) return <ErrorState description={readiness.error} onRetry={readiness.reload} />;
+  if (readiness.error)
+    return (
+      <ErrorState description={readiness.error} onRetry={readiness.reload} />
+    );
 
   const readinessNotice = readiness.needsProfile ? (
     <StudentReadinessNotice
       compact
       mode="profile"
-      title="Táº¡o há»“ sÆ¡ trÆ°á»›c khi báº¯t Ä‘áº§u á»©ng tuyá»ƒn"
-      description="Báº¡n váº«n cÃ³ thá»ƒ xem marketplace, nhÆ°ng D4U sáº½ chá»‰ má»Ÿ nÃºt á»©ng tuyá»ƒn sau khi há»“ sÆ¡ sinh viÃªn Ä‘Æ°á»£c táº¡o."
-      secondaryActionLabel="Tiáº¿p tá»¥c xem dá»± Ã¡n"
+      title="Tạo hồ sơ trước khi bắt đầu ứng tuyển"
+      description="Bạn vẫn có thể xem marketplace, nhưng D4U sẽ chỉ mở nút ứng tuyển sau khi hồ sơ sinh viên được tạo."
+      secondaryActionLabel="Tiếp tục xem dự án"
       secondaryActionPath="/student/projects"
     />
   ) : readiness.needsVerification ? (
     <StudentReadinessNotice
       compact
       mode="verification"
-      title="HoÃ n táº¥t xÃ¡c thá»±c Ä‘á»ƒ gá»­i á»©ng tuyá»ƒn"
-      description="Báº¡n cÃ³ thá»ƒ xem brief vÃ  shortlist dá»± Ã¡n trÆ°á»›c. Khi xÃ¡c thá»±c xong, D4U sáº½ má»Ÿ hÃ nh Ä‘á»™ng á»©ng tuyá»ƒn vÃ  pháº£n há»“i offer."
-      secondaryActionLabel="Tiáº¿p tá»¥c xem dá»± Ã¡n"
+      title="Hoàn tất xác thực để gửi ứng tuyển"
+      description="Bạn có thể xem brief và shortlist dự án trước. Khi xác thực xong, D4U sẽ mở hành động ứng tuyển và phản hồi offer."
+      secondaryActionLabel="Tiếp tục xem dự án"
       secondaryActionPath="/student/projects"
     />
   ) : null;
@@ -80,9 +97,9 @@ export function StudentProjectListPage() {
     <PageShell size="wide">
       <PageHeader
         icon={<FolderOpenOutlined />}
-        title="Dá»± Ã¡n Ä‘ang má»Ÿ"
-        description="TÃ¬m brief phÃ¹ há»£p, xem ngÃ¢n sÃ¡ch vÃ  gá»­i á»©ng tuyá»ƒn cho dá»± Ã¡n thiáº¿t káº¿."
-        extra={<Button onClick={loadProjects}>LÃ m má»›i</Button>}
+        title="Dự án đang mở"
+        description="Tìm brief phù hợp, xem ngân sách và gửi ứng tuyển cho dự án thiết kế."
+        extra={<Button onClick={loadProjects}>Làm mới</Button>}
       />
 
       {readinessNotice}
@@ -98,7 +115,7 @@ export function StudentProjectListPage() {
       />
 
       {filtered.length === 0 ? (
-        <EmptyState description="ChÆ°a tÃ¬m tháº¥y dá»± Ã¡n phÃ¹ há»£p." />
+        <EmptyState description="Chưa tìm thấy dự án phù hợp." />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((project) => (
