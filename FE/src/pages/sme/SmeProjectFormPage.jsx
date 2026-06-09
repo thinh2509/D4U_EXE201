@@ -7,6 +7,7 @@ import { aiApi } from '../../services/aiApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { normalizeDateInput, toDateTimeLocalValue } from '../../utils/format.js';
+import { getProjectDeadlineErrors } from '../../utils/projectDeadlineValidation.js';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -94,6 +95,15 @@ function CreateProjectHeader({ deadlineOnly, mode }) {
   );
 }
 
+function buildDeadlineValidator(fieldName, getValues) {
+  return async () => {
+    const errors = getProjectDeadlineErrors(getValues(), { requireAll: false });
+    if (errors[fieldName]) {
+      throw new Error(errors[fieldName]);
+    }
+  };
+}
+
 export function SmeProjectFormPage({ mode }) {
   const { message } = App.useApp();
   const { projectId } = useParams();
@@ -122,6 +132,12 @@ export function SmeProjectFormPage({ mode }) {
       {option.data.label}
     </div>
   );
+
+  const getDeadlineValues = () => ({
+    sketchDeadlineAt: form.getFieldValue('sketchDeadlineAt'),
+    finalDeadlineAt: form.getFieldValue('finalDeadlineAt'),
+    totalDeadlineAt: form.getFieldValue('totalDeadlineAt')
+  });
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -334,18 +350,33 @@ export function SmeProjectFormPage({ mode }) {
                 </Form.Item>
               ) : null}
               <div className="form-two-cols">
-                <Form.Item name="sketchDeadlineAt" label="Hạn nộp Sketch" extra="Mốc Student gửi phiên bản Sketch đầu tiên." rules={[{ required: true }]}>
+                <Form.Item
+                  name="sketchDeadlineAt"
+                  label={'H?n n?p Sketch'}
+                  extra={'M?c Student g?i phi?n b?n Sketch ??u ti?n.'}
+                  rules={[{ validator: buildDeadlineValidator('sketchDeadlineAt', getDeadlineValues) }]}
+                  validateTrigger={['onChange', 'onBlur']}
+                >
                   <Input size="large" type="datetime-local" disabled={deadlineLocked} />
                 </Form.Item>
-                <Form.Item name="finalDeadlineAt" label="Hạn nộp Final" extra="Mốc nộp phiên bản Final sau khi xử lý feedback." rules={[{ required: true }]}>
+                <Form.Item
+                  name="finalDeadlineAt"
+                  label={'H?n n?p Final'}
+                  extra={'M?c n?p phi?n b?n Final sau khi x? l? feedback.'}
+                  dependencies={['sketchDeadlineAt']}
+                  rules={[{ validator: buildDeadlineValidator('finalDeadlineAt', getDeadlineValues) }]}
+                  validateTrigger={['onChange', 'onBlur']}
+                >
                   <Input size="large" type="datetime-local" disabled={deadlineLocked} />
                 </Form.Item>
               </div>
               <Form.Item
                 name="totalDeadlineAt"
-                label="Hạn hoàn tất review dự án"
-                extra="Đây là thời điểm SME cần hoàn tất review Final, không phải một lượt nộp bài riêng."
-                rules={[{ required: true }]}
+                label={'H?n ho?n t?t review d? ?n'}
+                extra={'??y l? th?i ?i?m SME c?n ho?n t?t review Final, kh?ng ph?i m?t l??t n?p b?i ri?ng.'}
+                dependencies={['finalDeadlineAt']}
+                rules={[{ validator: buildDeadlineValidator('totalDeadlineAt', getDeadlineValues) }]}
+                validateTrigger={['onChange', 'onBlur']}
               >
                 <Input size="large" type="datetime-local" disabled={deadlineLocked} />
               </Form.Item>

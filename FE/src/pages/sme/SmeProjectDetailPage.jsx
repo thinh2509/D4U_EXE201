@@ -17,6 +17,7 @@ import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency } from '../../utils/format.js';
+import { getProjectDeadlineErrors } from '../../utils/projectDeadlineValidation.js';
 import {
   ActionButton,
   ProjectBriefSection,
@@ -57,6 +58,16 @@ function buildExecutionItems(project) {
     { label: 'Hạn hoàn tất review', value: project.totalDeadlineAt ? formatDetailDate(project.totalDeadlineAt) : <span className="text-d4u-text-3">Chưa có</span> },
     { label: 'Mục đích sử dụng', value: project.usagePurpose || <span className="text-d4u-text-3">Chưa có</span>, fullWidth: true }
   ];
+}
+
+function getPublishValidationMessage(project) {
+  const errors = getProjectDeadlineErrors({
+    sketchDeadlineAt: project.sketchDeadlineAt,
+    finalDeadlineAt: project.finalDeadlineAt,
+    totalDeadlineAt: project.totalDeadlineAt
+  }, { requireAll: true });
+
+  return errors.sketchDeadlineAt || errors.finalDeadlineAt || errors.totalDeadlineAt || null;
 }
 
 function ProjectActionSidebar({
@@ -202,6 +213,12 @@ export function SmeProjectDetailPage() {
   }, [projectId]);
 
   const publish = async () => {
+    const deadlineError = getPublishValidationMessage(project);
+    if (deadlineError) {
+      message.error(deadlineError);
+      return;
+    }
+
     setActing(true);
     try {
       setProject(await projectApi.publishProject(projectId));
