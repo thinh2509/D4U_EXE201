@@ -56,6 +56,15 @@ public sealed class PaymentService(
             await ReleaseApplicationIfSelectedAsync(offer, now, cancellationToken);
             await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, "Offer payment window expired.", now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
+            await PublishSmeOfferNotificationAsync(
+                project,
+                offer.Id,
+                userId,
+                "PAYMENT_WINDOW_EXPIRED",
+                "Offer đã hết hạn thanh toán",
+                $"Offer của dự án {project.Title} đã hết hạn vì chưa hoàn tất thanh toán escrow đúng thời gian.",
+                now,
+                cancellationToken);
             throw new InvalidOperationException("Offer payment window has expired.");
         }
 
@@ -261,6 +270,17 @@ public sealed class PaymentService(
                     {
                         OfferStateMachine.TransitionTo(failedOffer, OfferStatus.PAYMENT_FAILED, failedAt);
                     }
+
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                    await PublishSmePaymentFailureNotificationAsync(
+                        failedEscrow.ProjectId,
+                        failedOffer?.Id,
+                        payment.Id,
+                        "Thanh toán escrow chưa thành công",
+                        $"PayOS chưa xác nhận thanh toán escrow cho dự án {await GetProjectTitleAsync(failedEscrow.ProjectId, cancellationToken)}. Vui lòng kiểm tra và mở lại thanh toán nếu cần.",
+                        failedAt,
+                        cancellationToken);
+                    return;
                 }
             }
 
@@ -325,7 +345,24 @@ public sealed class PaymentService(
         if (string.Equals(providerStatus.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
         {
             payment.Status = PaymentStatus.CANCELLED;
-            await MarkOfferPaymentFailedAsync(payment, now, cancellationToken);
+            var failedOfferId = await MarkOfferPaymentFailedAsync(payment, now, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            if (payment.EscrowId.HasValue)
+            {
+                var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken);
+                if (escrow is not null)
+                {
+                    await PublishSmePaymentFailureNotificationAsync(
+                        escrow.ProjectId,
+                        failedOfferId,
+                        payment.Id,
+                        "Thanh toán escrow đã bị hủy",
+                        $"Thanh toán escrow cho dự án {await GetProjectTitleAsync(escrow.ProjectId, cancellationToken)} đã bị hủy. Bạn có thể mở lại PayOS từ danh sách offer.",
+                        now,
+                        cancellationToken);
+                }
+            }
+            return;
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -341,20 +378,20 @@ public sealed class PaymentService(
         return !payment.ExpiresAt.HasValue || payment.ExpiresAt > now;
     }
 
-    private async Task MarkOfferPaymentFailedAsync(
+    private async Task<Guid?> MarkOfferPaymentFailedAsync(
         Payment payment,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         if (!payment.EscrowId.HasValue)
         {
-            return;
+            return null;
         }
 
         var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken);
         if (escrow is null)
         {
-            return;
+            return null;
         }
 
         var offer = await unitOfWork.Repository<ProjectOffer>().FirstOrDefaultAsync(
@@ -367,6 +404,8 @@ public sealed class PaymentService(
         {
             OfferStateMachine.TransitionTo(offer, OfferStatus.PAYMENT_FAILED, now);
         }
+
+        return offer?.Id;
     }
 
     private async Task MarkPaymentSucceededAsync(
@@ -479,8 +518,19 @@ public sealed class PaymentService(
             "PAYMENT_SUCCESS",
             "Escrow đã được PayOS xác nhận",
             $"Dự án {project.Title} đã bắt đầu sau khi thanh toán escrow thành công.",
-            nameof(Payment),
-            payment.Id,
+            nameof(Project),
+            project.Id,
+            now,
+            cancellationToken);
+
+        await notificationPublisher.PublishAsync(
+            await GetSmeOwnerUserIdAsync(project.SmeProfileId, cancellationToken),
+            null,
+            "ESCROW_FUNDED",
+            "PayOS đã xác nhận thanh toán escrow",
+            $"Escrow của dự án {project.Title} đã được xác nhận thành công và project đã bắt đầu.",
+            nameof(Project),
+            project.Id,
             now,
             cancellationToken);
     }
@@ -691,6 +741,70 @@ public sealed class PaymentService(
             .FirstOrDefaultAsync(cancellationToken);
 
         return offer?.Id;
+    }
+
+    private async Task PublishSmeOfferNotificationAsync(
+        Project project,
+        Guid offerId,
+        Guid? actorUserId,
+        string type,
+        string title,
+        string body,
+        DateTimeOffset createdAt,
+        CancellationToken cancellationToken)
+    {
+        await notificationPublisher.PublishAsync(
+            await GetSmeOwnerUserIdAsync(project.SmeProfileId, cancellationToken),
+            actorUserId,
+            type,
+            title,
+            body,
+            nameof(ProjectOffer),
+            offerId,
+            createdAt,
+            cancellationToken);
+    }
+
+    private async Task PublishSmePaymentFailureNotificationAsync(
+        Guid projectId,
+        Guid? offerId,
+        Guid paymentId,
+        string title,
+        string body,
+        DateTimeOffset createdAt,
+        CancellationToken cancellationToken)
+    {
+        var project = await RequireProjectAsync(projectId, cancellationToken);
+        await notificationPublisher.PublishAsync(
+            await GetSmeOwnerUserIdAsync(project.SmeProfileId, cancellationToken),
+            null,
+            "PAYMENT_FAILED",
+            title,
+            body,
+            offerId.HasValue ? nameof(ProjectOffer) : nameof(Payment),
+            offerId ?? paymentId,
+            createdAt,
+            cancellationToken);
+    }
+
+    private async Task<Guid> GetSmeOwnerUserIdAsync(
+        Guid smeProfileId,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<SmeProfile>().Query()
+            .Where(profile => profile.Id == smeProfileId)
+            .Select(profile => profile.UserId)
+            .FirstAsync(cancellationToken);
+    }
+
+    private async Task<string> GetProjectTitleAsync(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<Project>().Query()
+            .Where(project => project.Id == projectId)
+            .Select(project => project.Title)
+            .FirstAsync(cancellationToken);
     }
 
     private void EnsureConfiguredProviderSelected()

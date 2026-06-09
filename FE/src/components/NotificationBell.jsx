@@ -2,14 +2,60 @@ import { BellOutlined, CheckOutlined, ReloadOutlined } from '@ant-design/icons';
 import { App, Badge, Button, Dropdown, List, Space, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { notificationApi } from '../services/notificationApi.js';
 import { getApiErrorMessage } from '../utils/apiError.js';
 import { formatDate } from '../utils/format.js';
 
 const { Text } = Typography;
 
+function resolveNotificationPath(notification, role) {
+  if (notification.referenceType === 'WithdrawalRequest') {
+    return `/student/wallet?withdrawalId=${notification.referenceId}`;
+  }
+
+  if (notification.referenceType === 'Project') {
+    return notification.referenceId ? `/projects/${notification.referenceId}/execution` : null;
+  }
+
+  if (role === 'SME') {
+    if (notification.type === 'APPLICATION_SUBMITTED' || notification.referenceType === 'ProjectApplication') {
+      return '/sme/applications';
+    }
+
+    if (
+      [
+        'OFFER_ACCEPTED',
+        'OFFER_REJECTED',
+        'PAYMENT_FAILED',
+        'PAYMENT_WINDOW_EXPIRED'
+      ].includes(notification.type) ||
+      notification.referenceType === 'ProjectOffer' ||
+      notification.referenceType === 'Payment'
+    ) {
+      return '/sme/offers';
+    }
+
+    if (notification.type === 'NEW_SUBMISSION' || notification.type === 'REVIEW_ACTION') {
+      return '/sme/projects';
+    }
+  }
+
+  if (role === 'STUDENT') {
+    if (
+      ['PROJECT_DEADLINES_UPDATED', 'NEW_OFFER'].includes(notification.type) ||
+      notification.referenceType === 'ProjectOffer'
+    ) {
+      return '/student/offers';
+    }
+  }
+
+  return null;
+}
+
 export function NotificationBell() {
   const { message } = App.useApp();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -69,21 +115,9 @@ export function NotificationBell() {
 
   const openNotification = async (notification) => {
     await markRead(notification);
-
-    if (notification.referenceType === 'WithdrawalRequest') {
-      navigate(`/student/wallet?withdrawalId=${notification.referenceId}`);
-      setOpen(false);
-      return;
-    }
-
-    if (notification.type === 'PROJECT_DEADLINES_UPDATED' || notification.referenceType === 'ProjectOffer') {
-      navigate('/student/offers');
-      setOpen(false);
-      return;
-    }
-
-    if (notification.referenceType === 'Project') {
-      navigate(`/projects/${notification.referenceId}/execution`);
+    const destination = resolveNotificationPath(notification, user?.role);
+    if (destination) {
+      navigate(destination);
       setOpen(false);
     }
   };

@@ -508,6 +508,18 @@ public sealed class ProjectService(
             throw new InvalidOperationException("Student has already applied to this project.", exception);
         }
 
+        var smeOwnerUserId = await GetSmeOwnerUserIdAsync(project.SmeProfileId, cancellationToken);
+        await notificationPublisher.PublishAsync(
+            smeOwnerUserId,
+            userId,
+            "APPLICATION_SUBMITTED",
+            "Có ứng tuyển mới cho dự án",
+            $"{user.FullName} vừa ứng tuyển vào dự án {project.Title}.",
+            nameof(ProjectApplication),
+            application.Id,
+            now,
+            cancellationToken);
+
         return await ToApplicationResponseAsync(application, cancellationToken);
     }
 
@@ -862,6 +874,18 @@ public sealed class ProjectService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var smeOwnerUserId = await GetSmeOwnerUserIdAsync(project.SmeProfileId, cancellationToken);
+        await notificationPublisher.PublishAsync(
+            smeOwnerUserId,
+            userId,
+            "OFFER_ACCEPTED",
+            "Student đã chấp nhận offer",
+            $"{user.FullName} đã chấp nhận offer cho dự án {project.Title}. Bạn có 24 giờ để hoàn tất thanh toán escrow.",
+            nameof(ProjectOffer),
+            offer.Id,
+            now,
+            cancellationToken);
+
         return ToOfferResponse(offer);
     }
 
@@ -911,6 +935,18 @@ public sealed class ProjectService(
         await ReleaseProjectIfNoActiveOfferAsync(project, offer.Id, userId, "Student rejected offer.", now, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var smeOwnerUserId = await GetSmeOwnerUserIdAsync(project.SmeProfileId, cancellationToken);
+        await notificationPublisher.PublishAsync(
+            smeOwnerUserId,
+            userId,
+            "OFFER_REJECTED",
+            "Student đã từ chối offer",
+            $"{user.FullName} đã từ chối offer cho dự án {project.Title}. Bạn có thể chọn ứng viên khác hoặc điều chỉnh offer.",
+            nameof(ProjectOffer),
+            offer.Id,
+            now,
+            cancellationToken);
 
         return ToOfferResponse(offer);
     }
@@ -1030,8 +1066,8 @@ public sealed class ProjectService(
             "NEW_SUBMISSION",
             "Student đã nộp bài mới",
             $"Student đã nộp {milestoneType} cho dự án {project.Title}.",
-            nameof(ProjectSubmission),
-            submission.Id,
+            nameof(Project),
+            project.Id,
             now,
             cancellationToken);
 
@@ -1897,10 +1933,20 @@ public sealed class ProjectService(
             "REVIEW_ACTION",
             title,
             body,
-            nameof(ProjectSubmission),
-            submission.Id,
+            nameof(Project),
+            submission.ProjectId,
             now,
             cancellationToken);
+    }
+
+    private async Task<Guid> GetSmeOwnerUserIdAsync(
+        Guid smeProfileId,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<SmeProfile>().Query()
+            .Where(profile => profile.Id == smeProfileId)
+            .Select(profile => profile.UserId)
+            .FirstAsync(cancellationToken);
     }
 
     private static bool IsDuplicateProjectApplication(DbUpdateException exception)
