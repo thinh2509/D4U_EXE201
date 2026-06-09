@@ -3,6 +3,7 @@ import {
   BankOutlined,
   BookOutlined,
   BulbOutlined,
+  CloseOutlined,
   CreditCardOutlined,
   DashboardOutlined,
   FileDoneOutlined,
@@ -17,7 +18,7 @@ import {
   UserOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { Button, Drawer, Layout, Menu } from 'antd';
+import { Button, Drawer, Layout } from 'antd';
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -137,8 +138,51 @@ function flattenMenu(items) {
   return items.flatMap((item) => item.children || item);
 }
 
-function AppMenu({ items, selectedKey, onClick }) {
-  return <Menu mode="inline" selectedKeys={[selectedKey]} items={items} onClick={onClick} />;
+function getItemPath(item) {
+  return item.label?.props?.to || item.key;
+}
+
+function getItemLabel(item) {
+  return item.label?.props?.children || item.label;
+}
+
+function SidebarNav({ items, selectedKey, onNavigate }) {
+  return (
+    <nav className="flex flex-col gap-6">
+      {items.map((group) => (
+        <section key={group.label} className="flex flex-col gap-2">
+          <h2 className="px-3 text-[11px] font-black uppercase tracking-[0.16em] text-white/50">
+            {group.label}
+          </h2>
+          <div className="flex flex-col gap-1">
+            {group.children?.map((item) => {
+              const href = getItemPath(item);
+              const active = selectedKey === item.key;
+
+              return (
+                <Link
+                  key={item.key}
+                  to={href}
+                  onClick={onNavigate}
+                  className={[
+                    'group flex min-h-[46px] items-center gap-3 rounded-btn border-l-2 px-3 py-2.5 text-sm font-semibold transition-all duration-150',
+                    active
+                      ? 'border-d4u-cyan bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+                      : 'border-transparent text-white/80 hover:bg-white/10 hover:text-white'
+                  ].join(' ')}
+                >
+                  <span className={active ? 'text-white' : 'text-white/70 group-hover:text-white'}>
+                    {item.icon}
+                  </span>
+                  <span className="leading-5">{getItemLabel(item)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </nav>
+  );
 }
 
 function getSelectedKey(flatItems, pathname) {
@@ -162,40 +206,78 @@ export function AppLayout() {
     navigate('/login', { replace: true });
   };
 
-  return (
-    <Layout className="app-layout">
-      <Sider className="app-sider" width={280} breakpoint="lg" collapsedWidth="0">
-        <div className="sider-brand">
-          <D4ULogo />
+  const sidebarContent = (
+    <div className="flex h-full flex-col bg-gradient-to-b from-d4u-teal-deep via-d4u-teal-deep to-d4u-nav-dark text-white">
+      <div className="border-b border-white/10 px-5 py-5">
+        <div className="rounded-card border border-white/10 bg-white/10 p-3 backdrop-blur-sm">
+          <D4ULogo className="w-[186px]" />
         </div>
-        <AppMenu items={items} selectedKey={selectedKey} />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-5">
+        <SidebarNav items={items} selectedKey={selectedKey} onNavigate={() => setDrawerOpen(false)} />
+      </div>
+    </div>
+  );
+
+  return (
+    <Layout className="min-h-screen bg-d4u-bg">
+      <Sider
+        width={280}
+        breakpoint="lg"
+        collapsedWidth="0"
+        className="hidden !fixed !inset-y-0 !left-0 !z-40 !h-screen overflow-hidden border-r border-white/10 bg-d4u-teal-deep shadow-none lg:!block"
+      >
+        {sidebarContent}
       </Sider>
 
       <Drawer
-        className="mobile-nav"
+        className="[&_.ant-drawer-body]:!p-0 [&_.ant-drawer-content]:!bg-d4u-nav-dark"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         placement="left"
         width={316}
-        title={<D4ULogo />}
+        closable={false}
+        title={null}
       >
-        <AppMenu items={items} selectedKey={selectedKey} onClick={() => setDrawerOpen(false)} />
+        <div className="flex h-full flex-col bg-gradient-to-b from-d4u-teal-deep via-d4u-teal-deep to-d4u-nav-dark text-white">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <div className="rounded-card border border-white/10 bg-white/10 p-3">
+              <D4ULogo className="w-[170px]" />
+            </div>
+            <Button
+              type="text"
+              aria-label="Đóng menu"
+              icon={<CloseOutlined />}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white hover:!bg-white/15 hover:!text-white"
+              onClick={() => setDrawerOpen(false)}
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-5">
+            <SidebarNav items={items} selectedKey={selectedKey} onNavigate={() => setDrawerOpen(false)} />
+          </div>
+        </div>
       </Drawer>
 
-      <Layout className="app-main-layout">
-        <Header className="app-header">
-          <Button className="mobile-menu-button" aria-label="Mở menu" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />
-          <div className="header-context">
-            <span>D4U Outcome 1</span>
-            <strong>{title}</strong>
+      <Layout className="min-w-0 bg-transparent">
+        <Header className="sticky top-0 z-20 flex h-[72px] items-center gap-3 border-b border-d4u-border bg-d4u-surface px-4 sm:px-6">
+          <Button
+            aria-label="Mở menu"
+            icon={<MenuOutlined />}
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border bg-white text-d4u-teal-deep shadow-sm hover:!border-d4u-cyan hover:!text-d4u-cyan lg:!hidden"
+          />
+          <div className="grid min-w-0 gap-0.5">
+            <span className="text-[11px] font-black uppercase tracking-[0.14em] text-d4u-text-3">D4U Outcome 1</span>
+            <strong className="truncate text-[18px] font-semibold leading-tight text-d4u-text-1">{title}</strong>
           </div>
-          <div className="header-spacer" />
+          <div className="flex-1" />
           <NotificationBell />
           <UserMenu user={user} onLogout={handleLogout} />
         </Header>
 
-        <Content className="app-content">
-          <div className="content-shell">
+        <Content className="px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-content">
             <Outlet />
           </div>
         </Content>
