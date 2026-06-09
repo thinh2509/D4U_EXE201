@@ -1,8 +1,9 @@
 import { FileSearchOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Select, Space, Table, Tag } from 'antd';
+import { Button, Input, Select, Table, Tag } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
+import { DataPanel, PageShell } from '../../components/PageShell.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { adminApi } from '../../services/adminApi.js';
@@ -43,7 +44,7 @@ export function VerificationListPage() {
 
   const columns = [
     {
-      title: 'Sinh viên',
+      title: 'Sinh viÃªn',
       dataIndex: 'studentFullName',
       render: (value, row) => (
         <div>
@@ -52,10 +53,10 @@ export function VerificationListPage() {
         </div>
       )
     },
-    { title: 'Trường', dataIndex: 'school' },
-    { title: 'Chuyên ngành', dataIndex: 'major' },
+    { title: 'TrÆ°á»ng', dataIndex: 'school' },
+    { title: 'ChuyÃªn ngÃ nh', dataIndex: 'major' },
     {
-      title: 'Giấy tờ',
+      title: 'Giáº¥y tá»',
       render: (_, row) => (
         <div>
           <span>{row.originalFilename}</span>
@@ -63,52 +64,65 @@ export function VerificationListPage() {
         </div>
       )
     },
-    { title: 'Trạng thái', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
-    { title: 'Ngày gửi', dataIndex: 'submittedAt', render: formatDate },
+    { title: 'Tráº¡ng thÃ¡i', dataIndex: 'status', render: (value) => <StatusBadge status={value} /> },
+    { title: 'NgÃ y gá»­i', dataIndex: 'submittedAt', render: formatDate },
     {
-      title: 'Hành động',
-      render: (_, row) => <Button type="primary" ghost onClick={() => navigate(`/admin/verifications/${row.id}`)}>Xem chi tiết</Button>
+      title: 'HÃ nh Ä‘á»™ng',
+      render: (_, row) => <Button type="primary" ghost onClick={() => navigate(`/admin/verifications/${row.id}`)}>Xem chi tiáº¿t</Button>
     }
   ];
 
   if (error) return <ErrorState description={error} onRetry={loadRows} />;
 
   return (
-    <>
+    <PageShell size="wide">
       <PageHeader
         icon={<FileSearchOutlined />}
-        title="Yêu cầu xác thực sinh viên"
-        description="Duyệt hoặc từ chối các yêu cầu xác thực giấy tờ."
-        extra={<Tag color="cyan">{filteredRows.length} yêu cầu</Tag>}
+        title="YÃªu cáº§u xÃ¡c thá»±c sinh viÃªn"
+        description="Duyá»‡t hoáº·c tá»« chá»‘i cÃ¡c yÃªu cáº§u xÃ¡c thá»±c giáº¥y tá»."
+        extra={<Tag color="cyan">{filteredRows.length} yÃªu cáº§u</Tag>}
       />
-      <Card className="table-card">
-        <div className="table-toolbar">
-          <Space wrap>
-            <Select
-              value={status}
-              onChange={setStatus}
-              className="status-filter"
-              options={[
-                { value: 'ALL', label: 'Tất cả' },
-                { value: 'PENDING', label: 'Đang chờ duyệt' },
-                { value: 'APPROVED', label: 'Đã duyệt' },
-                { value: 'REJECTED', label: 'Bị từ chối' }
-              ]}
-            />
-            <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm tên, email, trường..." value={query} onChange={(event) => setQuery(event.target.value)} />
-          </Space>
-          <Button onClick={loadRows}>Làm mới</Button>
+      <DataPanel
+        flush
+        header={(
+          <>
+            <div className="flex flex-1 flex-wrap items-center gap-3">
+              <Select
+                value={status}
+                onChange={setStatus}
+                className="w-full sm:w-[220px]"
+                options={[
+                  { value: 'ALL', label: 'Táº¥t cáº£' },
+                  { value: 'PENDING', label: 'Äang chá» duyá»‡t' },
+                  { value: 'APPROVED', label: 'ÄÃ£ duyá»‡t' },
+                  { value: 'REJECTED', label: 'Bá»‹ tá»« chá»‘i' }
+                ]}
+              />
+              <Input
+                allowClear
+                prefix={<SearchOutlined />}
+                className="min-w-[220px] flex-1"
+                placeholder="TÃ¬m tÃªn, email, trÆ°á»ng..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+            <Button onClick={loadRows}>LÃ m má»›i</Button>
+          </>
+        )}
+      >
+        <div className="p-2 sm:p-3">
+          <Table
+            rowKey="id"
+            loading={loading}
+            columns={columns}
+            dataSource={filteredRows}
+            scroll={{ x: 980 }}
+            pagination={{ pageSize: 8 }}
+            locale={{ emptyText: 'ChÆ°a cÃ³ yÃªu cáº§u xÃ¡c thá»±c nÃ o.' }}
+          />
         </div>
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={filteredRows}
-          scroll={{ x: 980 }}
-          pagination={{ pageSize: 8 }}
-          locale={{ emptyText: 'Chưa có yêu cầu xác thực nào.' }}
-        />
-      </Card>
-    </>
+      </DataPanel>
+    </PageShell>
   );
 }

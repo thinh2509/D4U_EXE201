@@ -171,11 +171,13 @@ export function NotificationBell() {
       }}
     >
       <Button
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border/80 bg-white/90 p-0 text-d4u-teal-deep shadow-sm backdrop-blur transition-all duration-150 hover:!border-d4u-cyan hover:!bg-white hover:!text-d4u-cyan focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus"
+        className="group inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border/80 bg-white/95 p-0 text-d4u-teal-deep shadow-sm backdrop-blur transition-all duration-150 hover:!border-d4u-cyan hover:!bg-d4u-soft-2 hover:shadow-soft focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus"
         aria-label="Mở thông báo"
         icon={(
-          <Badge count={unreadLabel} size="small" offset={[4, -4]}>
-            <BellOutlined className="text-[20px] font-black text-current" />
+          <Badge count={unreadLabel} size="small" offset={[2, -1]} className="grid place-items-center [&_.ant-badge-count]:!px-1.5 [&_.ant-badge-count]:!py-0 [&_.ant-badge-count]:!text-[10px] [&_.ant-badge-count]:!font-black [&_.ant-badge-count]:!leading-[18px] [&_.ant-badge-count]:shadow-sm">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-d4u-soft text-d4u-teal-deep transition-all duration-150 group-hover:bg-white group-hover:text-d4u-cyan">
+              <BellOutlined className="text-[18px] font-black text-current" />
+            </span>
           </Badge>
         )}
       />

@@ -276,7 +276,7 @@ export function AppLayout() {
             <strong className="truncate text-[17px] font-semibold leading-tight text-d4u-text-1 sm:text-[18px]">{title}</strong>
           </div>
           <div className="flex-1" />
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <NotificationBell />
             <UserMenu user={user} onLogout={handleLogout} />
           </div>

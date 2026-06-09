@@ -17,6 +17,7 @@ import { Button, Card, Modal, Skeleton, Tag } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
+import { DataPanel, PageShell } from '../../components/PageShell.jsx';
 import { BackendGapState, ErrorState } from '../../components/StateViews.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { profileApi } from '../../services/profileApi.js';
@@ -305,16 +306,18 @@ async function loadSmeDashboard() {
 
 function DashboardSkeleton() {
   return (
-    <div className="dashboard-skeleton">
-      <Skeleton active paragraph={{ rows: 3 }} />
-      <div className="dashboard-grid">
+    <PageShell size="wide" density="relaxed">
+      <div className="rounded-panel border border-d4u-border/80 bg-white/92 p-6 shadow-soft">
+        <Skeleton active paragraph={{ rows: 3 }} />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} className="dashboard-card">
+          <div key={index} className="rounded-panel border border-d4u-border/80 bg-white/92 p-5 shadow-soft">
             <Skeleton active paragraph={{ rows: 2 }} />
-          </Card>
+          </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -324,7 +327,7 @@ function OperationalDashboard({ content, data, onNavigate }) {
   const isEmptyState = content.isEmptyState(data);
 
   return (
-    <>
+    <PageShell size="wide" density="relaxed">
       <PageHeader
         icon={<DashboardOutlined />}
         eyebrow={content.label}
@@ -333,7 +336,7 @@ function OperationalDashboard({ content, data, onNavigate }) {
         extra={<Button type="primary" onClick={() => onNavigate(primaryAction.path)}>{primaryAction.label}</Button>}
       />
 
-      <section className="dashboard-hero">
+      <DataPanel>
         <div className="dashboard-hero-copy">
           <Tag color="cyan">{content.label}</Tag>
           <h2>{isEmptyState ? content.emptyTitle : content.title}</h2>
@@ -343,41 +346,46 @@ function OperationalDashboard({ content, data, onNavigate }) {
             <strong>{content.insight}</strong>
           </div>
         </div>
-      </section>
+      </DataPanel>
 
-      <section className="dashboard-metric-grid">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
-          <Card key={metric.label} className="dashboard-metric-card">
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-            <p>{metric.helper}</p>
-          </Card>
+          <article key={metric.label} className="grid gap-3 rounded-card border border-d4u-border/80 bg-white/92 p-5 shadow-soft">
+            <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-d4u-text-3">{metric.label}</span>
+            <strong className="text-[26px] font-semibold leading-none text-d4u-text-1">{metric.value}</strong>
+            <p className="text-sm leading-6 text-d4u-text-2">{metric.helper}</p>
+          </article>
         ))}
       </section>
 
-      <div className="dashboard-section-heading">
+      <div className="grid gap-1">
         <span>{isEmptyState ? 'Lộ trình gợi ý' : 'Workflow chính'}</span>
         <strong>{isEmptyState ? 'Đi tiếp theo từng bước, không cần đoán phải bắt đầu từ đâu' : 'Chọn bước cần xử lý tiếp theo'}</strong>
       </div>
 
-      <div className={`dashboard-grid ${isEmptyState ? 'dashboard-grid-onboarding' : ''}`}>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {(isEmptyState ? content.emptyActions : content.cards).map((card) => (
-          <Card key={card.path} className="dashboard-card" hoverable onClick={() => onNavigate(card.path)}>
-            <div className="dashboard-card-top">
-              <div className="dashboard-card-icon">{card.icon}</div>
-              <Tag>{card.badge}</Tag>
+          <button
+            key={card.path}
+            type="button"
+            className="grid h-full gap-4 rounded-panel border border-d4u-border/80 bg-white/92 p-5 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card"
+            onClick={() => onNavigate(card.path)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-card bg-d4u-soft text-[20px] text-d4u-cyan">{card.icon}</div>
+              <Tag className="!m-0 rounded-full font-semibold">{card.badge}</Tag>
             </div>
-            <div>
-              <h2>{card.title}</h2>
-              <p>{card.description}</p>
+            <div className="grid gap-2">
+              <h2 className="text-lg font-semibold leading-tight text-d4u-text-1">{card.title}</h2>
+              <p className="text-sm leading-6 text-d4u-text-2">{card.description}</p>
             </div>
-            <Button type="link">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-d4u-cyan">
               Mở <ArrowRightOutlined />
-            </Button>
-          </Card>
+            </span>
+          </button>
         ))}
       </div>
-    </>
+    </PageShell>
   );
 }
 
@@ -553,7 +561,7 @@ export function DashboardPage() {
   }
 
   return (
-    <>
+    <PageShell size="wide" density="relaxed">
       <PageHeader
         icon={<DashboardOutlined />}
         eyebrow={content.label}
@@ -562,7 +570,7 @@ export function DashboardPage() {
         extra={<Button type="primary" onClick={() => navigate(content.primaryPath)}>{content.primaryLabel}</Button>}
       />
 
-      <section className="dashboard-hero">
+      <DataPanel>
         <div className="dashboard-hero-copy">
           <Tag color="cyan">{content.label}</Tag>
           <h2>{content.title}</h2>
@@ -572,31 +580,36 @@ export function DashboardPage() {
             <strong>{content.insight}</strong>
           </div>
         </div>
-      </section>
+      </DataPanel>
 
-      <div className="dashboard-section-heading">
+      <div className="grid gap-1">
         <span>Workflow chính</span>
         <strong>Chọn bước cần xử lý tiếp theo</strong>
       </div>
 
-      <div className="dashboard-grid">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {content.cards.map((card) => (
-          <Card key={card.path} className="dashboard-card" hoverable onClick={() => navigate(card.path)}>
-            <div className="dashboard-card-top">
-              <div className="dashboard-card-icon">{card.icon}</div>
-              <Tag>{card.badge}</Tag>
+          <button
+            key={card.path}
+            type="button"
+            className="grid h-full gap-4 rounded-panel border border-d4u-border/80 bg-white/92 p-5 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card"
+            onClick={() => navigate(card.path)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-card bg-d4u-soft text-[20px] text-d4u-cyan">{card.icon}</div>
+              <Tag className="!m-0 rounded-full font-semibold">{card.badge}</Tag>
             </div>
-            <div>
-              <h2>{card.title}</h2>
-              <p>{card.description}</p>
+            <div className="grid gap-2">
+              <h2 className="text-lg font-semibold leading-tight text-d4u-text-1">{card.title}</h2>
+              <p className="text-sm leading-6 text-d4u-text-2">{card.description}</p>
             </div>
-            <Button type="link">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-d4u-cyan">
               Mở <ArrowRightOutlined />
-            </Button>
-          </Card>
+            </span>
+          </button>
         ))}
       </div>
-    </>
+    </PageShell>
   );
 }
 

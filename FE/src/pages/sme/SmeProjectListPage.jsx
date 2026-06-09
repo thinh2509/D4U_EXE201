@@ -1,11 +1,12 @@
 import { FolderOpenOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Empty } from 'antd';
+import { Button } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MarketplaceToolbar } from '../../components/MarketplaceToolbar.jsx';
 import { PageHeader } from '../../components/PageHeader.jsx';
+import { PageShell } from '../../components/PageShell.jsx';
 import { ProjectCard } from '../../components/ProjectCard.jsx';
-import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
+import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 
@@ -53,18 +54,16 @@ export function SmeProjectListPage() {
   if (error) return <ErrorState description={error} onRetry={loadProjects} />;
 
   return (
-    <>
+    <PageShell size="wide">
       <PageHeader
         icon={<FolderOpenOutlined />}
-        title="Dự án của tôi"
-        description="Quản lý draft, publish và theo dõi các dự án đã tạo trong MVP."
-        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/sme/projects/new')}>Tạo dự án</Button>}
+        title="Dá»± Ã¡n cá»§a tÃ´i"
+        description="Quáº£n lÃ½ draft, publish vÃ  theo dÃµi cÃ¡c dá»± Ã¡n Ä‘Ã£ táº¡o trong MVP."
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/sme/projects/new')}>Táº¡o dá»± Ã¡n</Button>}
       />
 
       {projects.length === 0 ? (
-        <div className="empty-panel">
-          <Empty description="Chưa có dự án nào. Hãy tạo draft đầu tiên." />
-        </div>
+        <EmptyState description="ChÆ°a cÃ³ dá»± Ã¡n nÃ o. HÃ£y táº¡o draft Ä‘áº§u tiÃªn." />
       ) : (
         <>
           <MarketplaceToolbar
@@ -75,21 +74,21 @@ export function SmeProjectListPage() {
             categories={categories}
             onRefresh={loadProjects}
             resultCount={filtered.length}
-            placeholder="Tìm theo tiêu đề, brief, trạng thái..."
+            placeholder="TÃ¬m theo tiÃªu Ä‘á», brief, tráº¡ng thÃ¡i..."
           />
 
-          <div className="project-grid">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}
-                actionLabel="Quản lý"
+                actionLabel="Quáº£n lÃ½"
                 onOpen={() => navigate(`/sme/projects/${project.id}`)}
               />
             ))}
           </div>
         </>
       )}
-    </>
+    </PageShell>
   );
 }
