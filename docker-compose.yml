@@ -65,10 +65,12 @@ services:
       StudentEmailVerification__CodeExpiresMinutes: "${STUDENT_EMAIL_CODE_EXPIRES_MINUTES:-15}"
       StudentEmailVerification__CodeLength: "${STUDENT_EMAIL_CODE_LENGTH:-6}"
       StudentEmailVerification__IncludeCodeInResponseForDevelopment: "${STUDENT_EMAIL_INCLUDE_CODE_IN_RESPONSE:-true}"
+      DataProtection__KeysPath: "/app/App_Data/data-protection-keys"
     ports:
       - "127.0.0.1:${D4U_API_PORT:-8080}:8080"
     volumes:
       - d4u_uploads:/app/App_Data/uploads
+      - d4u_data_protection_keys:/app/App_Data/data-protection-keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,3 +91,4 @@ services:
 volumes:
   d4u_postgres_data:
   d4u_uploads:
+  d4u_data_protection_keys:

@@ -474,9 +474,12 @@ export function StudentWalletShellPage() {
 
 const isValidPaymentMethod = (method) => method?.status === 'ACTIVE' && method?.bankName && method?.hasFullAccountNumber;
 
+const isRecreateRequiredPaymentMethod = (method) => method?.status === 'ACTIVE' && method?.bankName && !method?.hasFullAccountNumber;
+
 const getPaymentMethodIssue = (method) => {
   if (method?.status !== 'ACTIVE') return 'Tài khoản chưa active';
   if (!method?.bankName) return 'Thiếu ngân hàng';
+  if (isRecreateRequiredPaymentMethod(method)) return 'Tài khoản cũ cần tạo lại';
   if (!method?.hasFullAccountNumber) return 'Thiếu số tài khoản đầy đủ';
   return null;
 };
@@ -771,6 +774,7 @@ function StudentWalletPageContent() {
   const highlightedWithdrawalId = searchParams.get('withdrawalId');
   const validPaymentMethods = paymentMethods.filter(isValidPaymentMethod);
   const invalidPaymentMethods = paymentMethods.filter((method) => !isValidPaymentMethod(method));
+  const recreateRequiredMethods = invalidPaymentMethods.filter(isRecreateRequiredPaymentMethod);
   const selectedPaymentMethod = validPaymentMethods.find((method) => method.id === selectedPaymentMethodId);
   const paymentMethodOptions = [
     ...validPaymentMethods.map((method) => ({
@@ -793,6 +797,9 @@ function StudentWalletPageContent() {
     withdrawalAmount >= minimumWithdrawalAmount &&
     hasEnoughBalance;
   const withdrawalBlockingMessage = (() => {
+    if (validPaymentMethods.length === 0 && recreateRequiredMethods.length > 0) {
+      return 'Tài khoản nhận tiền cũ không còn đủ dữ liệu để dùng tiếp. Vui lòng tạo lại tài khoản mới trước khi rút tiền.';
+    }
     if (validPaymentMethods.length === 0) return 'Bạn cần lưu tài khoản ngân hàng có đầy đủ số tài khoản trước khi rút tiền.';
     if (!selectedPaymentMethod) return 'Chọn tài khoản nhận tiền hợp lệ.';
     if (hasActiveWithdrawal) return 'Bạn đang có yêu cầu rút tiền chờ xử lý.';
@@ -839,6 +846,15 @@ function StudentWalletPageContent() {
         <Col xs={24} lg={12}>
           <Card className="wallet-card" title="Tài khoản nhận tiền">
             {sectionErrors.methods ? <Alert type="warning" showIcon className="form-alert" message={sectionErrors.methods} /> : null}
+            {recreateRequiredMethods.length > 0 ? (
+              <Alert
+                type="warning"
+                showIcon
+                className="form-alert"
+                message="Có tài khoản nhận tiền cũ cần tạo lại."
+                description="Một hoặc nhiều tài khoản đã lưu không còn đủ dữ liệu mã hóa để tiếp tục rút tiền. Bạn chỉ cần tạo lại tài khoản mới, không phải do bạn nhập thiếu ở lần trước."
+              />
+            ) : null}
             <Form form={form} layout="vertical" onFinish={createPaymentMethod}>
               <Form.Item name="bankName" label="Ngân hàng" rules={[{ required: true, message: 'Nhập tên ngân hàng.' }]}>
                 <Input maxLength={120} placeholder="Ví dụ: Vietcombank, MB Bank, Techcombank" />
@@ -849,8 +865,23 @@ function StudentWalletPageContent() {
               <Form.Item name="accountHolderName" label="Chủ tài khoản" rules={[{ required: true, message: 'Nhập tên chủ tài khoản.' }]}>
                 <Input maxLength={120} />
               </Form.Item>
-              <Form.Item name="accountNumber" label="Số tài khoản" rules={[{ required: true, message: 'Nhập số tài khoản.' }]}>
-                <Input maxLength={40} />
+              <Form.Item
+                name="accountNumber"
+                label="Số tài khoản"
+                rules={[
+                  { required: true, message: 'Nhập số tài khoản.' },
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      const digits = String(value).replace(/\D/g, '');
+                      return digits.length >= 4
+                        ? Promise.resolve()
+                        : Promise.reject(new Error('Số tài khoản phải có ít nhất 4 chữ số.'));
+                    }
+                  }
+                ]}
+              >
+                <Input maxLength={40} inputMode="numeric" />
               </Form.Item>
               <Button type="primary" htmlType="submit" loading={savingMethod}>Lưu tài khoản</Button>
             </Form>
@@ -875,7 +906,16 @@ function StudentWalletPageContent() {
                 message="Bạn đang có một yêu cầu rút tiền chờ xử lý. Hãy chờ Admin/Finance hoàn tất trước khi tạo yêu cầu mới."
               />
             )}
-            {validPaymentMethods.length === 0 ? (
+            {validPaymentMethods.length === 0 && recreateRequiredMethods.length > 0 ? (
+              <Alert
+                type="warning"
+                showIcon
+                className="form-alert"
+                message="Tài khoản nhận tiền cũ không còn dùng được."
+                description="Hãy tạo lại một tài khoản nhận tiền mới ở cột bên trái rồi chọn lại tài khoản trước khi tạo yêu cầu rút tiền."
+              />
+            ) : null}
+            {validPaymentMethods.length === 0 && recreateRequiredMethods.length === 0 ? (
               <Alert type="warning" showIcon className="form-alert" message="Bạn cần lưu tài khoản ngân hàng có đầy đủ số tài khoản trước khi rút tiền." />
             ) : null}
             <Form form={withdrawalForm} layout="vertical" onFinish={createWithdrawal}>

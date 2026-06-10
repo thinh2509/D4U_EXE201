@@ -1,5 +1,6 @@
 namespace D4U.Api.Infrastructure;
 
+using System.IO;
 using System.Text;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Files;
@@ -23,6 +24,7 @@ using D4U.Api.Infrastructure.Payments;
 using D4U.Api.Infrastructure.Persistence;
 using D4U.Api.Domain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols;
@@ -52,7 +54,18 @@ public static class DependencyInjection
     {
         services.AddSingleton<IConnectionStringProvider, ConnectionStringProvider>();
         services.AddHttpContextAccessor();
-        services.AddDataProtection();
+
+        var dataProtectionKeysPath = configuration["DataProtection:KeysPath"];
+        if (string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+        {
+            dataProtectionKeysPath = Path.Combine(AppContext.BaseDirectory, "App_Data", "data-protection-keys");
+        }
+
+        Directory.CreateDirectory(dataProtectionKeysPath);
+
+        services.AddDataProtection()
+            .SetApplicationName("D4U.Api")
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 
         services.AddDbContext<D4UDbContext>((serviceProvider, options) =>
         {
