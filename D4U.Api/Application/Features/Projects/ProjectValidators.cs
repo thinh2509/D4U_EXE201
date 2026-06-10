@@ -7,39 +7,50 @@ public sealed class UpsertProjectDraftRequestValidator : AbstractValidator<Upser
     public UpsertProjectDraftRequestValidator()
     {
         RuleFor(request => request.DesignCategoryId)
-            .NotEmpty();
+            .NotEmpty()
+            .WithMessage("Vui lòng chọn danh mục thiết kế.");
 
         RuleFor(request => request.Title)
             .NotEmpty()
-            .MaximumLength(255);
+            .WithMessage("Vui lòng nhập tiêu đề dự án.")
+            .MaximumLength(255)
+            .WithMessage("Tiêu đề dự án không được vượt quá 255 ký tự.");
 
         RuleFor(request => request.Brief)
             .NotEmpty()
-            .MinimumLength(20);
+            .WithMessage("Vui lòng nhập brief dự án.")
+            .MinimumLength(20)
+            .WithMessage("Brief dự án cần ít nhất 20 ký tự.");
 
         RuleFor(request => request.UsagePurpose)
-            .MaximumLength(2000);
+            .MaximumLength(2000)
+            .WithMessage("Mục đích sử dụng không được vượt quá 2000 ký tự.");
 
         RuleFor(request => request.BudgetAmount)
-            .GreaterThan(0);
+            .GreaterThan(0)
+            .WithMessage("Ngân sách dự án phải lớn hơn 0.");
 
         RuleFor(request => request.Currency)
             .NotEmpty()
+            .WithMessage("Vui lòng chọn đơn vị tiền tệ.")
             .Equal("VND")
-            .WithMessage("Only VND currency is supported in MVP.");
+            .WithMessage("Hiện tại D4U chỉ hỗ trợ đơn vị VND.");
+
+        RuleFor(request => request.SketchDeadlineAt)
+            .Must(deadline => deadline > DateTimeOffset.UtcNow.Add(OfferTimingPolicy.MinimumSketchLeadTime))
+            .WithMessage("Hạn nộp Sketch phải sau thời điểm hiện tại ít nhất 2 ngày.")
+            .LessThan(request => request.FinalDeadlineAt)
+            .WithMessage("Hạn nộp Final phải sau hạn nộp Sketch.");
+
+        RuleFor(request => request.FinalDeadlineAt)
+            .Must(deadline => deadline > DateTimeOffset.UtcNow)
+            .WithMessage("Hạn nộp Final phải sau thời điểm hiện tại.")
+            .LessThan(request => request.TotalDeadlineAt)
+            .WithMessage("Hạn hoàn tất review phải sau hạn nộp Final.");
 
         RuleFor(request => request.TotalDeadlineAt)
             .Must(deadline => deadline > DateTimeOffset.UtcNow)
-            .WithMessage("Total deadline must be in the future.");
-
-        RuleFor(request => request.SketchDeadlineAt)
-            .LessThanOrEqualTo(request => request.FinalDeadlineAt)
-            .WithMessage("Sketch deadline must be before or equal to final deadline.");
-
-        RuleFor(request => request.FinalDeadlineAt)
-            .LessThanOrEqualTo(request => request.TotalDeadlineAt)
-            .WithMessage("Final deadline must be before or equal to total deadline.");
-
+            .WithMessage("Hạn hoàn tất review phải sau thời điểm hiện tại.");
     }
 }
 
@@ -48,15 +59,20 @@ public sealed class SubmitProjectApplicationRequestValidator : AbstractValidator
     public SubmitProjectApplicationRequestValidator()
     {
         RuleFor(request => request.ProposedPrice)
-            .GreaterThan(0);
+            .GreaterThan(0)
+            .WithMessage("Giá đề xuất phải lớn hơn 0.");
 
         RuleFor(request => request.CoverLetter)
             .NotEmpty()
+            .WithMessage("Vui lòng nhập giải pháp đề xuất.")
             .MinimumLength(20)
-            .MaximumLength(3000);
+            .WithMessage("Giải pháp đề xuất cần ít nhất 20 ký tự.")
+            .MaximumLength(3000)
+            .WithMessage("Giải pháp đề xuất không được vượt quá 3000 ký tự.");
 
         RuleFor(request => request.EstimatedDurationDays)
             .InclusiveBetween(1, 365)
+            .WithMessage("Thời gian ước tính phải nằm trong khoảng từ 1 đến 365 ngày.")
             .When(request => request.EstimatedDurationDays.HasValue);
     }
 }
@@ -66,7 +82,12 @@ public sealed class CancelProjectRequestValidator : AbstractValidator<CancelProj
     public CancelProjectRequestValidator()
     {
         RuleFor(request => request.CancellationReason)
-            .MaximumLength(1000);
+            .NotEmpty()
+            .WithMessage("Vui lòng nhập lý do hủy dự án.")
+            .MinimumLength(10)
+            .WithMessage("Lý do hủy dự án cần ít nhất 10 ký tự.")
+            .MaximumLength(500)
+            .WithMessage("Lý do hủy dự án không được vượt quá 500 ký tự.");
     }
 }
 
@@ -75,14 +96,20 @@ public sealed class UpdateProjectDeadlinesRequestValidator : AbstractValidator<U
     public UpdateProjectDeadlinesRequestValidator()
     {
         RuleFor(request => request.SketchDeadlineAt)
-            .GreaterThan(DateTimeOffset.UtcNow)
-            .WithMessage("Sketch deadline must be in the future.")
-            .LessThanOrEqualTo(request => request.FinalDeadlineAt)
-            .WithMessage("Sketch deadline must be before or equal to final deadline.");
+            .Must(deadline => deadline > DateTimeOffset.UtcNow.Add(OfferTimingPolicy.MinimumSketchLeadTime))
+            .WithMessage("Hạn nộp Sketch phải sau thời điểm hiện tại ít nhất 2 ngày.")
+            .LessThan(request => request.FinalDeadlineAt)
+            .WithMessage("Hạn nộp Final phải sau hạn nộp Sketch.");
 
         RuleFor(request => request.FinalDeadlineAt)
-            .LessThanOrEqualTo(request => request.TotalDeadlineAt)
-            .WithMessage("Final deadline must be before or equal to total deadline.");
+            .Must(deadline => deadline > DateTimeOffset.UtcNow)
+            .WithMessage("Hạn nộp Final phải sau thời điểm hiện tại.")
+            .LessThan(request => request.TotalDeadlineAt)
+            .WithMessage("Hạn hoàn tất review phải sau hạn nộp Final.");
+
+        RuleFor(request => request.TotalDeadlineAt)
+            .Must(deadline => deadline > DateTimeOffset.UtcNow)
+            .WithMessage("Hạn hoàn tất review phải sau thời điểm hiện tại.");
     }
 }
 
@@ -94,11 +121,12 @@ public sealed class CreateProjectOfferRequestValidator : AbstractValidator<Creat
             .NotEmpty();
 
         RuleFor(request => request.OfferedAmount)
-            .GreaterThan(0);
+            .GreaterThan(0)
+            .WithMessage("Giá offer phải lớn hơn 0.");
 
         RuleFor(request => request.ExpiresAt)
             .Must(expiresAt => !expiresAt.HasValue || expiresAt.Value > DateTimeOffset.UtcNow)
-            .WithMessage("Offer expiration must be in the future.");
+            .WithMessage("Hạn phản hồi offer phải sau thời điểm hiện tại.");
     }
 }
 
@@ -148,7 +176,7 @@ public sealed class RequestRevisionRequestValidator : AbstractValidator<RequestR
 
         RuleFor(request => request.DueAt)
             .Must(dueAt => dueAt > DateTimeOffset.UtcNow)
-            .WithMessage("Revision due date must be in the future.");
+            .WithMessage("Hạn nộp lại phải sau thời điểm hiện tại.");
     }
 }
 
@@ -164,7 +192,7 @@ public sealed class ReportInvalidFileRequestValidator : AbstractValidator<Report
 
         RuleFor(request => request.ReuploadDueAt)
             .Must(dueAt => dueAt > DateTimeOffset.UtcNow)
-            .WithMessage("Reupload due date must be in the future.");
+            .WithMessage("Hạn upload lại phải sau thời điểm hiện tại.");
     }
 }
 

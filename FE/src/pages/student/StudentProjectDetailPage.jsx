@@ -1,12 +1,13 @@
 import { CalendarOutlined, FolderOpenOutlined, SendOutlined, WalletOutlined } from '@ant-design/icons';
 import { App, Button, Form, Input, InputNumber, Modal, Space, Tag } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { StudentReadinessNotice, useStudentReadiness } from '../../components/StudentReadinessGate.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
-import { getApiErrorMessage } from '../../utils/apiError.js';
+import { extractApiFieldErrors, getApiErrorMessage } from '../../utils/apiError.js';
+import { buildLocalizedDesignCategoryLabel, localizeDesignCategoryName } from '../../utils/designCategoryLocalization.js';
 import { formatCurrency } from '../../utils/format.js';
 import {
   ActionButton,
@@ -27,6 +28,12 @@ function ConfirmItem({ children, label, wide = false }) {
 
 const QUICK_APPLY_NOTE = 'Student xác nhận thực hiện theo ngân sách và deadline đã công bố.';
 
+const proposalFieldMap = {
+  proposedprice: 'proposedPrice',
+  coverletter: 'coverLetter',
+  estimateddurationdays: 'estimatedDurationDays'
+};
+
 function formatDetailDate(value) {
   if (!value) return 'Chưa có';
   return new Intl.DateTimeFormat('vi-VN', {
@@ -38,18 +45,29 @@ function formatDetailDate(value) {
   }).format(new Date(value)).replace(',', ' ·');
 }
 
+function getCategoryLabel(project) {
+  return buildLocalizedDesignCategoryLabel({
+    name: project.designCategoryName,
+    description: project.designCategoryDescription
+  }) || localizeDesignCategoryName(project.designCategoryName) || 'Chưa có';
+}
+
 function buildHeaderMetadata(project) {
+  const categoryLabel = getCategoryLabel(project);
+
   return [
     { label: 'Loại dự án', value: project.projectType || 'Chưa có' },
-    { label: 'Danh mục', value: project.designCategoryName || 'Chưa có' },
+    { label: 'Danh mục', value: categoryLabel || 'Chưa có' },
     { label: 'Hạn review', value: project.totalDeadlineAt ? formatDetailDate(project.totalDeadlineAt) : 'Chưa có', muted: !project.totalDeadlineAt },
     { label: 'Publish', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
   ];
 }
 
 function buildHeaderStats(project) {
+  const categoryLabel = getCategoryLabel(project);
+
   return [
-    { icon: <FolderOpenOutlined className="h-5 w-5" />, label: 'Danh mục', value: project.designCategoryName || 'Chưa có', muted: !project.designCategoryName },
+    { icon: <FolderOpenOutlined className="h-5 w-5" />, label: 'Danh mục', value: categoryLabel || 'Chưa có', muted: !categoryLabel },
     { icon: <WalletOutlined className="h-5 w-5" />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
     { icon: <CalendarOutlined className="h-5 w-5" />, label: 'Review deadline', value: project.totalDeadlineAt ? formatDetailDate(project.totalDeadlineAt) : 'Chưa có', muted: !project.totalDeadlineAt }
   ];
@@ -145,7 +163,7 @@ export function StudentProjectDetailPage() {
   const [error, setError] = useState(null);
   const readiness = useStudentReadiness();
 
-  const loadProject = async () => {
+  const loadProject = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -155,11 +173,11 @@ export function StudentProjectDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     loadProject();
-  }, [projectId]);
+  }, [loadProject]);
 
   const submitApplication = async (payload) => {
     setApplying(true);
@@ -173,10 +191,19 @@ export function StudentProjectDetailPage() {
       customProposalForm.resetFields();
       await loadProject();
     } catch (requestError) {
+      const fieldErrors = extractApiFieldErrors(requestError, proposalFieldMap);
+      if (fieldErrors.length > 0) {
+        setCustomConfirmationOpen(false);
+        setCustomProposalOpen(true);
+        customProposalForm.setFields(fieldErrors);
+      }
+
       const errorMessage = getApiErrorMessage(requestError, 'Không thể gửi ứng tuyển.');
-      message.error(errorMessage.toLowerCase().includes('already applied')
-        ? 'Bạn đã ứng tuyển dự án này rồi.'
-        : errorMessage);
+      if (fieldErrors.length === 0) {
+        message.error(errorMessage.toLowerCase().includes('already applied')
+          ? 'Bạn đã ứng tuyển dự án này rồi.'
+          : errorMessage);
+      }
     } finally {
       setApplying(false);
     }
@@ -294,16 +321,42 @@ export function StudentProjectDetailPage() {
           )}
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ConfirmItem label={'Ng\u00e2n s\u00e1ch'}>{formatCurrency(project.budgetAmount, project.currency)}</ConfirmItem>
-            <ConfirmItem label={'H\u1ea1n Sketch'}>{formatDetailDate(project.sketchDeadlineAt)}</ConfirmItem>
-            <ConfirmItem label={'H\u1ea1n Final'}>{formatDetailDate(project.finalDeadlineAt)}</ConfirmItem>
-            <ConfirmItem label={'Ho\u00e0n t\u1ea5t review'}>{formatDetailDate(project.totalDeadlineAt)}</ConfirmItem>
+            <ConfirmItem label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</ConfirmItem>
+            <ConfirmItem label="Hạn Sketch">{formatDetailDate(project.sketchDeadlineAt)}</ConfirmItem>
+            <ConfirmItem label="Hạn Final">{formatDetailDate(project.finalDeadlineAt)}</ConfirmItem>
+            <ConfirmItem label="Hoàn tất review">{formatDetailDate(project.totalDeadlineAt)}</ConfirmItem>
           </div>
         </Modal>
 
         <Modal title="Đề xuất khác" open={customProposalOpen} footer={null} onCancel={closeApplyFlow}>
-          <Form form={customProposalForm} layout="vertical" requiredMark={false}>
-            <Form.Item name="proposedPrice" label="Giá đề xuất mới" rules={[{ required: true, message: 'Vui lòng nhập giá đề xuất.' }]}>
+          <Form
+            form={customProposalForm}
+            layout="vertical"
+            requiredMark={false}
+            validateTrigger={['onChange', 'onBlur']}
+            onValuesChange={(changedValues) => {
+              const nextFields = Object.keys(changedValues).map((name) => ({ name, errors: [] }));
+              customProposalForm.setFields(nextFields);
+            }}
+          >
+            <Form.Item
+              name="proposedPrice"
+              label="Giá đề xuất mới"
+              rules={[
+                { required: true, message: 'Vui lòng nhập giá đề xuất.' },
+                {
+                  validator: (_, value) => {
+                    if (value == null || value === '') {
+                      return Promise.resolve();
+                    }
+
+                    return Number(value) > 0
+                      ? Promise.resolve()
+                      : Promise.reject(new Error('Giá đề xuất phải lớn hơn 0.'));
+                  }
+                }
+              ]}
+            >
               <InputNumber className="full-width" min={1} addonAfter="VND" />
             </Form.Item>
             <Form.Item
@@ -311,7 +364,19 @@ export function StudentProjectDetailPage() {
               label="Giải pháp đề xuất"
               rules={[
                 { required: true, message: 'Vui lòng nhập giải pháp đề xuất.' },
-                { min: 20, message: 'Tối thiểu 20 ký tự.' }
+                {
+                  validator: (_, value) => {
+                    const trimmed = value?.trim?.() ?? '';
+                    if (!trimmed) return Promise.resolve();
+                    if (trimmed.length < 20) {
+                      return Promise.reject(new Error('Giải pháp đề xuất cần ít nhất 20 ký tự.'));
+                    }
+                    if (trimmed.length > 3000) {
+                      return Promise.reject(new Error('Giải pháp đề xuất không được vượt quá 3000 ký tự.'));
+                    }
+                    return Promise.resolve();
+                  }
+                }
               ]}
             >
               <Input.TextArea rows={5} maxLength={3000} showCount />
@@ -333,8 +398,8 @@ export function StudentProjectDetailPage() {
           onCancel={() => setCustomConfirmationOpen(false)}
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ConfirmItem label={'Gi\u00e1 \u0111\u1ec1 xu\u1ea5t'}>{formatCurrency(customProposal?.proposedPrice, project.currency)}</ConfirmItem>
-            <ConfirmItem label={'Gi\u1ea3i ph\u00e1p'} wide>{customProposal?.coverLetter}</ConfirmItem>
+            <ConfirmItem label="Giá đề xuất">{formatCurrency(customProposal?.proposedPrice, project.currency)}</ConfirmItem>
+            <ConfirmItem label="Giải pháp" wide>{customProposal?.coverLetter}</ConfirmItem>
           </div>
         </Modal>
       </div>

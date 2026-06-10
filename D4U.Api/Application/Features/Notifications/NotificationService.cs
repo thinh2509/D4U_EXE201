@@ -6,7 +6,9 @@ using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class NotificationService(D4UDbContext dbContext) : INotificationService
+public sealed class NotificationService(
+    D4UDbContext dbContext,
+    INotificationRealtimeDispatcher realtimeDispatcher) : INotificationService
 {
     public async Task<IReadOnlyList<NotificationResponse>> ListMyNotificationsAsync(
         Guid userId,
@@ -16,7 +18,18 @@ public sealed class NotificationService(D4UDbContext dbContext) : INotificationS
             .Where(value => value.RecipientUserId == userId)
             .OrderByDescending(value => value.CreatedAt)
             .Take(100)
-            .Select(value => ToResponse(value))
+            .Select(value => new NotificationResponse(
+                value.Id,
+                value.RecipientUserId,
+                value.ActorUserId,
+                value.Type,
+                value.Title,
+                value.Body,
+                value.ReferenceType,
+                value.ReferenceId,
+                value.Status,
+                value.ReadAt,
+                value.CreatedAt))
             .ToListAsync(cancellationToken);
     }
 
@@ -48,7 +61,12 @@ public sealed class NotificationService(D4UDbContext dbContext) : INotificationS
         notification.Status = NotificationStatus.READ;
         notification.ReadAt ??= DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
-        return ToResponse(notification);
+        var unreadCount = await dbContext.Notifications.CountAsync(
+            value => value.RecipientUserId == userId && value.Status == NotificationStatus.UNREAD,
+            cancellationToken);
+        var response = NotificationMappings.ToResponse(notification);
+        await realtimeDispatcher.DispatchUpdatedAsync(response, unreadCount, cancellationToken);
+        return response;
     }
 
     public async Task MarkAllReadAsync(
@@ -67,21 +85,6 @@ public sealed class NotificationService(D4UDbContext dbContext) : INotificationS
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    private static NotificationResponse ToResponse(Notification notification)
-    {
-        return new NotificationResponse(
-            notification.Id,
-            notification.RecipientUserId,
-            notification.ActorUserId,
-            notification.Type,
-            notification.Title,
-            notification.Body,
-            notification.ReferenceType,
-            notification.ReferenceId,
-            notification.Status,
-            notification.ReadAt,
-            notification.CreatedAt);
+        await realtimeDispatcher.DispatchAllReadAsync(userId, now, cancellationToken);
     }
 }

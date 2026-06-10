@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class NotificationPublisher(
     IServiceScopeFactory serviceScopeFactory,
+    INotificationRealtimeDispatcher realtimeDispatcher,
     ILogger<NotificationPublisher> logger) : INotificationPublisher
 {
     public async Task PublishAsync(
@@ -38,23 +39,32 @@ public sealed class NotificationPublisher(
                 return;
             }
 
-            await dbContext.Notifications.AddAsync(
-                new Notification
-                {
-                    Id = Guid.NewGuid(),
-                    RecipientUserId = recipientUserId,
-                    ActorUserId = actorUserId,
-                    Type = type,
-                    Title = title,
-                    Body = body,
-                    ReferenceType = referenceType,
-                    ReferenceId = referenceId,
-                    Status = NotificationStatus.UNREAD,
-                    CreatedAt = createdAt
-                },
-                cancellationToken);
+            var notification = new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = recipientUserId,
+                ActorUserId = actorUserId,
+                Type = type,
+                Title = title,
+                Body = body,
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                Status = NotificationStatus.UNREAD,
+                CreatedAt = createdAt
+            };
+
+            await dbContext.Notifications.AddAsync(notification, cancellationToken);
 
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            var unreadCount = await dbContext.Notifications.CountAsync(
+                value => value.RecipientUserId == recipientUserId && value.Status == NotificationStatus.UNREAD,
+                cancellationToken);
+
+            await realtimeDispatcher.DispatchCreatedAsync(
+                NotificationMappings.ToResponse(notification),
+                unreadCount,
+                cancellationToken);
         }
         catch (Exception exception)
         {

@@ -1,11 +1,18 @@
+import { minimumSketchLeadTimeHours } from '../constants/offerTiming.js';
+
 function parseDeadlineValue(value) {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function getMinimumSketchDate(now = new Date()) {
+  return new Date(now.getTime() + minimumSketchLeadTimeHours * 60 * 60 * 1000);
+}
+
 export function getProjectDeadlineErrors(values, { requireAll = false } = {}) {
   const now = new Date();
+  const minimumSketchDate = getMinimumSketchDate(now);
   const errors = {};
 
   const sketchValue = values?.sketchDeadlineAt ?? null;
@@ -20,8 +27,8 @@ export function getProjectDeadlineErrors(values, { requireAll = false } = {}) {
     errors.sketchDeadlineAt = 'Vui lòng nhập hạn nộp Sketch trước khi publish.';
   } else if (sketchValue && !sketchDate) {
     errors.sketchDeadlineAt = 'Hạn nộp Sketch không hợp lệ.';
-  } else if (sketchDate && sketchDate <= now) {
-    errors.sketchDeadlineAt = 'Hạn nộp Sketch phải sau thời điểm hiện tại.';
+  } else if (sketchDate && sketchDate <= minimumSketchDate) {
+    errors.sketchDeadlineAt = 'Hạn nộp Sketch phải sau thời điểm hiện tại ít nhất 2 ngày.';
   }
 
   if (requireAll && !finalValue) {

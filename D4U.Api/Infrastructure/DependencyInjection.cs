@@ -12,6 +12,7 @@ using D4U.Api.Application.Features.Payments;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
 using D4U.Api.Application.Features.Ratings;
+using D4U.Api.Hubs;
 using D4U.Api.Infrastructure.Ai;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.BackgroundServices;
@@ -25,6 +26,7 @@ using D4U.Api.Domain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -95,6 +97,7 @@ public static class DependencyInjection
         services.AddScoped<IRatingService, RatingService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<INotificationPublisher, NotificationPublisher>();
+        services.AddSingleton<INotificationRealtimeDispatcher, SignalRNotificationRealtimeDispatcher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
@@ -136,6 +139,7 @@ public static class DependencyInjection
 
         services.AddD4URedisCache(configuration);
         services.AddD4UAuthentication(configuration);
+        services.AddSignalR();
 
         return services;
     }
@@ -218,6 +222,22 @@ public static class DependencyInjection
             {
                 options.RequireHttpsMetadata = true;
                 options.SaveToken = false;
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrWhiteSpace(accessToken) &&
+                            path.StartsWithSegments("/hubs/notifications", StringComparison.OrdinalIgnoreCase))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = !string.IsNullOrWhiteSpace(jwtOptions.Issuer),

@@ -116,15 +116,16 @@ public sealed class ProjectService(
             throw new ConflictException("Project deadlines are locked after the offer is accepted.");
         }
 
-        ValidateDeadlineRules(
-            request.SketchDeadlineAt,
-            request.FinalDeadlineAt,
-            request.TotalDeadlineAt);
-
         var waitingOffers = await unitOfWork.Repository<ProjectOffer>().Query()
             .Where(offer => offer.ProjectId == projectId && offer.Status == OfferStatus.WAITING_ACCEPTANCE)
             .ToListAsync(cancellationToken);
         var now = DateTimeOffset.UtcNow;
+
+        ValidateDeadlineRules(
+            request.SketchDeadlineAt,
+            request.FinalDeadlineAt,
+            request.TotalDeadlineAt,
+            now);
 
         if (waitingOffers.Count > 0 && request.SketchDeadlineAt - now < OfferTimingPolicy.MinimumSketchLeadTime)
         {
@@ -248,7 +249,7 @@ public sealed class ProjectService(
         project.Status = ProjectStatus.CANCELLED;
         project.CancelledAt = now;
         project.CancellationReason = string.IsNullOrWhiteSpace(request.CancellationReason)
-            ? "Cancelled by SME."
+            ? "SME đã hủy dự án."
             : request.CancellationReason.Trim();
         project.UpdatedAt = now;
 
@@ -266,6 +267,21 @@ public sealed class ProjectService(
 
         await AddStatusHistoryAsync(project.Id, previousStatus, ProjectStatus.CANCELLED, userId, project.CancellationReason, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var affectedStudentUserIds = await GetAffectedStudentUserIdsAsync(projectId, cancellationToken);
+        foreach (var studentUserId in affectedStudentUserIds)
+        {
+            await notificationPublisher.PublishAsync(
+                studentUserId,
+                userId,
+                "PROJECT_CANCELLED",
+                "Dự án đã bị hủy",
+                $"SME đã hủy dự án {project.Title}. Vui lòng kiểm tra lại ứng tuyển hoặc offer liên quan.",
+                nameof(Project),
+                project.Id,
+                now,
+                cancellationToken);
+        }
 
         return ToProjectResponse(project, category);
     }
@@ -2046,28 +2062,35 @@ public sealed class ProjectService(
     {
         if (request.BudgetAmount <= 0)
         {
-            throw new InvalidOperationException("Project budget must be greater than zero.");
+            throw new InvalidOperationException("Ngân sách dự án phải lớn hơn 0.");
         }
 
         ValidateDeadlineRules(
             request.SketchDeadlineAt,
             request.FinalDeadlineAt,
-            request.TotalDeadlineAt);
+            request.TotalDeadlineAt,
+            DateTimeOffset.UtcNow);
     }
 
     private static void ValidateDeadlineRules(
         DateTimeOffset sketchDeadlineAt,
         DateTimeOffset finalDeadlineAt,
-        DateTimeOffset totalDeadlineAt)
+        DateTimeOffset totalDeadlineAt,
+        DateTimeOffset now)
     {
+        if (sketchDeadlineAt <= now.Add(OfferTimingPolicy.MinimumSketchLeadTime))
+        {
+            throw new InvalidOperationException("Hạn nộp Sketch phải sau thời điểm hiện tại ít nhất 2 ngày.");
+        }
+
         if (sketchDeadlineAt > finalDeadlineAt)
         {
-            throw new InvalidOperationException("Sketch deadline must be before or equal to final deadline.");
+            throw new InvalidOperationException("Hạn nộp Final phải sau hạn nộp Sketch.");
         }
 
         if (finalDeadlineAt > totalDeadlineAt)
         {
-            throw new InvalidOperationException("Final deadline must be before or equal to total deadline.");
+            throw new InvalidOperationException("Hạn hoàn tất review phải sau hạn nộp Final.");
         }
     }
 
@@ -2085,6 +2108,32 @@ public sealed class ProjectService(
     private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right)
     {
         return left <= right ? left : right;
+    }
+
+    private async Task<IReadOnlyList<Guid>> GetAffectedStudentUserIdsAsync(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var applicationUserIds = await (
+            from application in unitOfWork.Repository<ProjectApplication>().Query()
+            join profile in unitOfWork.Repository<StudentProfile>().Query()
+                on application.StudentProfileId equals profile.Id
+            where application.ProjectId == projectId
+            select profile.UserId)
+            .ToListAsync(cancellationToken);
+
+        var offerUserIds = await (
+            from offer in unitOfWork.Repository<ProjectOffer>().Query()
+            join profile in unitOfWork.Repository<StudentProfile>().Query()
+                on offer.StudentProfileId equals profile.Id
+            where offer.ProjectId == projectId
+            select profile.UserId)
+            .ToListAsync(cancellationToken);
+
+        return applicationUserIds
+            .Concat(offerUserIds)
+            .Distinct()
+            .ToList();
     }
 
     private static void ApplyDraft(Project project, UpsertProjectDraftRequest request)

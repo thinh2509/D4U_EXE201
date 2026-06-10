@@ -1,4 +1,12 @@
 import {
+  Alert,
+  App,
+  Button,
+  Form,
+  Input,
+  Modal
+} from 'antd';
+import {
   CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -9,13 +17,13 @@ import {
   StopOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { App } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+import { buildLocalizedDesignCategoryLabel, localizeDesignCategoryName } from '../../utils/designCategoryLocalization.js';
 import { formatCurrency } from '../../utils/format.js';
 import { getProjectDeadlineErrors } from '../../utils/projectDeadlineValidation.js';
 import {
@@ -38,10 +46,17 @@ function formatDetailDate(value) {
   }).format(new Date(value)).replace(',', ' ·');
 }
 
+function getCategoryLabel(project) {
+  return buildLocalizedDesignCategoryLabel({
+    name: project.designCategoryName,
+    description: project.designCategoryDescription
+  }) || localizeDesignCategoryName(project.designCategoryName) || 'Chưa có';
+}
+
 function buildHeaderMetadata(project) {
   return [
     { label: 'Loại dự án', value: project.projectType || 'Chưa có', muted: !project.projectType },
-    { label: 'Danh mục', value: project.designCategoryName || 'Chưa có', muted: !project.designCategoryName },
+    { label: 'Danh mục', value: getCategoryLabel(project), muted: !project.designCategoryName },
     { label: 'Hạn review', value: project.totalDeadlineAt ? formatDetailDate(project.totalDeadlineAt) : 'Chưa có', muted: !project.totalDeadlineAt },
     { label: 'Publish status', value: project.publishedAt ? formatDetailDate(project.publishedAt) : 'Chưa có', muted: !project.publishedAt }
   ];
@@ -79,7 +94,7 @@ function ProjectActionSidebar({
   canCancelProject,
   canDeleteProject,
   onPublish,
-  onCancel,
+  onOpenCancelModal,
   onDelete
 }) {
   const sidebarStats = [
@@ -97,7 +112,7 @@ function ProjectActionSidebar({
     {
       icon: <FolderOpenOutlined className="h-5 w-5" />,
       label: 'Danh mục',
-      value: project.designCategoryName || 'Chưa có',
+      value: getCategoryLabel(project),
       muted: !project.designCategoryName
     },
     {
@@ -156,7 +171,7 @@ function ProjectActionSidebar({
             disabled={!canCancelProject}
             icon={<StopOutlined />}
             loading={acting}
-            onClick={onCancel}
+            onClick={onOpenCancelModal}
             title={!canCancelProject ? 'Trạng thái hiện tại không cho phép hủy dự án.' : undefined}
             variant="neutral"
           >
@@ -194,12 +209,14 @@ export function SmeProjectDetailPage() {
   const { message, modal } = App.useApp();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const [cancelForm] = Form.useForm();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadProject = async () => {
+  const loadProject = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -209,11 +226,11 @@ export function SmeProjectDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     loadProject();
-  }, [projectId]);
+  }, [loadProject]);
 
   const publish = async () => {
     const deadlineError = getPublishValidationMessage(project);
@@ -233,34 +250,30 @@ export function SmeProjectDetailPage() {
     }
   };
 
-  const cancel = () => {
-    let reason = '';
-    modal.confirm({
-      title: 'Hủy dự án?',
-      content: (
-        <textarea
-          className="min-h-32 w-full resize-y rounded-btn border border-d4u-border bg-white px-3 py-3 text-sm leading-6 text-d4u-text-1 placeholder:text-d4u-text-3 transition-colors hover:border-d4u-teal-muted focus:border-d4u-cyan focus:outline-none focus:shadow-focus"
-          onChange={(event) => {
-            reason = event.target.value;
-          }}
-          placeholder="Lý do hủy..."
-        />
-      ),
-      okText: 'Hủy dự án',
-      okButtonProps: { danger: true },
-      cancelText: 'Đóng',
-      async onOk() {
-        setActing(true);
-        try {
-          setProject(await projectApi.cancelProject(projectId, reason || 'Cancelled by SME.'));
-          message.success('Đã hủy dự án.');
-        } catch (requestError) {
-          message.error(getApiErrorMessage(requestError, 'Không thể hủy dự án.'));
-        } finally {
-          setActing(false);
-        }
-      }
-    });
+  const submitCancel = async () => {
+    const values = await cancelForm.validateFields();
+
+    setActing(true);
+    try {
+      setProject(await projectApi.cancelProject(projectId, values.cancellationReason.trim()));
+      message.success('Đã hủy dự án.');
+      setCancelModalOpen(false);
+      cancelForm.resetFields();
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể hủy dự án.'));
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const openCancelModal = () => {
+    cancelForm.resetFields();
+    setCancelModalOpen(true);
+  };
+
+  const closeCancelModal = () => {
+    setCancelModalOpen(false);
+    cancelForm.resetFields();
   };
 
   const remove = async () => {
@@ -322,14 +335,80 @@ export function SmeProjectDetailPage() {
             canDeleteProject={canDeleteProject}
             canEditProject={canEditProject}
             canOpenWorkspace={canOpenWorkspace}
-            onCancel={cancel}
             onDelete={remove}
+            onOpenCancelModal={openCancelModal}
             onPublish={publish}
             project={project}
             projectId={projectId}
           />
         </div>
       </div>
+
+      <Modal
+        title="Hủy dự án"
+        open={cancelModalOpen}
+        onCancel={closeCancelModal}
+        footer={null}
+        destroyOnHidden
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+            Hủy dự án sẽ dừng luồng ứng tuyển, offer, escrow và các bước tiến trình liên quan. Hãy chắc chắn bạn đã thông báo rõ cho Student nếu dự án đã có tương tác.
+          </div>
+
+          <Form
+            form={cancelForm}
+            layout="vertical"
+            requiredMark={false}
+            validateTrigger={['onChange', 'onBlur']}
+            onValuesChange={() => {
+              cancelForm.validateFields(['cancellationReason']).catch(() => {});
+            }}
+          >
+            <Form.Item
+              name="cancellationReason"
+              label="Lý do hủy dự án"
+              rules={[
+                { required: true, message: 'Vui lòng nhập lý do hủy dự án.' },
+                {
+                  validator: (_, value) => {
+                    const trimmed = value?.trim?.() ?? '';
+                    if (!trimmed) return Promise.resolve();
+                    if (trimmed.length < 10) {
+                      return Promise.reject(new Error('Lý do hủy dự án cần ít nhất 10 ký tự.'));
+                    }
+                    if (trimmed.length > 500) {
+                      return Promise.reject(new Error('Lý do hủy dự án không được vượt quá 500 ký tự.'));
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
+              <Input.TextArea
+                rows={5}
+                maxLength={500}
+                showCount
+                placeholder="Ví dụ: Brief thay đổi, SME chưa sẵn sàng ngân sách, hoặc cần đóng dự án để tạo brief mới rõ ràng hơn."
+                className="rounded-2xl"
+              />
+            </Form.Item>
+
+            <Alert
+              type="warning"
+              showIcon
+              message="Sau khi hủy, dự án sẽ chuyển sang trạng thái CANCELLED và lịch sử vẫn được giữ lại để đối soát."
+            />
+
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
+              <Button onClick={closeCancelModal}>Đóng</Button>
+              <Button danger type="primary" loading={acting} onClick={submitCancel}>
+                Hủy dự án
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </Modal>
     </div>
   );
 }
