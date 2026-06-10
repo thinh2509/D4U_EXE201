@@ -1,9 +1,10 @@
 import { BellOutlined, CheckOutlined, ReloadOutlined } from '@ant-design/icons';
 import { App, Badge, Button, Dropdown, List, Space, Typography } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { notificationApi } from '../services/notificationApi.js';
+import { createNotificationConnection } from '../services/notificationRealtime.js';
 import { getApiErrorMessage } from '../utils/apiError.js';
 import { formatDate } from '../utils/format.js';
 
@@ -11,11 +12,7 @@ const { Text } = Typography;
 
 function resolveNotificationPath(notification, role) {
   if (notification.referenceType === 'WithdrawalRequest') {
-    return `/student/wallet?withdrawalId=${notification.referenceId}`;
-  }
-
-  if (notification.referenceType === 'Project') {
-    return notification.referenceId ? `/projects/${notification.referenceId}/execution` : null;
+    return '/student/wallet';
   }
 
   if (role === 'SME') {
@@ -27,6 +24,7 @@ function resolveNotificationPath(notification, role) {
       [
         'OFFER_ACCEPTED',
         'OFFER_REJECTED',
+        'ESCROW_FUNDED',
         'PAYMENT_FAILED',
         'PAYMENT_WINDOW_EXPIRED'
       ].includes(notification.type) ||
@@ -36,21 +34,40 @@ function resolveNotificationPath(notification, role) {
       return '/sme/offers';
     }
 
-    if (notification.type === 'NEW_SUBMISSION' || notification.type === 'REVIEW_ACTION') {
+    if (
+      ['PROJECT_AUTO_CANCELLED', 'PROJECT_CANCELLED', 'NEW_SUBMISSION', 'REVIEW_ACTION'].includes(notification.type)
+    ) {
       return '/sme/projects';
     }
   }
 
   if (role === 'STUDENT') {
     if (
-      ['PROJECT_DEADLINES_UPDATED', 'NEW_OFFER'].includes(notification.type) ||
+      ['NEW_OFFER', 'PROJECT_DEADLINES_UPDATED'].includes(notification.type) ||
       notification.referenceType === 'ProjectOffer'
     ) {
       return '/student/offers';
     }
+
+    if (['PROJECT_CANCELLED', 'PROJECT_AUTO_CANCELLED'].includes(notification.type)) {
+      return '/student/applications';
+    }
+  }
+
+  if (notification.referenceType === 'Project') {
+    return notification.referenceId ? `/projects/${notification.referenceId}/execution` : null;
   }
 
   return null;
+}
+
+function upsertNotification(currentItems, incomingItem) {
+  const existingIndex = currentItems.findIndex((item) => item.id === incomingItem.id);
+  if (existingIndex === -1) {
+    return [incomingItem, ...currentItems].slice(0, 20);
+  }
+
+  return currentItems.map((item) => (item.id === incomingItem.id ? incomingItem : item));
 }
 
 export function NotificationBell() {
@@ -64,7 +81,7 @@ export function NotificationBell() {
 
   const unreadLabel = useMemo(() => (unreadCount > 99 ? '99+' : unreadCount), [unreadCount]);
 
-  const loadNotifications = async ({ silent = false } = {}) => {
+  const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     try {
       const [list, count] = await Promise.all([
@@ -80,16 +97,67 @@ export function NotificationBell() {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [message]);
 
   useEffect(() => {
+    if (!user) return undefined;
+
     loadNotifications({ silent: true });
     const timerId = window.setInterval(() => loadNotifications({ silent: true }), 30000);
     return () => window.clearInterval(timerId);
-  }, []);
+  }, [loadNotifications, user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const connection = createNotificationConnection();
+    let disposed = false;
+
+    const handleCreated = (notification) => {
+      setItems((current) => upsertNotification(current, notification));
+    };
+
+    const handleUpdated = (notification) => {
+      setItems((current) => upsertNotification(current, notification));
+    };
+
+    const handleUnreadCountChanged = (payload) => {
+      setUnreadCount(payload?.unreadCount ?? 0);
+    };
+
+    const handleMarkedAllRead = (payload) => {
+      setItems((current) => current.map((item) => ({
+        ...item,
+        status: 'READ',
+        readAt: item.readAt ?? payload?.readAt ?? new Date().toISOString()
+      })));
+      setUnreadCount(0);
+    };
+
+    connection.on('notificationCreated', handleCreated);
+    connection.on('notificationUpdated', handleUpdated);
+    connection.on('notificationUnreadCountChanged', handleUnreadCountChanged);
+    connection.on('notificationsMarkedAllRead', handleMarkedAllRead);
+
+    connection.start().catch(() => {
+      if (!disposed) {
+        loadNotifications({ silent: true });
+      }
+    });
+
+    return () => {
+      disposed = true;
+      connection.off('notificationCreated', handleCreated);
+      connection.off('notificationUpdated', handleUpdated);
+      connection.off('notificationUnreadCountChanged', handleUnreadCountChanged);
+      connection.off('notificationsMarkedAllRead', handleMarkedAllRead);
+      connection.stop().catch(() => {});
+    };
+  }, [loadNotifications, user]);
 
   const markRead = async (notification) => {
     if (notification.status === 'READ') return;
+
     try {
       const updated = await notificationApi.markRead(notification.id);
       setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));

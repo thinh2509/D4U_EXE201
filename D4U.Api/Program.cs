@@ -2,6 +2,7 @@ using D4U.Api.Infrastructure;
 using D4U.Api.Infrastructure.Authentication;
 using D4U.Api.Infrastructure.Http;
 using D4U.Api.Infrastructure.Persistence;
+using D4U.Api.Hubs;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -77,5 +78,6 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .AllowAnonymous();
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications").RequireAuthorization();
 
 app.Run();
