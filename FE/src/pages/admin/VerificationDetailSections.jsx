@@ -10,53 +10,52 @@ import {
   EyeOutlined,
   FileImageOutlined,
   FilePdfOutlined,
-  FileProtectOutlined,
   FileTextOutlined,
   MailOutlined,
   ProfileOutlined,
-  SafetyCertificateOutlined
-} from '@ant-design/icons';
-import { Alert, Button, Card, Tag, Tooltip } from 'antd';
-import { StatusBadge } from '../../components/StatusBadge.jsx';
-import { formatDate, formatFileSize } from '../../utils/format.js';
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
+import { Alert, Button, Card, Tag, Tooltip } from "antd";
+import { StatusBadge } from "../../components/StatusBadge.jsx";
+import { formatDate, formatFileSize } from "../../utils/format.js";
 
 const CHECKLIST_ITEMS = [
-  'Tên trên giấy tờ khớp với hồ sơ sinh viên.',
-  'Trường học thể hiện trên giấy tờ khớp với thông tin hồ sơ.',
-  'Ảnh hoặc file đủ rõ để kiểm tra chi tiết cần thiết.',
-  'Không phát hiện dấu hiệu bất thường hoặc che khuất thông tin quan trọng.'
+  "Tên trên giấy tờ khớp với hồ sơ sinh viên.",
+  "Trường học thể hiện trên giấy tờ khớp với thông tin hồ sơ.",
+  "Ảnh hoặc file đủ rõ để kiểm tra chi tiết cần thiết.",
+  "Không phát hiện dấu hiệu bất thường hoặc che khuất thông tin quan trọng.",
 ];
 
-function surfaceCardClassName(extra = '') {
+function surfaceCardClassName(extra = "") {
   return `overflow-hidden rounded-[20px] border border-d4u-border/80 bg-white shadow-sm ${extra}`.trim();
 }
 
 export function maskEmail(value) {
-  if (!value || !value.includes('@')) return value || 'Chưa cập nhật';
-  const [localPart, domain] = value.split('@');
+  if (!value || !value.includes("@")) return value || "Chưa cập nhật";
+  const [localPart, domain] = value.split("@");
   if (!localPart) return value;
   const visible = localPart.slice(0, Math.min(5, localPart.length));
   const hiddenLength = Math.max(4, localPart.length - visible.length);
-  return `${visible}${'*'.repeat(hiddenLength)}@${domain}`;
+  return `${visible}${"*".repeat(hiddenLength)}@${domain}`;
 }
 
 export function getVerificationFileKind(detail) {
-  if (detail?.mimeType?.startsWith('image/')) {
-    return { key: 'image', label: 'Hình ảnh', icon: <FileImageOutlined /> };
+  if (detail?.mimeType?.startsWith("image/")) {
+    return { key: "image", label: "Hình ảnh", icon: <FileImageOutlined /> };
   }
 
-  if (detail?.mimeType === 'application/pdf') {
-    return { key: 'pdf', label: 'PDF', icon: <FilePdfOutlined /> };
+  if (detail?.mimeType === "application/pdf") {
+    return { key: "pdf", label: "PDF", icon: <FilePdfOutlined /> };
   }
 
-  return { key: 'file', label: 'Tài liệu', icon: <FileTextOutlined /> };
+  return { key: "file", label: "Tài liệu", icon: <FileTextOutlined /> };
 }
 
 export function buildChecklistItems() {
   return CHECKLIST_ITEMS.map((label, index) => ({
     id: `review-check-${index + 1}`,
     label,
-    helper: 'Đối chiếu thủ công trước khi đưa ra quyết định.'
+    helper: "Đối chiếu thủ công trước khi đưa ra quyết định.",
   }));
 }
 
@@ -65,30 +64,30 @@ function buildHeaderStats(detail) {
 
   return [
     {
-      key: 'document-kind',
+      key: "document-kind",
       icon: fileKind.icon,
-      label: 'Loại tài liệu',
-      value: fileKind.label
+      label: "Loại tài liệu",
+      value: fileKind.label,
     },
     {
-      key: 'submitted-at',
+      key: "submitted-at",
       icon: <CalendarOutlined />,
-      label: 'Ngày gửi',
-      value: formatDate(detail.submittedAt)
+      label: "Ngày gửi",
+      value: formatDate(detail.submittedAt),
     },
     {
-      key: 'reviewed-at',
+      key: "reviewed-at",
       icon: <ClockCircleOutlined />,
-      label: 'Ngày xử lý',
-      value: detail.reviewedAt ? formatDate(detail.reviewedAt) : 'Chưa xử lý',
-      muted: !detail.reviewedAt
+      label: "Ngày xử lý",
+      value: detail.reviewedAt ? formatDate(detail.reviewedAt) : "Chưa xử lý",
+      muted: !detail.reviewedAt,
     },
     {
-      key: 'profile-status',
+      key: "profile-status",
       icon: <ProfileOutlined />,
-      label: 'Hồ sơ sinh viên',
-      value: <StatusBadge status={detail.verificationStatus} />
-    }
+      label: "Hồ sơ sinh viên",
+      value: <StatusBadge status={detail.verificationStatus} />,
+    },
   ];
 }
 
@@ -97,38 +96,38 @@ function buildMetadataItems(detail) {
 
   return [
     {
-      key: 'filename',
-      label: 'Tên file',
+      key: "filename",
+      label: "Tên file",
       value: detail.originalFilename,
       mono: true,
-      wide: true
+      wide: true,
     },
     {
-      key: 'document-kind',
-      label: 'Loại tài liệu',
-      value: fileKind.label
+      key: "document-kind",
+      label: "Loại tài liệu",
+      value: fileKind.label,
     },
     {
-      key: 'extension',
-      label: 'Định dạng',
-      value: detail.fileExtension?.toUpperCase()
+      key: "extension",
+      label: "Định dạng",
+      value: detail.fileExtension?.toUpperCase(),
     },
     {
-      key: 'size',
-      label: 'Dung lượng',
-      value: formatFileSize(detail.fileSizeBytes)
+      key: "size",
+      label: "Dung lượng",
+      value: formatFileSize(detail.fileSizeBytes),
     },
     {
-      key: 'submitted-at',
-      label: 'Ngày gửi',
-      value: formatDate(detail.submittedAt)
+      key: "submitted-at",
+      label: "Ngày gửi",
+      value: formatDate(detail.submittedAt),
     },
     {
-      key: 'reviewed-at',
-      label: 'Ngày xử lý',
-      value: detail.reviewedAt ? formatDate(detail.reviewedAt) : 'Chưa xử lý',
-      muted: !detail.reviewedAt
-    }
+      key: "reviewed-at",
+      label: "Ngày xử lý",
+      value: detail.reviewedAt ? formatDate(detail.reviewedAt) : "Chưa xử lý",
+      muted: !detail.reviewedAt,
+    },
   ];
 }
 
@@ -136,21 +135,25 @@ function MetaItem({ label, value, mono = false, muted = false, wide = false }) {
   return (
     <div
       className={[
-        'min-w-0 rounded-[18px] border border-d4u-border/80 bg-d4u-soft/60 px-4 py-3.5',
-        wide ? 'sm:col-span-2' : ''
-      ].join(' ').trim()}
+        "min-w-0 rounded-[18px] border border-d4u-border/80 bg-d4u-soft/60 px-4 py-3.5",
+        wide ? "sm:col-span-2" : "",
+      ]
+        .join(" ")
+        .trim()}
     >
       <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-2">
         {label}
       </span>
       <strong
         className={[
-          'mt-2 block min-w-0 break-words text-sm leading-5 text-d4u-text-1',
-          mono ? 'font-mono text-[13px]' : '',
-          muted ? 'text-d4u-text-2' : ''
-        ].join(' ').trim()}
+          "mt-2 block min-w-0 break-words text-sm leading-5 text-d4u-text-1",
+          mono ? "font-mono text-[13px]" : "",
+          muted ? "text-d4u-text-2" : "",
+        ]
+          .join(" ")
+          .trim()}
       >
-        {value || 'Chưa cập nhật'}
+        {value || "Chưa cập nhật"}
       </strong>
     </div>
   );
@@ -171,11 +174,13 @@ function InfoList({ items, allowCopy = false, onCopy }) {
             <div className="flex min-w-0 items-start gap-2">
               <span
                 className={[
-                  'min-w-0 flex-1 break-words text-sm leading-6 text-d4u-text-1',
-                  item.truncate ? 'truncate' : ''
-                ].join(' ').trim()}
+                  "min-w-0 flex-1 break-words text-sm leading-6 text-d4u-text-1",
+                  item.truncate ? "truncate" : "",
+                ]
+                  .join(" ")
+                  .trim()}
               >
-                {item.value || 'Chưa cập nhật'}
+                {item.value || "Chưa cập nhật"}
               </span>
               {allowCopy && item.copyValue ? (
                 <Tooltip title="Sao chép giá trị đầy đủ">
@@ -183,7 +188,12 @@ function InfoList({ items, allowCopy = false, onCopy }) {
                     aria-label={`Sao chép ${item.label.toLowerCase()}`}
                     className="!h-8 !w-8 !rounded-[10px] !border !border-d4u-border/80 !bg-white !text-d4u-text-2 hover:!border-d4u-cyan hover:!bg-d4u-soft hover:!text-d4u-cyan"
                     icon={<CopyOutlined />}
-                    onClick={() => onCopy?.(item.copyValue, `Đã sao chép ${item.label.toLowerCase()}.`)}
+                    onClick={() =>
+                      onCopy?.(
+                        item.copyValue,
+                        `Đã sao chép ${item.label.toLowerCase()}.`,
+                      )
+                    }
                     size="small"
                     type="text"
                   />
@@ -223,7 +233,9 @@ export function VerificationDetailHeader({ canReview, detail, onBack }) {
             <MailOutlined className="mt-0.5 text-base text-amber-700" />
             <span>
               Email được mask mặc định để an toàn hơn khi demo và review nội bộ.
-              {!canReview ? ' Yêu cầu này đã có kết quả xử lý nên action review được khóa ở sidebar.' : ''}
+              {!canReview
+                ? " Yêu cầu này đã có kết quả xử lý nên action review được khóa ở sidebar."
+                : ""}
             </span>
           </div>
         </div>
@@ -243,9 +255,11 @@ export function VerificationDetailHeader({ canReview, detail, onBack }) {
         {headerStats.map((item) => (
           <div
             className={[
-              'flex min-w-0 items-start gap-3 rounded-[18px] border border-d4u-border/80 bg-d4u-soft/60 px-4 py-3.5',
-              item.muted ? 'text-d4u-text-2' : ''
-            ].join(' ').trim()}
+              "flex min-w-0 items-start gap-3 rounded-[18px] border border-d4u-border/80 bg-d4u-soft/60 px-4 py-3.5",
+              item.muted ? "text-d4u-text-2" : "",
+            ]
+              .join(" ")
+              .trim()}
             key={item.key}
           >
             <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-d4u-cyan shadow-sm">
@@ -288,20 +302,22 @@ export function VerificationDocumentViewer({
   documentError,
   documentUrl,
   onDownload,
-  onOpenDocument
+  onOpenDocument,
 }) {
   const fileKind = getVerificationFileKind(detail);
-  const isImage = fileKind.key === 'image';
-  const isPdf = fileKind.key === 'pdf';
+  const isImage = fileKind.key === "image";
+  const isPdf = fileKind.key === "pdf";
   const hasPreview = documentUrl && (isImage || isPdf);
 
   return (
     <Card
       className={surfaceCardClassName()}
-      title={(
+      title={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <strong className="block text-[17px] font-semibold text-d4u-text-1">File xác thực</strong>
+            <strong className="block text-[17px] font-semibold text-d4u-text-1">
+              File xác thực
+            </strong>
             <span className="mt-1 block text-sm leading-6 text-d4u-text-2">
               Preview giấy tờ và metadata để đối chiếu nhanh.
             </span>
@@ -313,7 +329,7 @@ export function VerificationDocumentViewer({
             {fileKind.label}
           </Tag>
         </div>
-      )}
+      }
     >
       {documentError ? (
         <Alert
@@ -332,7 +348,7 @@ export function VerificationDocumentViewer({
           icon={<EyeOutlined />}
           onClick={onOpenDocument}
         >
-          {isImage ? 'Mở ảnh' : 'Mở file'}
+          {isImage ? "Mở ảnh" : "Mở file"}
         </Button>
         <Button
           aria-label="Tải xuống tài liệu xác thực"
@@ -376,11 +392,17 @@ export function VerificationDocumentViewer({
         {documentUrl && !isImage && !isPdf ? (
           <div className="grid max-w-[380px] justify-items-center gap-3 px-6 py-8 text-center">
             <FileTextOutlined className="text-[30px] text-d4u-teal-muted" />
-            <strong className="text-base text-d4u-text-1">Không có preview trực tiếp cho loại file này.</strong>
+            <strong className="text-base text-d4u-text-1">
+              Không có preview trực tiếp cho loại file này.
+            </strong>
             <span className="text-sm leading-6 text-d4u-text-2">
               Mở tài liệu trong tab mới hoặc tải xuống để kiểm tra chi tiết.
             </span>
-            <Button icon={<EyeOutlined />} onClick={onOpenDocument} type="primary">
+            <Button
+              icon={<EyeOutlined />}
+              onClick={onOpenDocument}
+              type="primary"
+            >
               Mở tài liệu
             </Button>
           </div>
@@ -388,7 +410,9 @@ export function VerificationDocumentViewer({
         {!documentUrl && !documentError ? (
           <div className="grid max-w-[380px] justify-items-center gap-3 px-6 py-8 text-center">
             <ClockCircleOutlined className="text-[30px] text-d4u-teal-muted" />
-            <strong className="text-base text-d4u-text-1">Đang tải file xác thực...</strong>
+            <strong className="text-base text-d4u-text-1">
+              Đang tải file xác thực...
+            </strong>
             <span className="text-sm leading-6 text-d4u-text-2">
               Preview sẽ xuất hiện ngay khi tài liệu sẵn sàng.
             </span>
@@ -397,9 +421,12 @@ export function VerificationDocumentViewer({
         {!documentUrl && documentError ? (
           <div className="grid max-w-[380px] justify-items-center gap-3 px-6 py-8 text-center">
             <FilePdfOutlined className="text-[30px] text-d4u-error" />
-            <strong className="text-base text-d4u-error">Không thể hiển thị preview tài liệu.</strong>
+            <strong className="text-base text-d4u-error">
+              Không thể hiển thị preview tài liệu.
+            </strong>
             <span className="text-sm leading-6 text-d4u-text-2">
-              Admin vẫn có thể thử mở trực tiếp hoặc tải xuống khi cần đối chiếu.
+              Admin vẫn có thể thử mở trực tiếp hoặc tải xuống khi cần đối
+              chiếu.
             </span>
           </div>
         ) : null}
@@ -414,15 +441,18 @@ export function VerificationAccountCard({ detail, onCopy }) {
       <InfoList
         allowCopy
         items={[
-          { label: 'Họ tên', value: detail.studentFullName },
+          { label: "Họ tên", value: detail.studentFullName },
           {
-            label: 'Email',
+            label: "Email",
             value: maskEmail(detail.studentEmail),
             copyValue: detail.studentEmail,
-            truncate: true
+            truncate: true,
           },
-          { label: 'Username', value: detail.studentUsername, truncate: true },
-          { label: 'Trạng thái tài khoản xác thực', value: <StatusBadge status={detail.status} /> }
+          { label: "Username", value: detail.studentUsername, truncate: true },
+          {
+            label: "Trạng thái tài khoản xác thực",
+            value: <StatusBadge status={detail.status} />,
+          },
         ]}
         onCopy={onCopy}
       />
@@ -435,10 +465,15 @@ export function StudentProfileCard({ detail }) {
     <Card className={surfaceCardClassName()} title="Hồ sơ sinh viên">
       <InfoList
         items={[
-          { label: 'Trường', value: detail.school },
-          { label: 'Chuyên ngành', value: detail.major },
-          { label: 'Năm bắt đầu', value: detail.studyStartYear ? String(detail.studyStartYear) : 'Chưa cập nhật' },
-          { label: 'Bio', value: detail.bio || 'Chưa cập nhật' }
+          { label: "Trường", value: detail.school },
+          { label: "Chuyên ngành", value: detail.major },
+          {
+            label: "Năm bắt đầu",
+            value: detail.studyStartYear
+              ? String(detail.studyStartYear)
+              : "Chưa cập nhật",
+          },
+          { label: "Bio", value: detail.bio || "Chưa cập nhật" },
         ]}
       />
     </Card>
@@ -459,7 +494,9 @@ export function VerificationChecklist() {
             </div>
             <div className="grid gap-1">
               <strong className="text-sm text-d4u-text-1">{item.label}</strong>
-              <span className="text-sm leading-6 text-d4u-text-2">{item.helper}</span>
+              <span className="text-sm leading-6 text-d4u-text-2">
+                {item.helper}
+              </span>
             </div>
           </div>
         ))}
@@ -473,19 +510,21 @@ export function VerificationDecisionPanel({
   canReview,
   detail,
   onApprove,
-  onReject
+  onReject,
 }) {
   return (
     <Card className={surfaceCardClassName()} title="Quyết định xác thực">
       <div className="grid gap-5">
         <div className="grid gap-1.5">
           <strong className="text-sm text-d4u-text-1">
-            {canReview ? 'Sẵn sàng đưa ra quyết định' : 'Yêu cầu này đã được xử lý'}
+            {canReview
+              ? "Sẵn sàng đưa ra quyết định"
+              : "Yêu cầu này đã được xử lý"}
           </strong>
           <span className="text-sm leading-6 text-d4u-text-2">
             {canReview
-              ? 'Đối chiếu file và hồ sơ trước khi duyệt hoặc từ chối.'
-              : 'Nút hành động được khóa để tránh thay đổi ngoài flow hiện tại.'}
+              ? "Đối chiếu file và hồ sơ trước khi duyệt hoặc từ chối."
+              : "Nút hành động được khóa để tránh thay đổi ngoài flow hiện tại."}
           </span>
         </div>
 
