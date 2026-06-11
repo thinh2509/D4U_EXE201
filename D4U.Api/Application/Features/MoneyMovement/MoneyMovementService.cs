@@ -525,17 +525,23 @@ public sealed class MoneyMovementService(
 
         if (string.IsNullOrWhiteSpace(request.BankName))
         {
-            throw new InvalidOperationException("Bank name is required.");
+            throw new InvalidOperationException("Vui lòng nhập tên ngân hàng.");
         }
 
         if (string.IsNullOrWhiteSpace(request.AccountHolderName))
         {
-            throw new InvalidOperationException("Account holder name is required.");
+            throw new InvalidOperationException("Vui lòng nhập tên chủ tài khoản.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.AccountNumber) || request.AccountNumber.Trim().Length < 4)
+        var normalizedAccountNumber = NormalizeAccountNumber(request.AccountNumber);
+        if (string.IsNullOrWhiteSpace(normalizedAccountNumber))
         {
-            throw new InvalidOperationException("Account number must have at least 4 digits.");
+            throw new InvalidOperationException("Vui lòng nhập số tài khoản.");
+        }
+
+        if (normalizedAccountNumber.Length < 4)
+        {
+            throw new InvalidOperationException("Số tài khoản phải có ít nhất 4 chữ số.");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -559,8 +565,8 @@ public sealed class MoneyMovementService(
             BankName = request.BankName.Trim(),
             BankCode = string.IsNullOrWhiteSpace(request.BankCode) ? null : request.BankCode.Trim(),
             AccountHolderName = request.AccountHolderName.Trim(),
-            MaskedAccountNumber = MaskAccountNumber(request.AccountNumber),
-            AccountNumberEncrypted = ProtectAccountNumber(request.AccountNumber),
+            MaskedAccountNumber = MaskAccountNumber(normalizedAccountNumber),
+            AccountNumberEncrypted = ProtectAccountNumber(normalizedAccountNumber),
             IsDefault = request.IsDefault,
             Status = "ACTIVE",
             CreatedAt = now
@@ -1035,6 +1041,16 @@ public sealed class MoneyMovementService(
         }
 
         return $"****{digits[^4..]}";
+    }
+
+    private static string? NormalizeAccountNumber(string? accountNumber)
+    {
+        if (string.IsNullOrWhiteSpace(accountNumber))
+        {
+            return null;
+        }
+
+        return new string(accountNumber.Where(char.IsDigit).ToArray());
     }
 
     private string ProtectAccountNumber(string accountNumber)

@@ -196,7 +196,7 @@ export function AdminWithdrawalsPage() {
           type="primary"
           block={compact}
           disabled={!transferReady}
-          title={transferReady ? undefined : 'Thiếu số tài khoản đầy đủ nên chưa thể xử lý.'}
+          title={transferReady ? undefined : 'Tài khoản nhận tiền này không còn đủ dữ liệu để xử lý. Student cần tạo lại tài khoản mới.'}
           onClick={() => openDecision(row, 'PROCESSING')}
         >
           Nhận xử lý
@@ -211,7 +211,7 @@ export function AdminWithdrawalsPage() {
             type="primary"
             block={compact}
             disabled={!transferReady}
-            title={transferReady ? undefined : 'Thiếu số tài khoản đầy đủ nên chưa thể xác nhận chuyển khoản.'}
+            title={transferReady ? undefined : 'Tài khoản nhận tiền này không còn đủ dữ liệu để xác nhận chuyển khoản. Student cần tạo lại tài khoản mới.'}
             onClick={() => openDecision(row, 'COMPLETED')}
           >
             Đã chuyển khoản
@@ -295,7 +295,7 @@ export function AdminWithdrawalsPage() {
                   <span>{row.accountHolderName || 'Thiếu chủ tài khoản'}</span>
                   <span>{row.accountNumber || row.maskedAccountNumber || 'Thiếu số tài khoản'}</span>
                 </div>
-                {!canTransfer(row) ? <Tag color="warning">Thiếu số TK đầy đủ</Tag> : null}
+                {!canTransfer(row) ? <Tag color="warning">Cần tạo lại tài khoản</Tag> : null}
               </button>
             ))}
           </div>
@@ -320,8 +320,8 @@ export function AdminWithdrawalsPage() {
                     type="warning"
                     showIcon
                     className="form-alert"
-                    message="Yêu cầu này thiếu số tài khoản đầy đủ."
-                    description="Admin/Finance chưa thể nhận xử lý hoặc xác nhận chuyển khoản. Student cần tạo lại tài khoản nhận tiền mới có đủ thông tin."
+                    message="Tài khoản nhận tiền của yêu cầu này không còn đủ dữ liệu để xử lý."
+                    description="Admin/Finance chưa thể nhận xử lý hoặc xác nhận chuyển khoản. Student cần tạo lại tài khoản nhận tiền mới rồi gửi yêu cầu rút tiền bằng tài khoản mới."
                   />
                 ) : null}
 
@@ -392,7 +392,7 @@ export function AdminWithdrawalsPage() {
                       onClick={() => copyText(actingRow.accountNumber, 'Đã copy số tài khoản.')}
                     />
                   </Space>
-                ) : 'Thiếu số tài khoản đầy đủ'}
+                ) : 'Tài khoản cũ cần tạo lại'}
               </div>
               <div><strong>Số tiền chuyển:</strong> {formatCurrency(actingRow.transferAmount ?? actingRow.netAmount)}</div>
               <div>
