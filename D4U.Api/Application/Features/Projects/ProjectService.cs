@@ -3,6 +3,7 @@ namespace D4U.Api.Application.Features.Projects;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Exceptions;
 using D4U.Api.Application.Common.Files;
+using D4U.Api.Application.Features.FeaturePackages;
 using D4U.Api.Application.Features.MoneyMovement;
 using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class ProjectService(
     IUnitOfWork unitOfWork,
+    IFeatureEntitlementService featureEntitlementService,
     IMoneyMovementService moneyMovementService,
     INotificationPublisher notificationPublisher,
     ILogger<ProjectService> logger) : IProjectService
@@ -205,7 +207,7 @@ public sealed class ProjectService(
 
         var category = await RequireActiveCategoryAsync(project.DesignCategoryId, cancellationToken);
         var plan = await EnsureActiveSubscriptionPlanAsync(smeProfile.Id, cancellationToken);
-        await EnforceSubscriptionLimitsAsync(smeProfile.Id, project.BudgetAmount, plan, cancellationToken);
+        await EnforceSubscriptionLimitsAsync(user.Id, smeProfile.Id, project.BudgetAmount, plan, cancellationToken);
 
         var previousStatus = project.Status;
         var now = DateTimeOffset.UtcNow;
@@ -1899,6 +1901,7 @@ public sealed class ProjectService(
     }
 
     private async Task EnforceSubscriptionLimitsAsync(
+        Guid userId,
         Guid smeProfileId,
         decimal projectBudget,
         SubscriptionPlan plan,
@@ -1912,9 +1915,32 @@ public sealed class ProjectService(
         if (plan.MaxActiveOpenProjects.HasValue)
         {
             var activeOpenProjects = await CountOpenProjectsAsync(smeProfileId, cancellationToken);
-
-            if (activeOpenProjects >= plan.MaxActiveOpenProjects.Value)
+            var activePackageSummary = await featureEntitlementService.GetActivePackageSummaryAsync(
+                userId,
+                FeaturePackageRole.SME,
+                cancellationToken);
+            var effectiveMaxActiveOpenProjects = plan.MaxActiveOpenProjects;
+            if (activePackageSummary?.MaxActiveOpenProjectsOverride is { } overrideLimit)
             {
+                effectiveMaxActiveOpenProjects = Math.Max(effectiveMaxActiveOpenProjects.Value, overrideLimit);
+            }
+
+            if (effectiveMaxActiveOpenProjects.HasValue && activeOpenProjects >= effectiveMaxActiveOpenProjects.Value)
+            {
+                var hasExpiredBoostPackage = activePackageSummary is null &&
+                    await featureEntitlementService.HasExpiredOpenProjectBoostPackageAsync(
+                        userId,
+                        FeaturePackageRole.SME,
+                        plan.MaxActiveOpenProjects,
+                        cancellationToken);
+
+                if (string.Equals(plan.Code, BasicPlanCode, StringComparison.OrdinalIgnoreCase) &&
+                    hasExpiredBoostPackage &&
+                    activeOpenProjects > plan.MaxActiveOpenProjects.Value)
+                {
+                    throw new InvalidOperationException("Goi da het han. Ban can gia han hoac giam so du an dang mo truoc khi dang moi.");
+                }
+
                 if (string.Equals(plan.Code, BasicPlanCode, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException("Ban da dat gioi han 2 du an dang mo cua goi Free.");

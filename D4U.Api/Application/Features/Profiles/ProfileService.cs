@@ -5,16 +5,19 @@ using System.Text;
 using Dapper;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Files;
+using D4U.Api.Application.Features.FeaturePackages;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Email;
 using D4U.Api.Infrastructure.EmailVerification;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 public sealed class ProfileService(
     IUnitOfWork unitOfWork,
     IDapperConnectionFactory connectionFactory,
     IEmailSender emailSender,
+    IFeatureEntitlementService featureEntitlementService,
     IOptions<StudentEmailVerificationOptions> emailVerificationOptions) : IProfileService
 {
     private const string BasicPlanCode = "BASIC";
@@ -314,7 +317,12 @@ public sealed class ProfileService(
         }
 
         var plan = await GetSubscriptionPlanAsync(profile.SubscriptionPlanId, cancellationToken);
-        return ToSmeProfileResponse(profile, plan);
+        var activeOpenProjectCount = await CountOpenProjectsAsync(profile.Id, cancellationToken);
+        var activePackageSummary = await featureEntitlementService.GetActivePackageSummaryAsync(
+            userId,
+            FeaturePackageRole.SME,
+            cancellationToken);
+        return ToSmeProfileResponse(profile, plan, activeOpenProjectCount, activePackageSummary);
     }
 
     public async Task<SmeProfileResponse> UpsertSmeProfileAsync(
@@ -368,7 +376,12 @@ public sealed class ProfileService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var subscriptionPlan = await GetSubscriptionPlanAsync(profile.SubscriptionPlanId, cancellationToken);
-        return ToSmeProfileResponse(profile, subscriptionPlan);
+        var activeOpenProjectCount = await CountOpenProjectsAsync(profile.Id, cancellationToken);
+        var activePackageSummary = await featureEntitlementService.GetActivePackageSummaryAsync(
+            userId,
+            FeaturePackageRole.SME,
+            cancellationToken);
+        return ToSmeProfileResponse(profile, subscriptionPlan, activeOpenProjectCount, activePackageSummary);
     }
 
     private async Task<SubscriptionPlan> RequireBasicSubscriptionPlanAsync(CancellationToken cancellationToken)
@@ -610,10 +623,33 @@ public sealed class ProfileService(
         return await unitOfWork.Repository<SubscriptionPlan>().GetByIdAsync(subscriptionPlanId, cancellationToken);
     }
 
+    private async Task<int> CountOpenProjectsAsync(Guid smeProfileId, CancellationToken cancellationToken)
+    {
+        return await unitOfWork.Repository<Project>().Query()
+            .CountAsync(
+                project => project.SmeProfileId == smeProfileId &&
+                    project.Status == ProjectStatus.OPEN &&
+                    project.ProjectType == ProjectType.OPEN,
+                cancellationToken);
+    }
+
     private static SmeProfileResponse ToSmeProfileResponse(
         SmeProfile profile,
-        SubscriptionPlan? subscriptionPlan)
+        SubscriptionPlan? subscriptionPlan,
+        int activeOpenProjectCount,
+        ActiveFeaturePackageSummaryResponse? activePackageSummary)
     {
+        var effectiveMaxActiveOpenProjects = subscriptionPlan?.MaxActiveOpenProjects;
+        if (activePackageSummary?.MaxActiveOpenProjectsOverride is { } overrideLimit)
+        {
+            effectiveMaxActiveOpenProjects = effectiveMaxActiveOpenProjects.HasValue
+                ? Math.Max(effectiveMaxActiveOpenProjects.Value, overrideLimit)
+                : overrideLimit;
+        }
+
+        var canPublishMoreProjects = !effectiveMaxActiveOpenProjects.HasValue ||
+            activeOpenProjectCount < effectiveMaxActiveOpenProjects.Value;
+
         return new SmeProfileResponse(
             profile.Id,
             profile.UserId,
@@ -625,7 +661,7 @@ public sealed class ProfileService(
             profile.OnboardingStatus,
             profile.AverageRating,
             profile.CompletedProjectsCount,
-            profile.ActiveOpenProjectCount,
+            activeOpenProjectCount,
             subscriptionPlan is null
                 ? null
                 : new SubscriptionPlanSummaryResponse(
@@ -637,9 +673,13 @@ public sealed class ProfileService(
                     subscriptionPlan.MaxActiveOpenProjects,
                     subscriptionPlan.MaxProjectBudget,
                     subscriptionPlan.IsActive),
+            effectiveMaxActiveOpenProjects,
+            canPublishMoreProjects,
+            activePackageSummary,
             profile.SubscriptionStartedAt,
             profile.SubscriptionCurrentPeriodEnd,
-            string.Equals(subscriptionPlan?.Code, BasicPlanCode, StringComparison.OrdinalIgnoreCase) &&
+            activePackageSummary is null &&
+                string.Equals(subscriptionPlan?.Code, BasicPlanCode, StringComparison.OrdinalIgnoreCase) &&
                 subscriptionPlan?.MonthlyPrice == 0m &&
                 profile.SubscriptionCurrentPeriodEnd is null,
             profile.CreatedAt,

@@ -14,6 +14,7 @@ public sealed class FeaturePackage
     public int DurationDays { get; set; }
     public string EntitlementCode { get; set; } = string.Empty;
     public int? UsageLimit { get; set; }
+    public int? MaxActiveOpenProjectsOverride { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

@@ -25,6 +25,7 @@ public sealed class FeaturePackageConfiguration : IEntityTypeConfiguration<Featu
         entity.Property(value => value.DurationDays).HasColumnName("duration_days").IsRequired();
         entity.Property(value => value.EntitlementCode).HasColumnName("entitlement_code").HasMaxLength(80).IsRequired();
         entity.Property(value => value.UsageLimit).HasColumnName("usage_limit");
+        entity.Property(value => value.MaxActiveOpenProjectsOverride).HasColumnName("max_active_open_projects_override");
         entity.Property(value => value.IsActive).HasColumnName("is_active").HasDefaultValue(true).IsRequired();
         entity.Property(value => value.CreatedAt).HasColumnName("created_at").IsRequired();
         entity.Property(value => value.UpdatedAt).HasColumnName("updated_at").IsRequired();
@@ -35,14 +36,15 @@ public sealed class FeaturePackageConfiguration : IEntityTypeConfiguration<Featu
             {
                 Id = Guid.Parse("44444444-4444-4444-4444-444444444444"),
                 Role = FeaturePackageRole.SME,
-                Code = "SME_AI_MATCHING_30D",
-                Name = "SME AI Matching 30 ngày",
-                Description = "Mo khoa AI Matching de goi y sinh vien phu hop cho du an cua SME trong 30 ngay.",
+                Code = "SME_GROWTH_30D",
+                Name = "SME Growth 30 ngày",
+                Description = "Mo khoa AI Matching va nang gioi han toi da 10 du an dang mo cho SME trong 30 ngay.",
                 Price = 299_000m,
                 Currency = "VND",
                 DurationDays = 30,
                 EntitlementCode = FeatureEntitlementCodes.SmeAiMatching,
                 UsageLimit = null,
+                MaxActiveOpenProjectsOverride = 10,
                 IsActive = true,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -59,6 +61,7 @@ public sealed class FeaturePackageConfiguration : IEntityTypeConfiguration<Featu
                 DurationDays = 30,
                 EntitlementCode = FeatureEntitlementCodes.StudentAiMatching,
                 UsageLimit = null,
+                MaxActiveOpenProjectsOverride = null,
                 IsActive = true,
                 CreatedAt = now,
                 UpdatedAt = now

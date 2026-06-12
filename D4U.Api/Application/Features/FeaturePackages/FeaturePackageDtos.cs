@@ -13,6 +13,7 @@ public sealed record FeaturePackageResponse(
     int DurationDays,
     string EntitlementCode,
     int? UsageLimit,
+    int? MaxActiveOpenProjectsOverride,
     bool IsActive);
 
 public sealed record CreateFeaturePackagePurchaseRequest(
@@ -55,5 +56,18 @@ public sealed record UserFeatureEntitlementResponse(
     FeatureEntitlementStatus Status,
     int? UsageLimit,
     int UsageConsumed,
+    DateTimeOffset ActivatedAt,
+    DateTimeOffset ExpiresAt);
+
+public sealed record ActiveFeaturePackageSummaryResponse(
+    Guid PackageId,
+    string PackageCode,
+    string PackageName,
+    string Description,
+    string EntitlementCode,
+    decimal Price,
+    string Currency,
+    int DurationDays,
+    int? MaxActiveOpenProjectsOverride,
     DateTimeOffset ActivatedAt,
     DateTimeOffset ExpiresAt);

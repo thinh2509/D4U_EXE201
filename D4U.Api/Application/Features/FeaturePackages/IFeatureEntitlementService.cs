@@ -1,10 +1,23 @@
 namespace D4U.Api.Application.Features.FeaturePackages;
 
+using D4U.Api.Domain.Enums;
+
 public interface IFeatureEntitlementService
 {
     Task<bool> HasActiveEntitlementAsync(
         Guid userId,
         string entitlementCode,
+        CancellationToken cancellationToken = default);
+
+    Task<ActiveFeaturePackageSummaryResponse?> GetActivePackageSummaryAsync(
+        Guid userId,
+        FeaturePackageRole role,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> HasExpiredOpenProjectBoostPackageAsync(
+        Guid userId,
+        FeaturePackageRole role,
+        int? minimumOverrideExclusive,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<UserFeatureEntitlementResponse>> ListMyEntitlementsAsync(

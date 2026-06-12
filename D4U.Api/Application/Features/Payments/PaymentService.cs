@@ -863,7 +863,9 @@ public sealed class PaymentService(
             null,
             "FEATURE_ENTITLEMENT_ACTIVATED",
             "Goi AI Matching da duoc kich hoat",
-            $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching ngay bay gio.",
+            package.MaxActiveOpenProjectsOverride.HasValue
+                ? $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching va publish toi da {package.MaxActiveOpenProjectsOverride.Value} du an dang mo ngay bay gio."
+                : $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching ngay bay gio.",
             nameof(FeaturePackagePurchase),
             purchase.Id,
             now,

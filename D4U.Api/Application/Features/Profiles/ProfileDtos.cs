@@ -1,3 +1,5 @@
+using D4U.Api.Application.Features.FeaturePackages;
+
 namespace D4U.Api.Application.Features.Profiles;
 
 public sealed record UpsertStudentProfileRequest(
@@ -41,6 +43,9 @@ public sealed record SmeProfileResponse(
     int CompletedProjectsCount,
     int ActiveOpenProjectCount,
     SubscriptionPlanSummaryResponse? SubscriptionPlan,
+    int? EffectiveMaxActiveOpenProjects,
+    bool CanPublishMoreProjects,
+    ActiveFeaturePackageSummaryResponse? ActivePackageSummary,
     DateTimeOffset SubscriptionStartedAt,
     DateTimeOffset? SubscriptionCurrentPeriodEnd,
     bool IsFreePlan,

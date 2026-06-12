@@ -121,29 +121,33 @@ function MetricPill({ icon, label, value }) {
 
 function renderSubscriptionDuration(profile) {
   if (!profile) return 'Chua co';
+  if (profile.activePackageSummary?.expiresAt) return `Den ${formatDate(profile.activePackageSummary.expiresAt)}`;
   if (!profile.subscriptionCurrentPeriodEnd) return 'Khong het han';
   return `Den ${formatDate(profile.subscriptionCurrentPeriodEnd)}`;
 }
 
 function renderProjectLimit(profile) {
   const activeCount = profile?.activeOpenProjectCount ?? 0;
-  const maxOpenProjects = profile?.subscriptionPlan?.maxActiveOpenProjects;
+  const maxOpenProjects = profile?.effectiveMaxActiveOpenProjects;
 
   if (maxOpenProjects == null) return `${activeCount} dang mo`;
   return `${activeCount}/${maxOpenProjects} du an dang mo`;
 }
 
 function renderProjectLimitDescription(profile) {
-  const maxOpenProjects = profile?.subscriptionPlan?.maxActiveOpenProjects;
+  const maxOpenProjects = profile?.effectiveMaxActiveOpenProjects;
 
   if (maxOpenProjects == null) return 'Khong gioi han so du an dang mo';
   return `Toi da ${maxOpenProjects} du an dang mo cung luc`;
 }
 
 function renderPlanPrice(profile) {
+  if (profile?.activePackageSummary) {
+    return `${formatCurrency(profile.activePackageSummary.price, profile.activePackageSummary.currency)}/30 ngay`;
+  }
+
   if (!profile?.subscriptionPlan) return 'Chua co';
-  const price = formatCurrency(profile.subscriptionPlan.monthlyPrice);
-  return profile.isFreePlan ? `${price}/thang` : `${price}/30 ngay`;
+  return `${formatCurrency(profile.subscriptionPlan.monthlyPrice)}/thang`;
 }
 
 function RecommendationReason({ reason }) {
@@ -395,7 +399,9 @@ function PackageShowcaseCard({
               </span>
             </div>
             <p className="mt-3 text-sm text-d4u-text-2">
-              Gói cho vai trò {pkg.role} · mở khóa tính năng gợi ý AI cho SME
+              {pkg.maxActiveOpenProjectsOverride
+                ? `Goi cho vai tro ${pkg.role} · AI Matching + toi da ${pkg.maxActiveOpenProjectsOverride} du an dang mo`
+                : `Goi cho vai tro ${pkg.role}`}
             </p>
           </div>
 
@@ -522,7 +528,7 @@ export function SmeBillingLivePage() {
       const purchase = await packageApi.purchasePackage(pkg.id);
       const payment = await packageApi.createPurchasePayment(purchase.id);
       openCheckout(payment.checkoutUrl);
-      message.success('Đã tạo giao dịch PayOS cho gói gợi ý AI.');
+      message.success('Đã tạo giao dịch PayOS cho gói AI Matching + 10 dự án đang mở.');
       await loadData();
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói.'));
@@ -561,7 +567,7 @@ export function SmeBillingLivePage() {
       <PageHeader
         icon={<CreditCardOutlined />}
         title="Gói & thanh toán"
-        description="Mở khóa tính năng gợi ý AI cho SME qua PayOS với giao diện quản lý gói rõ ràng, tập trung vào trạng thái gói và các giao dịch gần nhất."
+        description="Quản lý gói Free và gói Paid 30 ngày cho SME, bao gồm AI Matching, giới hạn dự án đang mở và các giao dịch gần nhất."
         extra={(
           <Button
             className="!h-11 !rounded-btn !border-d4u-border !px-5 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
@@ -578,21 +584,27 @@ export function SmeBillingLivePage() {
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <PillBadge tone={profile.isFreePlan ? 'info' : 'success'}>
-                  {profile.isFreePlan ? 'Goi Free' : profile.subscriptionPlan?.name || 'Goi hien tai'}
+                  {profile.isFreePlan ? 'Goi Free' : profile.activePackageSummary?.packageName || profile.subscriptionPlan?.name || 'Goi hien tai'}
                 </PillBadge>
                 <PillBadge tone="neutral">{renderProjectLimitDescription(profile)}</PillBadge>
               </div>
               <Title level={4} className="!mb-1 !font-display !text-d4u-teal-deep">
-                {profile.isFreePlan ? 'SME dang o goi Free mac dinh' : `SME dang o goi ${profile.subscriptionPlan?.name || 'hien tai'}`}
+                {profile.isFreePlan
+                  ? 'SME dang o goi Free mac dinh'
+                  : `SME dang o goi ${profile.activePackageSummary?.packageName || profile.subscriptionPlan?.name || 'hien tai'}`}
               </Title>
               <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
                 {profile.isFreePlan
                   ? 'Goi Free khong het han, cho phep dang toi da 2 du an OPEN cung luc. Gioi han nay khong duoc tinh theo so du an da dang trong thang.'
-                  : 'Plan hien tai duoc tinh theo so du an dang mo cung luc. Khi mot du an roi khoi trang thai OPEN, ban se mo lai slot de dang du an moi.'}
+                  : 'Goi 30 ngay mo khoa AI Matching va nang gioi han dang du an dang mo. Khi goi het han, he thong giu nguyen cac du an dang mo nhung chan publish moi neu vuot limit hien hanh.'}
               </Paragraph>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[520px]">
-              <MetricPill icon={<CreditCardOutlined />} label="Goi" value={profile.subscriptionPlan?.name || 'Chua co'} />
+              <MetricPill
+                icon={<CreditCardOutlined />}
+                label="Goi"
+                value={profile.activePackageSummary?.packageName || profile.subscriptionPlan?.name || 'Chua co'}
+              />
               <MetricPill icon={<DollarOutlined />} label="Gia" value={renderPlanPrice(profile)} />
               <MetricPill icon={<TeamOutlined />} label="Open projects" value={renderProjectLimit(profile)} />
               <MetricPill icon={<CheckCircleFilled />} label="Thoi han" value={renderSubscriptionDuration(profile)} />
@@ -606,7 +618,7 @@ export function SmeBillingLivePage() {
               <MetricPill
                 icon={<ReadOutlined />}
                 label="Rule"
-                value={profile.isFreePlan ? 'Khong phai trial 30 ngay' : 'Tinh theo slot dang mo'}
+                value={profile.canPublishMoreProjects ? 'Co the publish them' : 'Can giam du an mo hoac gia han goi'}
               />
             </div>
           </div>
@@ -625,7 +637,7 @@ export function SmeBillingLivePage() {
                 <PillBadge tone="info">Gợi ý AI cho SME</PillBadge>
               </div>
               <Title level={4} className="!mb-1 !font-display !text-emerald-700">
-                Bạn đang dùng gói gợi ý AI
+                Bạn đang dùng gói AI Matching + 10 dự án đang mở
               </Title>
               <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
                 Gói hiện có hiệu lực đến <span className="font-semibold text-d4u-text-1">{formatDate(activePackage.expiresAt)}</span>.
@@ -679,7 +691,7 @@ export function SmeBillingLivePage() {
               Tóm tắt mua gói
             </Title>
             <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-              Theo dõi trạng thái gói, thanh toán và các lần mua gần đây ở một nơi gọn hơn.
+              Theo dõi trạng thái Free/Paid, giới hạn dự án đang mở và các lần mua gần đây ở một nơi gọn hơn.
             </Paragraph>
           </div>
           <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 sm:p-6">
@@ -947,10 +959,10 @@ export function SmeAiMatchingLivePage() {
                   </PillBadge>
                 </div>
                 <Title level={4} className="!mb-1 !font-display !text-amber-700">
-                  Bạn chưa có gói gợi ý AI
+                  Bạn chưa có gói AI Matching + 10 dự án đang mở
                 </Title>
                 <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                  SME cần mua gói gợi ý AI và chờ webhook xác nhận trước khi dùng tính năng này.
+                  SME cần mua gói và chờ webhook xác nhận trước khi dùng AI Matching hoặc mở rộng giới hạn dự án đang mở.
                 </Paragraph>
               </div>
               <Button

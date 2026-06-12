@@ -374,6 +374,10 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("is_active");
 
+                    b.Property<int?>("MaxActiveOpenProjectsOverride")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_active_open_projects_override");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -412,14 +416,15 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            Code = "SME_AI_MATCHING_30D",
+                            Code = "SME_GROWTH_30D",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Currency = "VND",
-                            Description = "Mo khoa AI Matching de goi y sinh vien phu hop cho du an cua SME trong 30 ngay.",
+                            Description = "Mo khoa AI Matching va nang gioi han toi da 10 du an dang mo cho SME trong 30 ngay.",
                             DurationDays = 30,
                             EntitlementCode = "SME_AI_MATCHING",
                             IsActive = true,
-                            Name = "SME AI Matching 30 ngày",
+                            MaxActiveOpenProjectsOverride = 10,
+                            Name = "SME Growth 30 ngày",
                             Price = 299000m,
                             Role = "SME",
                             UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
@@ -434,6 +439,7 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                             DurationDays = 30,
                             EntitlementCode = "STUDENT_AI_MATCHING",
                             IsActive = true,
+                            MaxActiveOpenProjectsOverride = (int?)null,
                             Name = "Student AI Matching 30 ngày",
                             Price = 199000m,
                             Role = "STUDENT",

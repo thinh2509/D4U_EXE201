@@ -35,6 +35,7 @@ public sealed class FeaturePackageService(D4UDbContext dbContext) : IFeaturePack
                 value.DurationDays,
                 value.EntitlementCode,
                 value.UsageLimit,
+                value.MaxActiveOpenProjectsOverride,
                 value.IsActive))
             .ToListAsync(cancellationToken);
     }
