@@ -48,7 +48,7 @@ public sealed class GoogleTokenValidator(
         {
             principal = handler.ValidateToken(idToken, validationParameters, out _);
         }
-        catch (SecurityTokenException exception)
+        catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
         {
             throw new UnauthorizedAccessException("Google token is invalid.", exception);
         }
