@@ -16,6 +16,12 @@ public sealed class MockAiMatchingService(
         "APPROVED",
         "VERIFIED"
     };
+    private static readonly ProjectStatus[] AllowedMatchingProjectStatuses =
+    [
+        ProjectStatus.DRAFT,
+        ProjectStatus.OPEN,
+        ProjectStatus.PRIVATE_INVITED
+    ];
 
     public async Task<MatchStudentsForProjectResponse> MatchStudentsForProjectAsync(
         Guid userId,
@@ -87,7 +93,16 @@ public sealed class MockAiMatchingService(
             throw new UnauthorizedAccessException("Only the owner SME can request AI Matching for this project.");
         }
 
+        EnsureProjectSupportsMatching(project);
         return project;
+    }
+
+    internal static void EnsureProjectSupportsMatching(Project project)
+    {
+        if (!AllowedMatchingProjectStatuses.Contains(project.Status))
+        {
+            throw new InvalidOperationException("Project is no longer in a recruiting stage that supports AI Matching.");
+        }
     }
 
     internal async Task EnsureMatchingEntitlementAsync(Guid userId, CancellationToken cancellationToken)

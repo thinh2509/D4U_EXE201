@@ -38,6 +38,8 @@ import {
   ProjectMetadataStrip
 } from '../shared/ProjectDetailUi.jsx';
 
+const AI_MATCHING_ELIGIBLE_PROJECT_STATUSES = ['DRAFT', 'OPEN', 'PRIVATE_INVITED'];
+
 function formatDetailDate(value) {
   if (!value) return 'Chưa có';
   return new Intl.DateTimeFormat('vi-VN', {
@@ -97,6 +99,7 @@ function ProjectActionSidebar({
   canCancelProject,
   canDeleteProject,
   hasMatchingEntitlement,
+  canUseAiMatching,
   onPublish,
   onOpenCancelModal,
   onDelete
@@ -154,8 +157,10 @@ function ProjectActionSidebar({
             Xem ứng tuyển
           </ActionButton>
           <ActionButton
+            disabled={hasMatchingEntitlement && !canUseAiMatching}
             icon={hasMatchingEntitlement ? <TeamOutlined /> : <CreditCardOutlined />}
             onClick={() => window.location.assign(hasMatchingEntitlement ? `/sme/ai-matching?projectId=${projectId}` : '/sme/billing')}
+            title={hasMatchingEntitlement && !canUseAiMatching ? 'AI Matching chỉ dùng được khi dự án còn ở giai đoạn tuyển chọn.' : undefined}
             variant="soft"
           >
             {hasMatchingEntitlement ? 'AI Matching' : 'Mua gói AI Matching'}
@@ -322,6 +327,7 @@ export function SmeProjectDetailPage() {
   const canCancelProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'IN_PROGRESS', 'SKETCH_REVIEW', 'FINAL_REVIEW', 'REVISION_REQUESTED', 'ADMIN_REVIEW'].includes(project.status);
   const canDeleteProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED'].includes(project.status);
   const canEditProject = ['DRAFT', 'OPEN', 'PRIVATE_INVITED', 'OFFER_SELECTED'].includes(project.status);
+  const canUseAiMatching = hasMatchingEntitlement && AI_MATCHING_ELIGIBLE_PROJECT_STATUSES.includes(project.status);
 
   return (
     <div className="min-h-screen bg-d4u-bg text-d4u-text-1">
@@ -353,6 +359,7 @@ export function SmeProjectDetailPage() {
             canEditProject={canEditProject}
             canOpenWorkspace={canOpenWorkspace}
             hasMatchingEntitlement={hasMatchingEntitlement}
+            canUseAiMatching={canUseAiMatching}
             onDelete={remove}
             onOpenCancelModal={openCancelModal}
             onPublish={publish}

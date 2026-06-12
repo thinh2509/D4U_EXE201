@@ -35,6 +35,7 @@ public sealed class OpenAiMatchingService(
         }
 
         var project = await fallbackService.RequireOwnedProjectAsync(userId, projectId, cancellationToken);
+        MockAiMatchingService.EnsureProjectSupportsMatching(project);
         await fallbackService.EnsureMatchingEntitlementAsync(userId, cancellationToken);
 
         var candidates = await fallbackService.LoadCandidatesAsync(projectId, cancellationToken);

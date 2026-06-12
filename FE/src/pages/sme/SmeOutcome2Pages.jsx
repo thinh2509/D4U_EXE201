@@ -38,6 +38,7 @@ import { formatCurrency, formatDate } from '../../utils/format.js';
 
 const { Paragraph, Title } = Typography;
 const ACTIVE_OFFER_STATUSES = ['WAITING_ACCEPTANCE', 'ACCEPTED', 'PENDING_PAYMENT', 'PAYMENT_FAILED', 'ACTIVE'];
+const AI_MATCHING_ELIGIBLE_PROJECT_STATUSES = ['DRAFT', 'OPEN', 'PRIVATE_INVITED'];
 
 function renderPrimaryCell(title, subtitle) {
   return (
@@ -60,6 +61,10 @@ function renderStatusOrFallback(value) {
 
 function findActiveMatchingEntitlement(entitlements) {
   return entitlements.find((item) => item.status === 'ACTIVE' && item.entitlementCode === 'SME_AI_MATCHING');
+}
+
+function canUseAiMatchingForProject(projectStatus) {
+  return AI_MATCHING_ELIGIBLE_PROJECT_STATUSES.includes(projectStatus);
 }
 
 function buildPurchaseActionLabel(purchase) {
@@ -694,6 +699,7 @@ export function SmeAiMatchingLivePage() {
   const [selectedRecommendation, setSelectedRecommendation] = useState(null);
   const [error, setError] = useState(null);
   const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
+  const canUseAiMatching = useMemo(() => canUseAiMatchingForProject(project?.status), [project?.status]);
   const applicationByStudentId = useMemo(
     () => Object.fromEntries(applications.map((item) => [item.studentProfileId, item])),
     [applications]
@@ -739,7 +745,7 @@ export function SmeAiMatchingLivePage() {
   }, [projectId]);
 
   const runMatching = async () => {
-    if (!projectId) return;
+    if (!projectId || !canUseAiMatching) return;
 
     setRunning(true);
     setError(null);
@@ -753,9 +759,9 @@ export function SmeAiMatchingLivePage() {
   };
 
   useEffect(() => {
-    if (!projectId || !activePackage || result || running || loading) return;
+    if (!projectId || !activePackage || !canUseAiMatching || result || running || loading) return;
     runMatching();
-  }, [activePackage, loading, projectId, result, running]);
+  }, [activePackage, canUseAiMatching, loading, projectId, result, running]);
 
   useEffect(() => {
     if (!selectedRecommendation || !project) return;
@@ -819,7 +825,7 @@ export function SmeAiMatchingLivePage() {
             <Button
               type="primary"
               className="!h-11 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
-              disabled={!projectId || !activePackage}
+              disabled={!projectId || !activePackage || !canUseAiMatching}
               loading={running}
               onClick={runMatching}
             >
@@ -840,6 +846,16 @@ export function SmeAiMatchingLivePage() {
       ) : null}
 
       {project ? <ProjectSummaryHero project={project} activePackage={activePackage} /> : null}
+
+      {project && activePackage && !canUseAiMatching ? (
+        <Alert
+          type="warning"
+          showIcon
+          className="form-alert"
+          message="Dự án đã qua giai đoạn tuyển chọn nên không thể dùng AI Matching."
+          description="Bạn chỉ có thể dùng AI Matching khi dự án còn ở trạng thái DRAFT, OPEN hoặc PRIVATE_INVITED."
+        />
+      ) : null}
 
       {!activePackage ? (
         <section className="overflow-hidden rounded-panel border border-amber-200 bg-white shadow-soft">
@@ -865,6 +881,33 @@ export function SmeAiMatchingLivePage() {
                 onClick={() => navigate('/sme/billing')}
               >
                 Mở trang gói & thanh toán
+              </Button>
+            </div>
+          </div>
+        </section>
+      ) : !canUseAiMatching ? (
+        <section className="overflow-hidden rounded-panel border border-amber-200 bg-white shadow-soft">
+          <div className="bg-gradient-to-r from-amber-50 via-white to-d4u-soft px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <PillBadge tone="warning">
+                    <CreditCardOutlined />
+                    Ngoài giai đoạn tuyển chọn
+                  </PillBadge>
+                </div>
+                <Title level={4} className="!mb-1 !font-display !text-amber-700">
+                  Dự án này không còn dùng được AI Matching
+                </Title>
+                <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
+                  AI Matching chỉ khả dụng khi dự án còn ở giai đoạn tuyển chọn: DRAFT, OPEN hoặc PRIVATE_INVITED.
+                </Paragraph>
+              </div>
+              <Button
+                className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                onClick={() => navigate(projectId ? `/sme/projects/${projectId}` : '/sme/projects')}
+              >
+                Quay về chi tiết dự án
               </Button>
             </div>
           </div>
@@ -900,7 +943,13 @@ export function SmeAiMatchingLivePage() {
       >
         {!result ? (
           <Empty
-            description={activePackage ? 'Chưa có kết quả. Hãy chạy gợi ý AI để lấy danh sách gợi ý.' : 'Tính năng đang bị khóa vì chưa có gói.'}
+            description={
+              !activePackage
+                ? 'Tính năng đang bị khóa vì chưa có gói.'
+                : !canUseAiMatching
+                  ? 'Dự án này đã qua giai đoạn tuyển chọn nên không còn dùng AI Matching.'
+                  : 'Chưa có kết quả. Hãy chạy gợi ý AI để lấy danh sách gợi ý.'
+            }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         ) : (
@@ -914,7 +963,7 @@ export function SmeAiMatchingLivePage() {
                   index={index}
                   application={applicationByStudentId[item.studentProfileId] || null}
                   activeOffer={activeOfferByStudentId[item.studentProfileId] || null}
-                  canCreateOffer={Boolean(activePackage && project)}
+                  canCreateOffer={Boolean(activePackage && project && canUseAiMatching)}
                   actingOfferStudentId={actingOfferStudentId}
                   onOpenOfferModal={openOfferModal}
                   onGoToOffers={() => navigate('/sme/offers')}
