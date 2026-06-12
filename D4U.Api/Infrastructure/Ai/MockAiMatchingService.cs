@@ -33,7 +33,7 @@ public sealed class MockAiMatchingService(
                 project.Id,
                 project.Title,
                 "MockFallback",
-                ["Chua co du lieu sinh vien phu hop de goi y cho du an nay."],
+                ["Chưa có dữ liệu sinh viên phù hợp để gợi ý cho dự án này."],
                 []);
         }
 
@@ -71,7 +71,7 @@ public sealed class MockAiMatchingService(
             project.Id,
             project.Title,
             "MockFallback",
-            ["He thong dang dung matching fallback deterministic khi OpenAI khong kha dung hoac chua duoc cau hinh."],
+            ["Hệ thống đang dùng matching fallback deterministic khi OpenAI không khả dụng hoặc chưa được cấu hình."],
             ranked);
     }
 
@@ -183,31 +183,31 @@ public sealed class MockAiMatchingService(
 
         if (candidate.HasAppliedToProject)
         {
-            reasons.Add("Da tung chu dong nop application cho du an nay.");
+            reasons.Add("Đã từng chủ động nộp ứng tuyển cho dự án này.");
         }
 
         if (ApprovedVerificationStatuses.Contains(candidate.VerificationStatus))
         {
-            reasons.Add("Ho so sinh vien da duoc xac thuc.");
+            reasons.Add("Hồ sơ sinh viên đã được xác thực.");
         }
 
         if (candidate.AverageRating > 0)
         {
-            reasons.Add($"Diem danh gia trung binh hien tai la {candidate.AverageRating:0.00}.");
+            reasons.Add($"Điểm đánh giá trung bình hiện tại là {candidate.AverageRating:0.00}.");
         }
 
         if (candidate.CompletedProjectsCount > 0)
         {
-            reasons.Add($"Da hoan thanh {candidate.CompletedProjectsCount} du an.");
+            reasons.Add($"Đã hoàn thành {candidate.CompletedProjectsCount} dự án.");
         }
 
         if (!string.IsNullOrWhiteSpace(candidate.Major))
         {
-            reasons.Add($"Chuyen nganh khai bao: {candidate.Major}.");
+            reasons.Add($"Chuyên ngành khai báo: {candidate.Major}.");
         }
 
         return reasons.Count == 0
-            ? ["Ho so sinh vien co du lieu co ban de xem xet them."]
+            ? ["Hồ sơ sinh viên có dữ liệu cơ bản để xem xét thêm."]
             : reasons;
     }
 
@@ -217,10 +217,10 @@ public sealed class MockAiMatchingService(
 
         if (string.IsNullOrWhiteSpace(candidate.Bio))
         {
-            warnings.Add("Chua co bio de danh gia phong cach lam viec chi tiet.");
+            warnings.Add("Chưa có phần giới thiệu để đánh giá phong cách làm việc chi tiết.");
         }
 
-        warnings.Add("He thong chua co du lieu ky nang khai bao rieng cho matching trong phase nay.");
+        warnings.Add("Hệ thống chưa có dữ liệu kỹ năng khai báo riêng cho matching trong phase này.");
         return warnings;
     }
 

@@ -30,7 +30,7 @@ public sealed class OpenAiMatchingService(
                 userId,
                 projectId,
                 request,
-                "OpenAI chua duoc cau hinh API key; he thong dang dung matching fallback.",
+                "OpenAI chưa được cấu hình API key; hệ thống đang dùng matching fallback.",
                 cancellationToken);
         }
 
@@ -44,7 +44,7 @@ public sealed class OpenAiMatchingService(
                 project.Id,
                 project.Title,
                 "OpenAI",
-                ["Chua co du lieu sinh vien phu hop de goi y cho du an nay."],
+                ["Chưa có dữ liệu sinh viên phù hợp để gợi ý cho dự án này."],
                 []);
         }
 
@@ -68,7 +68,7 @@ public sealed class OpenAiMatchingService(
                     userId,
                     projectId,
                     request,
-                    "OpenAI dang khong phan hoi thanh cong; he thong dang dung matching fallback.",
+                    "OpenAI đang không phản hồi thành công; hệ thống đang dùng matching fallback.",
                     cancellationToken);
             }
 
@@ -120,7 +120,7 @@ public sealed class OpenAiMatchingService(
                 userId,
                 projectId,
                 request,
-                "OpenAI gap loi khi xep hang matching; he thong dang dung fallback de tranh gian doan.",
+                "OpenAI gặp lỗi khi xếp hạng matching; hệ thống đang dùng fallback để tránh gián đoạn.",
                 cancellationToken);
         }
     }
@@ -328,15 +328,15 @@ public sealed class OpenAiMatchingService(
 
     private const string SystemPrompt =
         """
-        Ban la AI Matching cho D4U, mot marketplace ket noi SME voi Student Designer.
+        Bạn là AI Matching cho D4U, một marketplace kết nối SME với Student Designer.
 
-        Nhiem vu:
-        - Xep hang danh sach student phu hop cho du an cua SME.
-        - Chi dua ra goi y, khong tu dong moi, khong tu dong chon, khong tu dong dinh gia.
-        - Luon tra ve JSON hop le theo schema.
-        - Su dung score 1..100, score cao hon nghia la phu hop hon.
-        - Uu tien candidate da ung tuyen, da xac thuc, co rating tot, co lich su hoan thanh du an, va phu hop voi budget/timeline.
-        - Neu du lieu con thieu, dua canh bao vao warnings thay vi bịa them.
-        - Viet reasons/warnings ngan gon, ro nghia, bang tieng Viet khong dau.
+        Nhiệm vụ:
+        - Xếp hạng danh sách student phù hợp cho dự án của SME.
+        - Chỉ đưa ra gợi ý, không tự động mời, không tự động chọn, không tự động định giá.
+        - Luôn trả về JSON hợp lệ theo schema.
+        - Sử dụng score 1..100, score cao hơn nghĩa là phù hợp hơn.
+        - Ưu tiên candidate đã ứng tuyển, đã xác thực, có rating tốt, có lịch sử hoàn thành dự án, và phù hợp với budget/timeline.
+        - Nếu dữ liệu còn thiếu, đưa cảnh báo vào warnings thay vì bịa thêm.
+        - Viết reasons/warnings ngắn gọn, rõ nghĩa, bằng tiếng Việt có dấu.
         """;
 }
