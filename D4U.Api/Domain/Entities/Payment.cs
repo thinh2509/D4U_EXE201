@@ -6,7 +6,9 @@ public sealed class Payment
 {
     public Guid Id { get; set; }
     public Guid PayerUserId { get; set; }
+    public PaymentTargetType TargetType { get; set; } = PaymentTargetType.ESCROW;
     public Guid? EscrowId { get; set; }
+    public Guid? FeaturePackagePurchaseId { get; set; }
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "VND";
     public string Provider { get; set; } = string.Empty;

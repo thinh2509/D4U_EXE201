@@ -2,6 +2,8 @@ namespace D4U.Api.Application.Features.Payments;
 
 using System.Security.Cryptography;
 using D4U.Api.Application.Common.Data;
+using D4U.Api.Application.Common.Exceptions;
+using D4U.Api.Application.Features.FeaturePackages;
 using D4U.Api.Application.Features.Notifications;
 using D4U.Api.Domain.Entities;
 using D4U.Api.Domain.Enums;
@@ -101,8 +103,22 @@ public sealed class PaymentService(
             UpdatedAt = now
         };
 
-        var returnUrl = AppendPaymentQuery(paymentOptions.Value.ReturnUrl, payment.Id, offer.Id, project.Id);
-        var cancelUrl = AppendPaymentQuery(paymentOptions.Value.CancelUrl, payment.Id, offer.Id, project.Id);
+        var returnUrl = AppendPaymentQuery(
+            paymentOptions.Value.ReturnUrl,
+            new Dictionary<string, string?>
+            {
+                ["paymentId"] = payment.Id.ToString(),
+                ["offerId"] = offer.Id.ToString(),
+                ["projectId"] = project.Id.ToString()
+            });
+        var cancelUrl = AppendPaymentQuery(
+            paymentOptions.Value.CancelUrl,
+            new Dictionary<string, string?>
+            {
+                ["paymentId"] = payment.Id.ToString(),
+                ["offerId"] = offer.Id.ToString(),
+                ["projectId"] = project.Id.ToString()
+            });
         var providerResponse = await paymentProvider.CreatePaymentAsync(
             new PaymentProviderCreateRequest(
                 payment.Id,
@@ -125,6 +141,116 @@ public sealed class PaymentService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return ToPaymentResponse(payment, escrow, offer.Id);
+    }
+
+    public async Task<FeaturePackagePaymentResponse> CreateFeaturePackagePaymentAsync(
+        Guid userId,
+        Guid purchaseId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+        if (user.Role == UserRole.ADMIN)
+        {
+            throw new UnauthorizedAccessException("Admin users cannot purchase feature packages.");
+        }
+
+        EnsureConfiguredProviderSelected();
+
+        var purchase = await unitOfWork.Repository<FeaturePackagePurchase>().GetByIdAsync(purchaseId, cancellationToken)
+            ?? throw new NotFoundException("Feature package purchase was not found.");
+
+        if (purchase.BuyerUserId != userId)
+        {
+            throw new UnauthorizedAccessException("Only the purchase owner can create payment.");
+        }
+
+        var package = await unitOfWork.Repository<FeaturePackage>().GetByIdAsync(purchase.FeaturePackageId, cancellationToken)
+            ?? throw new NotFoundException("Feature package was not found.");
+
+        var existingEntitlement = await unitOfWork.Repository<UserFeatureEntitlement>().FirstOrDefaultAsync(
+            value => value.FeaturePackagePurchaseId == purchase.Id,
+            cancellationToken);
+
+        if (existingEntitlement is not null && existingEntitlement.Status == FeatureEntitlementStatus.ACTIVE)
+        {
+            throw new ConflictException("Feature entitlement is already active for this purchase.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var reusablePayment = await unitOfWork.Repository<Payment>().Query()
+            .Where(payment =>
+                payment.FeaturePackagePurchaseId == purchase.Id &&
+                payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE &&
+                payment.Status == PaymentStatus.PENDING &&
+                payment.ExpiresAt > now &&
+                payment.CheckoutUrl != null)
+            .OrderByDescending(payment => payment.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        purchase.Status = FeaturePackagePurchaseStatus.PENDING;
+        purchase.CancelledAt = null;
+        purchase.UpdatedAt = now;
+
+        if (reusablePayment is not null)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return ToFeaturePackagePaymentResponse(purchase, reusablePayment);
+        }
+
+        var expiresAt = now.Add(PaymentLifetime);
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            PayerUserId = userId,
+            TargetType = PaymentTargetType.FEATURE_PACKAGE_PURCHASE,
+            FeaturePackagePurchaseId = purchase.Id,
+            Amount = purchase.Price,
+            Currency = purchase.Currency,
+            Provider = paymentProvider.Name,
+            ProviderOrderCode = await GenerateProviderOrderCodeAsync(cancellationToken),
+            Status = PaymentStatus.PENDING,
+            ExpiresAt = expiresAt,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        var returnUrl = AppendPaymentQuery(
+            paymentOptions.Value.ReturnUrl,
+            new Dictionary<string, string?>
+            {
+                ["paymentId"] = payment.Id.ToString(),
+                ["purchaseId"] = purchase.Id.ToString()
+            });
+        var cancelUrl = AppendPaymentQuery(
+            paymentOptions.Value.CancelUrl,
+            new Dictionary<string, string?>
+            {
+                ["paymentId"] = payment.Id.ToString(),
+                ["purchaseId"] = purchase.Id.ToString()
+            });
+
+        var providerResponse = await paymentProvider.CreatePaymentAsync(
+            new PaymentProviderCreateRequest(
+                payment.Id,
+                payment.ProviderOrderCode.Value,
+                payment.Amount,
+                payment.Currency,
+                package.Name,
+                returnUrl,
+                cancelUrl,
+                expiresAt),
+            cancellationToken);
+
+        payment.ProviderTransactionId = providerResponse.ProviderTransactionId;
+        payment.CheckoutUrl = providerResponse.CheckoutUrl;
+        payment.QrCode = providerResponse.QrCode;
+        payment.RawProviderResponseJson = providerResponse.RawResponseJson;
+        payment.UpdatedAt = now;
+
+        await unitOfWork.Repository<Payment>().AddAsync(payment, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ToFeaturePackagePaymentResponse(purchase, payment);
     }
 
     public async Task<PaymentResponse> GetPaymentAsync(
@@ -170,6 +296,39 @@ public sealed class PaymentService(
         var payment = await unitOfWork.Repository<Payment>().GetByIdAsync(paymentId, cancellationToken)
             ?? throw new InvalidOperationException("Payment was not found.");
 
+        await ReconcilePendingPaymentAsync(payment, cancellationToken, forceProviderCheck: true);
+        var now = DateTimeOffset.UtcNow;
+
+        if (payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE)
+        {
+            if (!payment.FeaturePackagePurchaseId.HasValue)
+            {
+                throw new InvalidOperationException("Payment is not linked to feature package purchase.");
+            }
+
+            var purchase = await unitOfWork.Repository<FeaturePackagePurchase>().GetByIdAsync(
+                payment.FeaturePackagePurchaseId.Value,
+                cancellationToken) ?? throw new InvalidOperationException("Feature package purchase was not found.");
+            var entitlement = await unitOfWork.Repository<UserFeatureEntitlement>().FirstOrDefaultAsync(
+                value => value.FeaturePackagePurchaseId == purchase.Id,
+                cancellationToken);
+
+            return new PaymentReturnStatusResponse(
+                payment.Id,
+                payment.TargetType,
+                payment.Status,
+                payment.ExpiresAt,
+                now,
+                null,
+                purchase.Id,
+                null,
+                null,
+                null,
+                purchase.Status,
+                entitlement?.Status,
+                CanRetryPayment(payment, now));
+        }
+
         if (!payment.EscrowId.HasValue)
         {
             throw new InvalidOperationException("Payment is not linked to escrow.");
@@ -178,25 +337,26 @@ public sealed class PaymentService(
         var escrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken)
             ?? throw new InvalidOperationException("Escrow was not found.");
 
-        await ReconcilePendingPaymentAsync(payment, cancellationToken, forceProviderCheck: true);
-
         var project = await unitOfWork.Repository<Project>().GetByIdAsync(escrow.ProjectId, cancellationToken);
         var offer = await unitOfWork.Repository<ProjectOffer>().Query()
             .Where(value => value.ProjectId == escrow.ProjectId &&
                 value.StudentProfileId == escrow.StudentProfileId)
             .OrderByDescending(value => value.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
-        var now = DateTimeOffset.UtcNow;
 
         return new PaymentReturnStatusResponse(
             payment.Id,
-            escrow.ProjectId,
+            payment.TargetType,
             payment.Status,
             payment.ExpiresAt,
             now,
+            escrow.ProjectId,
+            null,
             escrow.Status,
             project?.Status,
             offer?.Status,
+            null,
+            null,
             CanRetryPayment(payment, now));
     }
 
@@ -254,6 +414,18 @@ public sealed class PaymentService(
                 },
                 cancellationToken);
 
+            if (payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE)
+            {
+                await MarkFeaturePackagePaymentInactiveAsync(
+                    payment,
+                    FeaturePackagePurchaseStatus.FAILED,
+                    "FEATURE_PACKAGE_PAYMENT_FAILED",
+                    failedAt,
+                    cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                return;
+            }
+
             if (payment.EscrowId.HasValue)
             {
                 var failedEscrow = await unitOfWork.Repository<Escrow>().GetByIdAsync(payment.EscrowId.Value, cancellationToken);
@@ -307,6 +479,29 @@ public sealed class PaymentService(
             return;
         }
 
+        if (payment.ExpiresAt.HasValue && payment.ExpiresAt <= now)
+        {
+            payment.Status = PaymentStatus.EXPIRED;
+            payment.UpdatedAt = now;
+
+            if (payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE)
+            {
+                await MarkFeaturePackagePaymentInactiveAsync(
+                    payment,
+                    FeaturePackagePurchaseStatus.EXPIRED,
+                    "FEATURE_PACKAGE_PAYMENT_EXPIRED",
+                    now,
+                    cancellationToken);
+            }
+            else
+            {
+                await MarkOfferPaymentFailedAsync(payment, now, cancellationToken);
+            }
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
         PaymentProviderStatusResponse? providerStatus;
         try
         {
@@ -345,6 +540,18 @@ public sealed class PaymentService(
         if (string.Equals(providerStatus.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
         {
             payment.Status = PaymentStatus.CANCELLED;
+            if (payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE)
+            {
+                await MarkFeaturePackagePaymentInactiveAsync(
+                    payment,
+                    FeaturePackagePurchaseStatus.CANCELLED,
+                    "FEATURE_PACKAGE_PAYMENT_CANCELLED",
+                    now,
+                    cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                return;
+            }
+
             var failedOfferId = await MarkOfferPaymentFailedAsync(payment, now, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             if (payment.EscrowId.HasValue)
@@ -422,6 +629,12 @@ public sealed class PaymentService(
         if (payment.Status is PaymentStatus.FAILED or PaymentStatus.CANCELLED or PaymentStatus.EXPIRED)
         {
             throw new InvalidOperationException("Inactive payment cannot start a project.");
+        }
+
+        if (payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE)
+        {
+            await MarkFeaturePackagePaymentSucceededAsync(payment, paidAmount, providerTransactionId, cancellationToken);
+            return;
         }
 
         if (!payment.EscrowId.HasValue)
@@ -532,6 +745,172 @@ public sealed class PaymentService(
             nameof(Project),
             project.Id,
             now,
+            cancellationToken);
+    }
+
+    private async Task MarkFeaturePackagePaymentSucceededAsync(
+        Payment payment,
+        decimal paidAmount,
+        string? providerTransactionId,
+        CancellationToken cancellationToken)
+    {
+        if (!payment.FeaturePackagePurchaseId.HasValue)
+        {
+            throw new InvalidOperationException("Payment is not linked to feature package purchase.");
+        }
+
+        if (decimal.Truncate(paidAmount) != decimal.Truncate(payment.Amount))
+        {
+            throw new InvalidOperationException("PayOS payment amount does not match package payment amount.");
+        }
+
+        var purchase = await unitOfWork.Repository<FeaturePackagePurchase>().GetByIdAsync(
+            payment.FeaturePackagePurchaseId.Value,
+            cancellationToken) ?? throw new InvalidOperationException("Feature package purchase was not found.");
+        var package = await unitOfWork.Repository<FeaturePackage>().GetByIdAsync(
+            purchase.FeaturePackageId,
+            cancellationToken) ?? throw new InvalidOperationException("Feature package was not found.");
+        var buyer = await RequireUserAsync(purchase.BuyerUserId, cancellationToken);
+        var existingEntitlement = await unitOfWork.Repository<UserFeatureEntitlement>().FirstOrDefaultAsync(
+            value => value.FeaturePackagePurchaseId == purchase.Id,
+            cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        payment.Status = PaymentStatus.SUCCESS;
+        payment.ProviderTransactionId = providerTransactionId;
+        payment.PaidAt = now;
+        payment.UpdatedAt = now;
+
+        purchase.Status = FeaturePackagePurchaseStatus.ACTIVE;
+        purchase.ActivatedAt ??= now;
+        purchase.ExpiresAt = purchase.ActivatedAt.Value.AddDays(package.DurationDays);
+        purchase.CancelledAt = null;
+        purchase.UpdatedAt = now;
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "PAYMENT_WEBHOOK_SUCCESS",
+                EntityType = nameof(Payment),
+                EntityId = payment.Id,
+                BeforeJson = $$"""{"status":"{{PaymentStatus.PENDING}}"}""",
+                AfterJson = $$"""{"status":"{{PaymentStatus.SUCCESS}}","provider":"{{payment.Provider}}","providerTransactionId":"{{providerTransactionId}}","targetType":"{{payment.TargetType}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "FEATURE_PACKAGE_PURCHASE_ACTIVATED",
+                EntityType = nameof(FeaturePackagePurchase),
+                EntityId = purchase.Id,
+                BeforeJson = $$"""{"status":"{{FeaturePackagePurchaseStatus.PENDING}}"}""",
+                AfterJson = $$"""{"status":"{{FeaturePackagePurchaseStatus.ACTIVE}}","paymentId":"{{payment.Id}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        if (existingEntitlement is null)
+        {
+            existingEntitlement = new UserFeatureEntitlement
+            {
+                Id = Guid.NewGuid(),
+                UserId = purchase.BuyerUserId,
+                FeaturePackageId = package.Id,
+                FeaturePackagePurchaseId = purchase.Id,
+                EntitlementCode = package.EntitlementCode,
+                Status = FeatureEntitlementStatus.ACTIVE,
+                UsageLimit = package.UsageLimit,
+                UsageConsumed = 0,
+                ActivatedAt = purchase.ActivatedAt.Value,
+                ExpiresAt = purchase.ExpiresAt ?? purchase.ActivatedAt.Value.AddDays(package.DurationDays),
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            await unitOfWork.Repository<UserFeatureEntitlement>().AddAsync(existingEntitlement, cancellationToken);
+        }
+        else
+        {
+            existingEntitlement.Status = FeatureEntitlementStatus.ACTIVE;
+            existingEntitlement.UsageLimit = package.UsageLimit;
+            existingEntitlement.ActivatedAt = purchase.ActivatedAt.Value;
+            existingEntitlement.ExpiresAt = purchase.ExpiresAt ?? purchase.ActivatedAt.Value.AddDays(package.DurationDays);
+            existingEntitlement.CancelledAt = null;
+            existingEntitlement.UpdatedAt = now;
+        }
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "FEATURE_ENTITLEMENT_ACTIVATED",
+                EntityType = nameof(UserFeatureEntitlement),
+                EntityId = existingEntitlement.Id,
+                BeforeJson = """{"status":"PENDING_OR_INACTIVE"}""",
+                AfterJson = $$"""{"status":"{{FeatureEntitlementStatus.ACTIVE}}","entitlementCode":"{{existingEntitlement.EntitlementCode}}","purchaseId":"{{purchase.Id}}"}""",
+                CreatedAt = now
+            },
+            cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await notificationPublisher.PublishAsync(
+            buyer.Id,
+            null,
+            "FEATURE_ENTITLEMENT_ACTIVATED",
+            "Goi AI Matching da duoc kich hoat",
+            $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching ngay bay gio.",
+            nameof(FeaturePackagePurchase),
+            purchase.Id,
+            now,
+            cancellationToken);
+    }
+
+    private async Task MarkFeaturePackagePaymentInactiveAsync(
+        Payment payment,
+        FeaturePackagePurchaseStatus nextStatus,
+        string auditAction,
+        DateTimeOffset changedAt,
+        CancellationToken cancellationToken)
+    {
+        if (!payment.FeaturePackagePurchaseId.HasValue)
+        {
+            return;
+        }
+
+        var purchase = await unitOfWork.Repository<FeaturePackagePurchase>().GetByIdAsync(
+            payment.FeaturePackagePurchaseId.Value,
+            cancellationToken);
+
+        if (purchase is null)
+        {
+            return;
+        }
+
+        var previousStatus = purchase.Status;
+        purchase.Status = nextStatus;
+        if (nextStatus == FeaturePackagePurchaseStatus.CANCELLED)
+        {
+            purchase.CancelledAt = changedAt;
+        }
+
+        purchase.UpdatedAt = changedAt;
+
+        await unitOfWork.Repository<AuditLog>().AddAsync(
+            new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = auditAction,
+                EntityType = nameof(FeaturePackagePurchase),
+                EntityId = purchase.Id,
+                BeforeJson = $$"""{"status":"{{previousStatus}}"}""",
+                AfterJson = $$"""{"status":"{{nextStatus}}","paymentId":"{{payment.Id}}"}""",
+                CreatedAt = changedAt
+            },
             cancellationToken);
     }
 
@@ -842,12 +1221,15 @@ public sealed class PaymentService(
 
     private static string AppendPaymentQuery(
         string url,
-        Guid paymentId,
-        Guid offerId,
-        Guid projectId)
+        IReadOnlyDictionary<string, string?> query)
     {
+        var queryString = string.Join(
+            "&",
+            query
+                .Where(item => !string.IsNullOrWhiteSpace(item.Value))
+                .Select(item => $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value!)}"));
         var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
-        return $"{url}{separator}paymentId={paymentId}&offerId={offerId}&projectId={projectId}";
+        return string.IsNullOrWhiteSpace(queryString) ? url : $"{url}{separator}{queryString}";
     }
 
     private static PaymentResponse ToPaymentResponse(
@@ -863,6 +1245,19 @@ public sealed class PaymentService(
             payment.Amount,
             payment.Currency,
             payment.Provider,
+            payment.Status,
+            payment.CheckoutUrl,
+            payment.QrCode,
+            payment.ExpiresAt);
+    }
+
+    private static FeaturePackagePaymentResponse ToFeaturePackagePaymentResponse(
+        FeaturePackagePurchase purchase,
+        Payment payment)
+    {
+        return new FeaturePackagePaymentResponse(
+            purchase.Id,
+            payment.Id,
             payment.Status,
             payment.CheckoutUrl,
             payment.QrCode,

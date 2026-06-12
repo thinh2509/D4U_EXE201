@@ -44,7 +44,7 @@ public sealed class PayOsPaymentProvider(
             request.ExpiresAt.ToUnixTimeSeconds(),
             [
                 new PayOsPaymentItem(
-                    "D4U escrow",
+                    request.Description,
                     1,
                     amount)
             ]);

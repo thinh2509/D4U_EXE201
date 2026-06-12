@@ -9,13 +9,15 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage.jsx';
 import { AdminAuditLogsPage, AdminPortfolioPage, AdminUsersPage, AdminWithdrawalsPage } from './pages/admin/AdminShellPages.jsx';
 import { VerificationDetailPage } from './pages/admin/VerificationDetailPage.jsx';
 import { VerificationListPage } from './pages/admin/VerificationListPage.jsx';
+import { AdminPackageSupportPage } from './pages/admin/AdminPackageSupportPage.jsx';
 import { ForbiddenPage } from './pages/shared/ForbiddenPage.jsx';
 import { DashboardPage } from './pages/shared/MvpShellPage.jsx';
 import { NotFoundPage } from './pages/shared/NotFoundPage.jsx';
 import { ProjectExecutionPage, ProjectSubmissionsPage } from './pages/shared/ExecutionShellPages.jsx';
 import { ProjectRatingPage } from './pages/shared/RatingPages.jsx';
 import { PaymentCancelPage, PaymentSuccessPage } from './pages/shared/PaymentResultPages.jsx';
-import { SmeAiBriefPage, SmeAiMatchingPage, SmeApplicationsPage, SmeBillingPage, SmeOffersPage, SmeRatingsPage } from './pages/sme/SmeShellPages.jsx';
+import { SmeAiBriefPage, SmeApplicationsPage, SmeOffersPage, SmeRatingsPage } from './pages/sme/SmeShellPages.jsx';
+import { SmeAiMatchingLivePage, SmeBillingLivePage } from './pages/sme/SmeOutcome2Pages.jsx';
 import { SmeProfilePage } from './pages/sme/SmeProfilePage.jsx';
 import { SmeProjectApplicationsPage } from './pages/sme/SmeProjectApplicationsPage.jsx';
 import { SmeProjectDetailPage } from './pages/sme/SmeProjectDetailPage.jsx';
@@ -68,8 +70,8 @@ export default function App() {
         <Route path="/sme/applications" element={<SmeApplicationsPage />} />
         <Route path="/sme/offers" element={<SmeOffersPage />} />
         <Route path="/sme/ai-brief" element={<SmeAiBriefPage />} />
-        <Route path="/sme/ai-matching" element={<SmeAiMatchingPage />} />
-        <Route path="/sme/billing" element={<SmeBillingPage />} />
+        <Route path="/sme/ai-matching" element={<SmeAiMatchingLivePage />} />
+        <Route path="/sme/billing" element={<SmeBillingLivePage />} />
         <Route path="/sme/ratings" element={<SmeRatingsPage />} />
       </Route>
 
@@ -80,6 +82,7 @@ export default function App() {
         <Route path="/admin/student-verifications" element={<Navigate to="/admin/verifications" replace />} />
         <Route path="/admin/student-verifications/:verificationId" element={<VerificationDetailPage />} />
         <Route path="/admin/portfolio" element={<AdminPortfolioPage />} />
+        <Route path="/admin/package-support" element={<AdminPackageSupportPage />} />
         <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />

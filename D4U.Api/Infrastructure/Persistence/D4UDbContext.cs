@@ -33,6 +33,9 @@ public sealed class D4UDbContext(DbContextOptions<D4UDbContext> options) : DbCon
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
+    public DbSet<FeaturePackage> FeaturePackages => Set<FeaturePackage>();
+    public DbSet<FeaturePackagePurchase> FeaturePackagePurchases => Set<FeaturePackagePurchase>();
+    public DbSet<UserFeatureEntitlement> UserFeatureEntitlements => Set<UserFeatureEntitlement>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

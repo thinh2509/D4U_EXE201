@@ -1,5 +1,6 @@
 namespace D4U.Api.Application.Features.Payments;
 
+using D4U.Api.Application.Features.FeaturePackages;
 using D4U.Api.Domain.Enums;
 
 public sealed record PaymentResponse(
@@ -17,13 +18,17 @@ public sealed record PaymentResponse(
 
 public sealed record PaymentReturnStatusResponse(
     Guid PaymentId,
-    Guid ProjectId,
+    PaymentTargetType TargetType,
     PaymentStatus Status,
     DateTimeOffset? ExpiresAt,
     DateTimeOffset CheckedAt,
+    Guid? ProjectId,
+    Guid? FeaturePackagePurchaseId,
     EscrowStatus? EscrowStatus,
     ProjectStatus? ProjectStatus,
     OfferStatus? OfferStatus,
+    FeaturePackagePurchaseStatus? FeaturePackagePurchaseStatus,
+    FeatureEntitlementStatus? EntitlementStatus,
     bool CanRetryPayment);
 
 public sealed record EscrowResponse(

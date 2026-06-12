@@ -96,6 +96,7 @@ const menuByRole = {
         { key: '/admin/dashboard', icon: <DashboardOutlined />, label: <Link to="/admin/dashboard">Dashboard</Link> },
         { key: '/admin/verifications', icon: <FileSearchOutlined />, label: <Link to="/admin/verifications">{'Duyệt xác thực'}</Link> },
         { key: '/admin/portfolio', icon: <StarOutlined />, label: <Link to="/admin/portfolio">Portfolio</Link> },
+        { key: '/admin/package-support', icon: <CreditCardOutlined />, label: <Link to="/admin/package-support">{'Package support'}</Link> },
         { key: '/admin/withdrawals', icon: <WalletOutlined />, label: <Link to="/admin/withdrawals">{'Rút tiền'}</Link> },
         { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">{'Người dùng'}</Link> },
         { key: '/admin/audit-logs', icon: <AuditOutlined />, label: <Link to="/admin/audit-logs">Audit logs</Link> }
@@ -128,6 +129,7 @@ const pageTitleByPath = {
   '/admin/dashboard': 'Admin dashboard',
   '/admin/verifications': 'Duy\u1ec7t x\u00e1c th\u1ef1c',
   '/admin/portfolio': 'Duy\u1ec7t portfolio',
+  '/admin/package-support': 'Package support',
   '/admin/withdrawals': 'X\u1eed l\u00fd r\u00fat ti\u1ec1n',
   '/admin/users': 'Ng\u01b0\u1eddi d\u00f9ng',
   '/admin/audit-logs': 'Audit logs'

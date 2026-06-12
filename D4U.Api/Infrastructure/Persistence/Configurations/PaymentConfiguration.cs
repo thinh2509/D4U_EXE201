@@ -14,11 +14,14 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         entity.HasIndex(payment => new { payment.Provider, payment.ProviderTransactionId }).IsUnique();
         entity.HasIndex(payment => new { payment.Provider, payment.ProviderOrderCode }).IsUnique();
         entity.HasIndex(payment => new { payment.EscrowId, payment.Status });
+        entity.HasIndex(payment => new { payment.FeaturePackagePurchaseId, payment.Status });
         entity.HasIndex(payment => new { payment.PayerUserId, payment.CreatedAt });
 
         entity.Property(payment => payment.Id).HasColumnName("id");
         entity.Property(payment => payment.PayerUserId).HasColumnName("payer_user_id").IsRequired();
+        entity.Property(payment => payment.TargetType).HasColumnName("target_type").HasConversion<string>().HasMaxLength(40).HasDefaultValue(PaymentTargetType.ESCROW).IsRequired();
         entity.Property(payment => payment.EscrowId).HasColumnName("escrow_id");
+        entity.Property(payment => payment.FeaturePackagePurchaseId).HasColumnName("feature_package_purchase_id");
         entity.Property(payment => payment.Amount).HasColumnName("amount").HasPrecision(12, 2).IsRequired();
         entity.Property(payment => payment.Currency).HasColumnName("currency").HasMaxLength(3).HasDefaultValue("VND").IsFixedLength().IsRequired();
         entity.Property(payment => payment.Provider).HasColumnName("provider").HasMaxLength(100).IsRequired();
@@ -35,5 +38,6 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         entity.HasOne<User>().WithMany().HasForeignKey(payment => payment.PayerUserId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<Escrow>().WithMany().HasForeignKey(payment => payment.EscrowId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne<FeaturePackagePurchase>().WithMany().HasForeignKey(payment => payment.FeaturePackagePurchaseId).OnDelete(DeleteBehavior.Restrict);
     }
 }

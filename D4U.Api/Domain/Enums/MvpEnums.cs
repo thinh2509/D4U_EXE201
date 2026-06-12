@@ -58,6 +58,12 @@ public enum PaymentStatus
     EXPIRED
 }
 
+public enum PaymentTargetType
+{
+    ESCROW,
+    FEATURE_PACKAGE_PURCHASE
+}
+
 public enum EscrowStatus
 {
     PENDING_PAYMENT,
@@ -132,4 +138,26 @@ public enum NotificationStatus
 {
     UNREAD,
     READ
+}
+
+public enum FeaturePackageRole
+{
+    STUDENT,
+    SME
+}
+
+public enum FeaturePackagePurchaseStatus
+{
+    PENDING,
+    ACTIVE,
+    FAILED,
+    CANCELLED,
+    EXPIRED
+}
+
+public enum FeatureEntitlementStatus
+{
+    ACTIVE,
+    CANCELLED,
+    EXPIRED
 }

@@ -10,5 +10,6 @@ export const adminApi = {
     apiClient.get(`/admin/student-verifications/${id}/document`, { responseType: 'blob' }),
   approveStudentVerification: (id) => apiClient.post(`/admin/student-verifications/${id}/approve`),
   rejectStudentVerification: (id, rejectionReason) =>
-    apiClient.post(`/admin/student-verifications/${id}/reject`, { rejectionReason })
+    apiClient.post(`/admin/student-verifications/${id}/reject`, { rejectionReason }),
+  listFeaturePackagePurchases: () => apiClient.get('/admin/feature-package-purchases')
 };

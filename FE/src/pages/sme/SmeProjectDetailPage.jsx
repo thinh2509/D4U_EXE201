@@ -8,6 +8,7 @@ import {
 } from 'antd';
 import {
   CalendarOutlined,
+  CreditCardOutlined,
   DeleteOutlined,
   EditOutlined,
   FileDoneOutlined,
@@ -15,12 +16,14 @@ import {
   FolderOpenOutlined,
   RocketOutlined,
   StopOutlined,
+  TeamOutlined,
   WalletOutlined
 } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
+import { packageApi } from '../../services/packageApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { buildLocalizedDesignCategoryLabel, localizeDesignCategoryName } from '../../utils/designCategoryLocalization.js';
@@ -93,6 +96,7 @@ function ProjectActionSidebar({
   canOpenWorkspace,
   canCancelProject,
   canDeleteProject,
+  hasMatchingEntitlement,
   onPublish,
   onOpenCancelModal,
   onDelete
@@ -148,6 +152,13 @@ function ProjectActionSidebar({
             variant="secondary"
           >
             Xem ứng tuyển
+          </ActionButton>
+          <ActionButton
+            icon={hasMatchingEntitlement ? <TeamOutlined /> : <CreditCardOutlined />}
+            onClick={() => window.location.assign(hasMatchingEntitlement ? `/sme/ai-matching?projectId=${projectId}` : '/sme/billing')}
+            variant="soft"
+          >
+            {hasMatchingEntitlement ? 'AI Matching' : 'Mua gói AI Matching'}
           </ActionButton>
           <ActionButton
             disabled={!canEditProject}
@@ -211,6 +222,7 @@ export function SmeProjectDetailPage() {
   const { projectId } = useParams();
   const [cancelForm] = Form.useForm();
   const [project, setProject] = useState(null);
+  const [hasMatchingEntitlement, setHasMatchingEntitlement] = useState(false);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -220,7 +232,12 @@ export function SmeProjectDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      setProject(await projectApi.getProject(projectId));
+      const [projectResponse, entitlementRows] = await Promise.all([
+        projectApi.getProject(projectId),
+        packageApi.listMyEntitlements().catch(() => [])
+      ]);
+      setProject(projectResponse);
+      setHasMatchingEntitlement(entitlementRows.some((item) => item.status === 'ACTIVE' && item.entitlementCode === 'SME_AI_MATCHING'));
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
     } finally {
@@ -335,6 +352,7 @@ export function SmeProjectDetailPage() {
             canDeleteProject={canDeleteProject}
             canEditProject={canEditProject}
             canOpenWorkspace={canOpenWorkspace}
+            hasMatchingEntitlement={hasMatchingEntitlement}
             onDelete={remove}
             onOpenCancelModal={openCancelModal}
             onPublish={publish}
