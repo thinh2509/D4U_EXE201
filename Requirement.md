@@ -205,6 +205,7 @@ An Admin operates the platform. Admins can review Student verification, manage c
 - Basic defaults: 0 VND/month, 10% fee, 2 active open projects, max 5,000,000 VND.
 - Pro defaults: 199,000 VND/month, 7% fee, 10 active open projects, max 20,000,000 VND.
 - Premium defaults: 499,000 VND/month, 5% fee, unlimited limits.
+- Basic is the default SME free plan, does not expire, and the 2-project rule means 2 active open projects at the same time rather than 2 published projects per month.
 - System validates plan limits before project publish.
 
 ### 5.7. Design Categories

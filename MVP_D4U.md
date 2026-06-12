@@ -978,7 +978,7 @@ Prompt guardrails:
 - [x] SME can create profile.
 - [x] Admin can approve or reject Student verification.
 - [x] Basic, Pro, and Premium plans are seeded.
-- [x] Basic SME cannot publish more than 5 active open projects.
+- [x] Basic SME cannot publish more than 2 active open projects.
 - [x] Basic SME cannot publish a project above 5,000,000 VND.
 - [x] SME can use AI Project Brief Assistant to prefill project draft content.
 - [x] SME can create and publish an open project.

@@ -40,8 +40,22 @@ public sealed record SmeProfileResponse(
     decimal AverageRating,
     int CompletedProjectsCount,
     int ActiveOpenProjectCount,
+    SubscriptionPlanSummaryResponse? SubscriptionPlan,
+    DateTimeOffset SubscriptionStartedAt,
+    DateTimeOffset? SubscriptionCurrentPeriodEnd,
+    bool IsFreePlan,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
+
+public sealed record SubscriptionPlanSummaryResponse(
+    Guid Id,
+    string Code,
+    string Name,
+    decimal MonthlyPrice,
+    decimal PlatformFeeRate,
+    int? MaxActiveOpenProjects,
+    decimal? MaxProjectBudget,
+    bool IsActive);
 
 public sealed record SubmitStudentVerificationRequest(
     string StorageProvider,

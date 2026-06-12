@@ -308,7 +308,13 @@ public sealed class ProfileService(
             smeProfile => smeProfile.UserId == userId,
             cancellationToken);
 
-        return profile is null ? null : ToSmeProfileResponse(profile);
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var plan = await GetSubscriptionPlanAsync(profile.SubscriptionPlanId, cancellationToken);
+        return ToSmeProfileResponse(profile, plan);
     }
 
     public async Task<SmeProfileResponse> UpsertSmeProfileAsync(
@@ -361,7 +367,8 @@ public sealed class ProfileService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return ToSmeProfileResponse(profile);
+        var subscriptionPlan = await GetSubscriptionPlanAsync(profile.SubscriptionPlanId, cancellationToken);
+        return ToSmeProfileResponse(profile, subscriptionPlan);
     }
 
     private async Task<SubscriptionPlan> RequireBasicSubscriptionPlanAsync(CancellationToken cancellationToken)
@@ -591,7 +598,21 @@ public sealed class ProfileService(
             profile.UpdatedAt);
     }
 
-    private static SmeProfileResponse ToSmeProfileResponse(SmeProfile profile)
+    private async Task<SubscriptionPlan?> GetSubscriptionPlanAsync(
+        Guid subscriptionPlanId,
+        CancellationToken cancellationToken)
+    {
+        if (subscriptionPlanId == Guid.Empty)
+        {
+            return null;
+        }
+
+        return await unitOfWork.Repository<SubscriptionPlan>().GetByIdAsync(subscriptionPlanId, cancellationToken);
+    }
+
+    private static SmeProfileResponse ToSmeProfileResponse(
+        SmeProfile profile,
+        SubscriptionPlan? subscriptionPlan)
     {
         return new SmeProfileResponse(
             profile.Id,
@@ -605,6 +626,22 @@ public sealed class ProfileService(
             profile.AverageRating,
             profile.CompletedProjectsCount,
             profile.ActiveOpenProjectCount,
+            subscriptionPlan is null
+                ? null
+                : new SubscriptionPlanSummaryResponse(
+                    subscriptionPlan.Id,
+                    subscriptionPlan.Code,
+                    subscriptionPlan.Name,
+                    subscriptionPlan.MonthlyPrice,
+                    subscriptionPlan.PlatformFeeRate,
+                    subscriptionPlan.MaxActiveOpenProjects,
+                    subscriptionPlan.MaxProjectBudget,
+                    subscriptionPlan.IsActive),
+            profile.SubscriptionStartedAt,
+            profile.SubscriptionCurrentPeriodEnd,
+            string.Equals(subscriptionPlan?.Code, BasicPlanCode, StringComparison.OrdinalIgnoreCase) &&
+                subscriptionPlan?.MonthlyPrice == 0m &&
+                profile.SubscriptionCurrentPeriodEnd is null,
             profile.CreatedAt,
             profile.UpdatedAt);
     }

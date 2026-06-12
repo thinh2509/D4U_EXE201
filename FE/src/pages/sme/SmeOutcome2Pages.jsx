@@ -32,6 +32,7 @@ import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { matchingApi } from '../../services/matchingApi.js';
 import { packageApi } from '../../services/packageApi.js';
+import { profileApi } from '../../services/profileApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
@@ -116,6 +117,33 @@ function MetricPill({ icon, label, value }) {
       </div>
     </div>
   );
+}
+
+function renderSubscriptionDuration(profile) {
+  if (!profile) return 'Chua co';
+  if (!profile.subscriptionCurrentPeriodEnd) return 'Khong het han';
+  return `Den ${formatDate(profile.subscriptionCurrentPeriodEnd)}`;
+}
+
+function renderProjectLimit(profile) {
+  const activeCount = profile?.activeOpenProjectCount ?? 0;
+  const maxOpenProjects = profile?.subscriptionPlan?.maxActiveOpenProjects;
+
+  if (maxOpenProjects == null) return `${activeCount} dang mo`;
+  return `${activeCount}/${maxOpenProjects} du an dang mo`;
+}
+
+function renderProjectLimitDescription(profile) {
+  const maxOpenProjects = profile?.subscriptionPlan?.maxActiveOpenProjects;
+
+  if (maxOpenProjects == null) return 'Khong gioi han so du an dang mo';
+  return `Toi da ${maxOpenProjects} du an dang mo cung luc`;
+}
+
+function renderPlanPrice(profile) {
+  if (!profile?.subscriptionPlan) return 'Chua co';
+  const price = formatCurrency(profile.subscriptionPlan.monthlyPrice);
+  return profile.isFreePlan ? `${price}/thang` : `${price}/30 ngay`;
 }
 
 function RecommendationReason({ reason }) {
@@ -435,6 +463,7 @@ function PackageShowcaseCard({
 export function SmeBillingLivePage() {
   const { message } = App.useApp();
   const [searchParams] = useSearchParams();
+  const [profile, setProfile] = useState(null);
   const [packages, setPackages] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [entitlements, setEntitlements] = useState([]);
@@ -448,11 +477,19 @@ export function SmeBillingLivePage() {
     setLoading(true);
     setError(null);
     try {
-      const [packageRows, purchaseRows, entitlementRows] = await Promise.all([
+      const [profileResponse, packageRows, purchaseRows, entitlementRows] = await Promise.all([
+        profileApi.getSmeProfile().catch((requestError) => {
+          if (requestError?.response?.status === 404) {
+            return null;
+          }
+
+          throw requestError;
+        }),
         packageApi.listPackages('SME'),
         packageApi.listMyPurchases(),
         packageApi.listMyEntitlements()
       ]);
+      setProfile(profileResponse);
       setPackages(packageRows);
       setPurchases(purchaseRows);
       setEntitlements(entitlementRows);
@@ -535,6 +572,47 @@ export function SmeBillingLivePage() {
         )}
       />
 
+      {profile ? (
+        <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
+          <div className="flex flex-col gap-4 bg-gradient-to-r from-d4u-soft via-white to-sky-50 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <PillBadge tone={profile.isFreePlan ? 'info' : 'success'}>
+                  {profile.isFreePlan ? 'Goi Free' : profile.subscriptionPlan?.name || 'Goi hien tai'}
+                </PillBadge>
+                <PillBadge tone="neutral">{renderProjectLimitDescription(profile)}</PillBadge>
+              </div>
+              <Title level={4} className="!mb-1 !font-display !text-d4u-teal-deep">
+                {profile.isFreePlan ? 'SME dang o goi Free mac dinh' : `SME dang o goi ${profile.subscriptionPlan?.name || 'hien tai'}`}
+              </Title>
+              <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
+                {profile.isFreePlan
+                  ? 'Goi Free khong het han, cho phep dang toi da 2 du an OPEN cung luc. Gioi han nay khong duoc tinh theo so du an da dang trong thang.'
+                  : 'Plan hien tai duoc tinh theo so du an dang mo cung luc. Khi mot du an roi khoi trang thai OPEN, ban se mo lai slot de dang du an moi.'}
+              </Paragraph>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+              <MetricPill icon={<CreditCardOutlined />} label="Goi" value={profile.subscriptionPlan?.name || 'Chua co'} />
+              <MetricPill icon={<DollarOutlined />} label="Gia" value={renderPlanPrice(profile)} />
+              <MetricPill icon={<TeamOutlined />} label="Open projects" value={renderProjectLimit(profile)} />
+              <MetricPill icon={<CheckCircleFilled />} label="Thoi han" value={renderSubscriptionDuration(profile)} />
+              <MetricPill
+                icon={<SafetyCertificateOutlined />}
+                label="Budget toi da"
+                value={profile.subscriptionPlan?.maxProjectBudget != null
+                  ? formatCurrency(profile.subscriptionPlan.maxProjectBudget)
+                  : 'Khong gioi han'}
+              />
+              <MetricPill
+                icon={<ReadOutlined />}
+                label="Rule"
+                value={profile.isFreePlan ? 'Khong phai trial 30 ngay' : 'Tinh theo slot dang mo'}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {activePackage ? (
         <section className="overflow-hidden rounded-panel border border-emerald-200 bg-white shadow-soft">
           <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-50 via-white to-d4u-soft px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
@@ -608,7 +686,7 @@ export function SmeBillingLivePage() {
             <MetricPill icon={<CreditCardOutlined />} label="Số gói" value={`${packages.length} gói`} />
             <MetricPill icon={<CheckCircleFilled />} label="Gói" value={activePackage ? 'Đang hoạt động' : 'Chưa kích hoạt'} />
             <MetricPill icon={<DollarOutlined />} label="Đã mua" value={`${purchases.length} giao dịch`} />
-            <MetricPill icon={<TeamOutlined />} label="Dùng ngay" value="Từ trang chi tiết dự án" />
+            <MetricPill icon={<TeamOutlined />} label="Open projects" value={renderProjectLimit(profile)} />
           </div>
         </Card>
       </section>

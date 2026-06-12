@@ -1915,6 +1915,11 @@ public sealed class ProjectService(
 
             if (activeOpenProjects >= plan.MaxActiveOpenProjects.Value)
             {
+                if (string.Equals(plan.Code, BasicPlanCode, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Ban da dat gioi han 2 du an dang mo cua goi Free.");
+                }
+
                 throw new InvalidOperationException("Active open project limit has been reached for the current subscription plan.");
             }
         }
