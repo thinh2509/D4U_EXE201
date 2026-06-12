@@ -96,7 +96,7 @@ function ScoreBadge({ score }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-chip px-3 py-1 text-xs font-semibold ring-1 ${getScoreTone(score)}`}>
       <StarFilled />
-      Score {score}
+      Điểm {score}
     </span>
   );
 }
@@ -126,7 +126,7 @@ function RecommendationReason({ reason }) {
   );
 }
 
-function ProjectSummaryHero({ project, activeEntitlement }) {
+function ProjectSummaryHero({ project, activePackage }) {
   return (
     <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
       <div className="relative p-6 sm:p-8">
@@ -135,12 +135,12 @@ function ProjectSummaryHero({ project, activeEntitlement }) {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <PillBadge tone="info">AI Matching Workspace</PillBadge>
+                <PillBadge tone="info">Khu vực gợi ý AI</PillBadge>
                 <StatusBadge status={project.status} />
-                {activeEntitlement ? (
+                {activePackage ? (
                   <PillBadge tone="success">
                     <SafetyCertificateOutlined />
-                    Entitlement active
+                    Gói đang hoạt động
                   </PillBadge>
                 ) : (
                   <PillBadge tone="warning">
@@ -153,13 +153,13 @@ function ProjectSummaryHero({ project, activeEntitlement }) {
                 {project.title}
               </Title>
               <Paragraph className="!mb-0 max-w-3xl !text-sm !leading-6 !text-d4u-text-2">
-                Chạy AI Matching trực tiếp từ dự án để xem danh sách sinh viên được xếp hạng theo mức độ phù hợp, rồi quay lại workflow ứng tuyển và offer khi cần.
+                Chạy gợi ý AI trực tiếp từ dự án để xem danh sách sinh viên được xếp hạng theo mức độ phù hợp, rồi quay lại luồng ứng tuyển và đề nghị khi cần.
               </Paragraph>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[420px]">
               <MetricPill icon={<DollarOutlined />} label="Ngân sách" value={formatCurrency(project.budgetAmount, project.currency)} />
-              <MetricPill icon={<CreditCardOutlined />} label="Entitlement" value={activeEntitlement ? `Đến ${formatDate(activeEntitlement.expiresAt)}` : 'Chưa active'} />
+              <MetricPill icon={<CreditCardOutlined />} label="Gói" value={activePackage ? `Đến ${formatDate(activePackage.expiresAt)}` : 'Chưa kích hoạt'} />
               <MetricPill icon={<TeamOutlined />} label="Trạng thái" value={project.status || 'Chưa có'} />
             </div>
           </div>
@@ -204,10 +204,10 @@ function RecommendationCard({ item, index }) {
                 {item.hasAppliedToProject ? (
                   <PillBadge tone="info">
                     <FileDoneOutlined />
-                    Đã apply
+                    Đã ứng tuyển
                   </PillBadge>
                 ) : null}
-                {isTopMatch ? <PillBadge tone="warning">Top match</PillBadge> : null}
+                {isTopMatch ? <PillBadge tone="warning">Phù hợp nhất</PillBadge> : null}
               </div>
 
               <Title level={4} className="!mb-1 truncate !font-display !text-d4u-text-1">
@@ -229,14 +229,14 @@ function RecommendationCard({ item, index }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricPill icon={<BankOutlined />} label="Trường" value={item.school || 'Chưa có'} />
             <MetricPill icon={<ReadOutlined />} label="Chuyên ngành" value={item.major || 'Chưa có'} />
-            <MetricPill icon={<StarFilled />} label="Rating" value={item.averageRating ? item.averageRating.toFixed(2) : '0.00'} />
+            <MetricPill icon={<StarFilled />} label="Đánh giá" value={item.averageRating ? item.averageRating.toFixed(2) : '0.00'} />
             <MetricPill icon={<TeamOutlined />} label="Dự án đã xong" value={`${item.completedProjectsCount ?? 0} dự án`} />
           </div>
 
           <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tóm tắt hồ sơ</p>
             <Paragraph className="!mb-0 mt-2 !text-sm !leading-6 !text-d4u-text-2">
-              {item.bio || 'Sinh viên chưa bổ sung bio chi tiết, nên hệ thống ưu tiên đánh giá từ trạng thái xác thực, lịch sử dự án và dữ liệu apply hiện có.'}
+              {item.bio || 'Sinh viên chưa bổ sung phần giới thiệu chi tiết, nên hệ thống ưu tiên đánh giá từ trạng thái xác thực, lịch sử dự án và dữ liệu ứng tuyển hiện có.'}
             </Paragraph>
           </div>
 
@@ -293,7 +293,7 @@ function PackageShowcaseCard({
             <PillBadge tone="info">{pkg.code}</PillBadge>
             <PillBadge tone="neutral">{pkg.durationDays} ngày</PillBadge>
             <PillBadge tone={isActivePackage ? 'success' : latestPurchase?.paymentStatus === 'PENDING' ? 'warning' : 'neutral'}>
-              {isActivePackage ? 'Đang active' : latestPurchase?.paymentStatus === 'PENDING' ? 'Chờ thanh toán' : 'Chưa active'}
+              {isActivePackage ? 'Đang hoạt động' : latestPurchase?.paymentStatus === 'PENDING' ? 'Chờ thanh toán' : 'Chưa kích hoạt'}
             </PillBadge>
           </div>
 
@@ -314,14 +314,14 @@ function PackageShowcaseCard({
               </span>
             </div>
             <p className="mt-3 text-sm text-d4u-text-2">
-              Role {pkg.role} · entitlement AI Matching cho SME
+              Gói cho vai trò {pkg.role} · mở khóa tính năng gợi ý AI cho SME
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MetricPill icon={<CreditCardOutlined />} label="Payment" value={latestPurchase?.paymentStatus || 'Chưa có'} />
-            <MetricPill icon={<SafetyCertificateOutlined />} label="Entitlement" value={latestPurchase?.entitlementStatus || (isActivePackage ? 'ACTIVE' : 'Chưa có')} />
-            <MetricPill icon={<CheckCircleFilled />} label="Purchase" value={latestPurchase?.status || 'Chưa có'} />
+            <MetricPill icon={<CreditCardOutlined />} label="Thanh toán" value={latestPurchase?.paymentStatus || 'Chưa có'} />
+            <MetricPill icon={<SafetyCertificateOutlined />} label="Gói" value={latestPurchase?.entitlementStatus || (isActivePackage ? 'Đang hoạt động' : 'Chưa có')} />
+            <MetricPill icon={<CheckCircleFilled />} label="Lượt mua" value={latestPurchase?.status || 'Chưa có'} />
           </div>
 
           {latestPurchase ? (
@@ -349,7 +349,7 @@ function PackageShowcaseCard({
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-d4u-border bg-white/80 p-4 text-sm leading-6 text-d4u-text-2">
-              Chưa có giao dịch nào cho gói này. Bạn có thể bắt đầu mua ngay để mở khóa AI Matching cho SME.
+              Chưa có giao dịch nào cho gói này. Bạn có thể bắt đầu mua ngay để mở khóa tính năng gợi ý AI cho SME.
             </div>
           )}
 
@@ -361,7 +361,7 @@ function PackageShowcaseCard({
               loading={actingPackageId === pkg.id}
               onClick={() => onStartPurchase(pkg)}
             >
-              {isActivePackage ? 'Entitlement đang hoạt động' : 'Mua gói & thanh toán'}
+              {isActivePackage ? 'Gói đang hoạt động' : 'Mua gói & thanh toán'}
             </Button>
             {latestPurchase && !isActivePackage ? (
               <Button
@@ -389,7 +389,7 @@ export function SmeBillingLivePage() {
   const [actingPackageId, setActingPackageId] = useState(null);
   const [actingPurchaseId, setActingPurchaseId] = useState(null);
   const [error, setError] = useState(null);
-  const activeEntitlement = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
+  const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
 
   const loadData = async () => {
     setLoading(true);
@@ -432,7 +432,7 @@ export function SmeBillingLivePage() {
       const purchase = await packageApi.purchasePackage(pkg.id);
       const payment = await packageApi.createPurchasePayment(purchase.id);
       openCheckout(payment.checkoutUrl);
-      message.success('Đã tạo giao dịch PayOS cho gói AI Matching.');
+      message.success('Đã tạo giao dịch PayOS cho gói gợi ý AI.');
       await loadData();
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói.'));
@@ -471,7 +471,7 @@ export function SmeBillingLivePage() {
       <PageHeader
         icon={<CreditCardOutlined />}
         title="Gói & thanh toán"
-        description="Mở khóa AI Matching cho SME qua PayOS với một dashboard pricing rõ ràng, tập trung vào trạng thái entitlement và các giao dịch gần nhất."
+        description="Mở khóa tính năng gợi ý AI cho SME qua PayOS với giao diện quản lý gói rõ ràng, tập trung vào trạng thái gói và các giao dịch gần nhất."
         extra={(
           <Button
             className="!h-11 !rounded-btn !border-d4u-border !px-5 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
@@ -482,27 +482,27 @@ export function SmeBillingLivePage() {
         )}
       />
 
-      {activeEntitlement ? (
+      {activePackage ? (
         <section className="overflow-hidden rounded-panel border border-emerald-200 bg-white shadow-soft">
           <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-50 via-white to-d4u-soft px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <PillBadge tone="success">
                   <SafetyCertificateOutlined />
-                  Entitlement active
+                  Gói đang hoạt động
                 </PillBadge>
-                <PillBadge tone="info">SME AI Matching</PillBadge>
+                <PillBadge tone="info">Gợi ý AI cho SME</PillBadge>
               </div>
               <Title level={4} className="!mb-1 !font-display !text-emerald-700">
-                Bạn đang dùng gói AI Matching
+                Bạn đang dùng gói gợi ý AI
               </Title>
               <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                Gói hiện có hiệu lực đến <span className="font-semibold text-d4u-text-1">{formatDate(activeEntitlement.expiresAt)}</span>. Bạn có thể mở AI Matching trực tiếp từ trang chi tiết dự án.
+                Gói hiện có hiệu lực đến <span className="font-semibold text-d4u-text-1">{formatDate(activePackage.expiresAt)}</span>. Bạn có thể mở tính năng gợi ý AI trực tiếp từ trang chi tiết dự án.
               </Paragraph>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[360px]">
-              <MetricPill icon={<CreditCardOutlined />} label="Entitlement" value="ACTIVE" />
-              <MetricPill icon={<CheckCircleFilled />} label="Hết hạn" value={formatDate(activeEntitlement.expiresAt)} />
+              <MetricPill icon={<CreditCardOutlined />} label="Gói" value="Đang hoạt động" />
+              <MetricPill icon={<CheckCircleFilled />} label="Hết hạn" value={formatDate(activePackage.expiresAt)} />
             </div>
           </div>
         </section>
@@ -511,7 +511,7 @@ export function SmeBillingLivePage() {
           type="info"
           showIcon
           className="form-alert"
-          message="Entitlement chỉ active sau khi PayOS webhook xác nhận thành công."
+          message="Gói chỉ được kích hoạt sau khi PayOS webhook xác nhận thành công."
           description="Trang return từ PayOS không tự mở khóa tính năng. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái mới nhất."
         />
       )}
@@ -522,7 +522,7 @@ export function SmeBillingLivePage() {
         <div className="grid grid-cols-1 gap-6">
           {packages.map((pkg) => {
             const latestPurchase = latestPurchaseByPackage[pkg.id];
-            const isActivePackage = activeEntitlement?.packageId === pkg.id;
+            const isActivePackage = activePackage?.packageId === pkg.id;
 
             return (
               <PackageShowcaseCard
@@ -542,19 +542,19 @@ export function SmeBillingLivePage() {
 
         <Card className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft" bodyStyle={{ padding: 0 }}>
           <div className="border-b border-d4u-border bg-gradient-to-r from-d4u-soft via-white to-white px-5 py-5 sm:px-6">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-d4u-text-3">Subscription dashboard</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-d4u-text-3">Bảng điều khiển gói</p>
             <Title level={4} className="!mb-1 !mt-2 !font-display !text-d4u-teal-deep">
               Tóm tắt mua gói
             </Title>
             <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-              Theo dõi trạng thái entitlement, payment và các lần mua gần đây ở một nơi gọn hơn.
+              Theo dõi trạng thái gói, thanh toán và các lần mua gần đây ở một nơi gọn hơn.
             </Paragraph>
           </div>
           <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 sm:p-6">
             <MetricPill icon={<CreditCardOutlined />} label="Số gói" value={`${packages.length} gói`} />
-            <MetricPill icon={<CheckCircleFilled />} label="Entitlement" value={activeEntitlement ? 'Đang hoạt động' : 'Chưa active'} />
+            <MetricPill icon={<CheckCircleFilled />} label="Gói" value={activePackage ? 'Đang hoạt động' : 'Chưa kích hoạt'} />
             <MetricPill icon={<DollarOutlined />} label="Đã mua" value={`${purchases.length} giao dịch`} />
-            <MetricPill icon={<TeamOutlined />} label="Dùng ngay" value="Từ project detail" />
+            <MetricPill icon={<TeamOutlined />} label="Dùng ngay" value="Từ trang chi tiết dự án" />
           </div>
         </Card>
       </section>
@@ -584,13 +584,13 @@ export function SmeBillingLivePage() {
               render: (value) => <StatusBadge status={value} />
             },
             {
-              title: 'Payment',
+              title: 'Thanh toán',
               dataIndex: 'paymentStatus',
               width: 132,
               render: (value) => renderStatusOrFallback(value)
             },
             {
-              title: 'Entitlement',
+              title: 'Gói',
               dataIndex: 'entitlementStatus',
               width: 140,
               render: (value) => renderStatusOrFallback(value)
@@ -638,7 +638,7 @@ export function SmeAiMatchingLivePage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState(null);
-  const activeEntitlement = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
+  const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
 
   const loadContext = async () => {
     if (!projectId) {
@@ -657,7 +657,7 @@ export function SmeAiMatchingLivePage() {
       setProject(projectResponse);
       setEntitlements(entitlementResponse);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể tải dữ liệu AI Matching.'));
+      setError(getApiErrorMessage(requestError, 'Không thể tải dữ liệu gợi ý AI.'));
     } finally {
       setLoading(false);
     }
@@ -675,16 +675,16 @@ export function SmeAiMatchingLivePage() {
     try {
       setResult(await matchingApi.matchStudentsForProject(projectId, { maxResults: 6 }));
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể chạy AI Matching cho dự án này.'));
+      setError(getApiErrorMessage(requestError, 'Không thể chạy gợi ý AI cho dự án này.'));
     } finally {
       setRunning(false);
     }
   };
 
   useEffect(() => {
-    if (!projectId || !activeEntitlement || result || running || loading) return;
+    if (!projectId || !activePackage || result || running || loading) return;
     runMatching();
-  }, [activeEntitlement, loading, projectId]);
+  }, [activePackage, loading, projectId]);
 
   if (error && !project && projectId) return <ErrorState description={error} onRetry={loadContext} />;
 
@@ -692,8 +692,8 @@ export function SmeAiMatchingLivePage() {
     <>
       <PageHeader
         icon={<TeamOutlined />}
-        title="AI Matching"
-        description="Đánh giá nhanh các student recommendation theo score, lý do gợi ý và mức độ sẵn sàng trước khi quay lại workflow offer."
+        title="Gợi ý AI"
+        description="Đánh giá nhanh các gợi ý sinh viên theo điểm, lý do gợi ý và mức độ sẵn sàng trước khi quay lại luồng đề nghị."
         extra={(
           <Space>
             <Button
@@ -705,7 +705,7 @@ export function SmeAiMatchingLivePage() {
             <Button
               type="primary"
               className="!h-11 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
-              disabled={!projectId || !activeEntitlement}
+              disabled={!projectId || !activePackage}
               loading={running}
               onClick={runMatching}
             >
@@ -717,7 +717,7 @@ export function SmeAiMatchingLivePage() {
 
       {!projectId ? (
         <Card className="rounded-panel border border-d4u-border shadow-soft">
-          <Empty description="Hãy mở AI Matching từ trang chi tiết một dự án SME cụ thể." image={Empty.PRESENTED_IMAGE_SIMPLE}>
+          <Empty description="Hãy mở tính năng gợi ý AI từ trang chi tiết một dự án SME cụ thể." image={Empty.PRESENTED_IMAGE_SIMPLE}>
             <Button type="primary" className="!rounded-btn !bg-d4u-cyan hover:!bg-d4u-cyan-hover" onClick={() => navigate('/sme/projects')}>
               Đi tới danh sách dự án
             </Button>
@@ -725,9 +725,9 @@ export function SmeAiMatchingLivePage() {
         </Card>
       ) : null}
 
-      {project ? <ProjectSummaryHero project={project} activeEntitlement={activeEntitlement} /> : null}
+      {project ? <ProjectSummaryHero project={project} activePackage={activePackage} /> : null}
 
-      {!activeEntitlement ? (
+      {!activePackage ? (
         <section className="overflow-hidden rounded-panel border border-amber-200 bg-white shadow-soft">
           <div className="bg-gradient-to-r from-amber-50 via-white to-d4u-soft px-5 py-5 sm:px-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -739,10 +739,10 @@ export function SmeAiMatchingLivePage() {
                   </PillBadge>
                 </div>
                 <Title level={4} className="!mb-1 !font-display !text-amber-700">
-                  Bạn chưa có entitlement AI Matching
+                  Bạn chưa có gói gợi ý AI
                 </Title>
                 <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                  SME cần mua gói AI Matching và chờ webhook xác nhận trước khi dùng tính năng này.
+                  SME cần mua gói gợi ý AI và chờ webhook xác nhận trước khi dùng tính năng này.
                 </Paragraph>
               </div>
               <Button
@@ -763,15 +763,15 @@ export function SmeAiMatchingLivePage() {
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <PillBadge tone="success">
                     <SafetyCertificateOutlined />
-                    Entitlement active
+                    Gói đang hoạt động
                   </PillBadge>
                 </div>
-                <p className="text-sm font-semibold text-emerald-700">AI Matching đã sẵn sàng cho dự án này.</p>
-                <p className="mt-1 text-sm text-d4u-text-2">Có hiệu lực đến {formatDate(activeEntitlement.expiresAt)}.</p>
+                <p className="text-sm font-semibold text-emerald-700">Tính năng gợi ý AI đã sẵn sàng cho dự án này.</p>
+                <p className="mt-1 text-sm text-d4u-text-2">Có hiệu lực đến {formatDate(activePackage.expiresAt)}.</p>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <MetricPill icon={<CreditCardOutlined />} label="Entitlement" value="ACTIVE" />
-                <MetricPill icon={<CheckCircleFilled />} label="Hết hạn" value={formatDate(activeEntitlement.expiresAt)} />
+                <MetricPill icon={<CreditCardOutlined />} label="Gói" value="Đang hoạt động" />
+                <MetricPill icon={<CheckCircleFilled />} label="Hết hạn" value={formatDate(activePackage.expiresAt)} />
               </div>
             </div>
           </div>
@@ -786,7 +786,7 @@ export function SmeAiMatchingLivePage() {
       >
         {!result ? (
           <Empty
-            description={activeEntitlement ? 'Chưa có kết quả. Hãy chạy AI Matching để lấy danh sách gợi ý.' : 'Tính năng đang bị khóa vì chưa có gói.'}
+            description={activePackage ? 'Chưa có kết quả. Hãy chạy gợi ý AI để lấy danh sách gợi ý.' : 'Tính năng đang bị khóa vì chưa có gói.'}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         ) : (

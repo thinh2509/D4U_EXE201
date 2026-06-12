@@ -2,7 +2,6 @@ import {
   AuditOutlined,
   BankOutlined,
   BookOutlined,
-  BulbOutlined,
   CloseOutlined,
   CreditCardOutlined,
   DashboardOutlined,
@@ -74,8 +73,6 @@ const menuByRole = {
       children: [
         { key: '/sme/applications', icon: <FileSearchOutlined />, label: <Link to="/sme/applications">{'Ứng tuyển'}</Link> },
         { key: '/sme/offers', icon: <MessageOutlined />, label: <Link to="/sme/offers">{'Đề nghị'}</Link> },
-        { key: '/sme/ai-brief', icon: <BulbOutlined />, label: <Link to="/sme/ai-brief">AI Brief</Link> },
-        { key: '/sme/ai-matching', icon: <TeamOutlined />, label: <Link to="/sme/ai-matching">AI Matching</Link> }
       ]
     },
     {
@@ -121,8 +118,8 @@ const pageTitleByPath = {
   '/sme/projects/new': 'T\u1ea1o d\u1ef1 \u00e1n',
   '/sme/applications': '\u1ee8ng tuy\u1ec3n',
   '/sme/offers': '\u0110\u1ec1 ngh\u1ecb',
-  '/sme/ai-brief': 'AI Brief Assistant',
-  '/sme/ai-matching': 'AI Matching',
+  '/sme/ai-brief': 'Trợ lý AI Brief',
+  '/sme/ai-matching': 'Gợi ý AI',
   '/sme/billing': 'G\u00f3i & thanh to\u00e1n',
   '/sme/profile': 'H\u1ed3 s\u01a1 doanh nghi\u1ec7p',
   '/sme/ratings': '\u0110\u00e1nh gi\u00e1',
