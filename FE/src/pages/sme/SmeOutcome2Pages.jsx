@@ -3,8 +3,12 @@ import {
   Alert,
   Button,
   Card,
+  Descriptions,
   Empty,
+  Form,
+  InputNumber,
   List,
+  Modal,
   Space,
   Table,
   Typography
@@ -32,7 +36,8 @@ import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 
-const { Paragraph, Text, Title } = Typography;
+const { Paragraph, Title } = Typography;
+const ACTIVE_OFFER_STATUSES = ['WAITING_ACCEPTANCE', 'ACCEPTED', 'PENDING_PAYMENT', 'PAYMENT_FAILED', 'ACTIVE'];
 
 function renderPrimaryCell(title, subtitle) {
   return (
@@ -44,7 +49,9 @@ function renderPrimaryCell(title, subtitle) {
 }
 
 function renderDateCell(value) {
-  return value ? <span className="text-sm font-medium text-d4u-text-2">{formatDate(value)}</span> : <span className="text-sm text-d4u-text-3">Chưa có</span>;
+  return value
+    ? <span className="text-sm font-medium text-d4u-text-2">{formatDate(value)}</span>
+    : <span className="text-sm text-d4u-text-3">Chưa có</span>;
 }
 
 function renderStatusOrFallback(value) {
@@ -62,18 +69,9 @@ function buildPurchaseActionLabel(purchase) {
 }
 
 function getScoreTone(score) {
-  if (score >= 85) {
-    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
-  }
-
-  if (score >= 70) {
-    return 'bg-sky-50 text-sky-700 ring-sky-200';
-  }
-
-  if (score >= 55) {
-    return 'bg-amber-50 text-amber-700 ring-amber-200';
-  }
-
+  if (score >= 85) return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+  if (score >= 70) return 'bg-sky-50 text-sky-700 ring-sky-200';
+  if (score >= 55) return 'bg-amber-50 text-amber-700 ring-amber-200';
   return 'bg-slate-100 text-slate-700 ring-slate-200';
 }
 
@@ -153,7 +151,8 @@ function ProjectSummaryHero({ project, activePackage }) {
                 {project.title}
               </Title>
               <Paragraph className="!mb-0 max-w-3xl !text-sm !leading-6 !text-d4u-text-2">
-                Chạy gợi ý AI trực tiếp từ dự án để xem danh sách sinh viên được xếp hạng theo mức độ phù hợp, rồi quay lại luồng ứng tuyển và đề nghị khi cần.
+                Chạy gợi ý AI trực tiếp từ dự án để xem danh sách sinh viên được xếp hạng theo mức độ phù hợp,
+                rồi quay lại luồng ứng tuyển và đề nghị khi cần.
               </Paragraph>
             </div>
 
@@ -169,8 +168,19 @@ function ProjectSummaryHero({ project, activePackage }) {
   );
 }
 
-function RecommendationCard({ item, index }) {
+function RecommendationCard({
+  item,
+  index,
+  application,
+  activeOffer,
+  canCreateOffer,
+  actingOfferStudentId,
+  onOpenOfferModal,
+  onGoToOffers
+}) {
   const isTopMatch = index === 0;
+  const isCreatingOffer = actingOfferStudentId === item.studentProfileId;
+  const hasActiveOffer = Boolean(activeOffer);
 
   return (
     <Card
@@ -205,6 +215,14 @@ function RecommendationCard({ item, index }) {
                   <PillBadge tone="info">
                     <FileDoneOutlined />
                     Đã ứng tuyển
+                  </PillBadge>
+                ) : null}
+                <PillBadge tone={application ? 'info' : 'neutral'}>
+                  {application ? 'Từ ứng tuyển' : 'Từ gợi ý AI'}
+                </PillBadge>
+                {hasActiveOffer ? (
+                  <PillBadge tone="warning">
+                    {activeOffer.offerStatus === 'WAITING_ACCEPTANCE' ? 'Đang chờ phản hồi' : 'Đã có đề nghị'}
                   </PillBadge>
                 ) : null}
                 {isTopMatch ? <PillBadge tone="warning">Phù hợp nhất</PillBadge> : null}
@@ -261,6 +279,36 @@ function RecommendationCard({ item, index }) {
               <p className="mt-2 text-sm leading-6 text-amber-800">{item.warnings.join(' ')}</p>
             </div>
           ) : null}
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-d4u-border bg-white/90 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Đề nghị hợp tác</p>
+              <p className="mt-1 text-sm leading-6 text-d4u-text-2">
+                {application
+                  ? 'Student đã ứng tuyển vào dự án này. Bạn có thể gửi đề nghị ngay từ kết quả gợi ý.'
+                  : 'Bạn có thể gửi đề nghị trực tiếp từ AI Matching ngay cả khi student chưa ứng tuyển.'}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:min-w-[220px]">
+              <Button
+                type="primary"
+                className="!h-11 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
+                disabled={!canCreateOffer || hasActiveOffer}
+                loading={isCreatingOffer}
+                onClick={() => onOpenOfferModal(item)}
+              >
+                {hasActiveOffer ? 'Đã gửi đề nghị' : 'Gửi đề nghị'}
+              </Button>
+              {hasActiveOffer ? (
+                <Button
+                  className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                  onClick={onGoToOffers}
+                >
+                  Mở danh sách đề nghị
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </Card>
@@ -497,7 +545,8 @@ export function SmeBillingLivePage() {
                 Bạn đang dùng gói gợi ý AI
               </Title>
               <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                Gói hiện có hiệu lực đến <span className="font-semibold text-d4u-text-1">{formatDate(activePackage.expiresAt)}</span>. Bạn có thể mở tính năng gợi ý AI trực tiếp từ trang chi tiết dự án.
+                Gói hiện có hiệu lực đến <span className="font-semibold text-d4u-text-1">{formatDate(activePackage.expiresAt)}</span>.
+                Bạn có thể mở tính năng gợi ý AI trực tiếp từ trang chi tiết dự án.
               </Paragraph>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[360px]">
@@ -629,16 +678,34 @@ export function SmeBillingLivePage() {
 }
 
 export function SmeAiMatchingLivePage() {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [offerForm] = Form.useForm();
   const projectId = searchParams.get('projectId');
   const [project, setProject] = useState(null);
   const [entitlements, setEntitlements] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [actingOfferStudentId, setActingOfferStudentId] = useState(null);
+  const [selectedRecommendation, setSelectedRecommendation] = useState(null);
   const [error, setError] = useState(null);
   const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
+  const applicationByStudentId = useMemo(
+    () => Object.fromEntries(applications.map((item) => [item.studentProfileId, item])),
+    [applications]
+  );
+  const activeOfferByStudentId = useMemo(
+    () => Object.fromEntries(
+      offers
+        .filter((offer) => ACTIVE_OFFER_STATUSES.includes(offer.offerStatus))
+        .map((offer) => [offer.studentProfileId, offer])
+    ),
+    [offers]
+  );
 
   const loadContext = async () => {
     if (!projectId) {
@@ -650,12 +717,16 @@ export function SmeAiMatchingLivePage() {
     setLoading(true);
     setError(null);
     try {
-      const [projectResponse, entitlementResponse] = await Promise.all([
+      const [projectResponse, entitlementResponse, applicationResponse, offerResponse] = await Promise.all([
         projectApi.getProject(projectId),
-        packageApi.listMyEntitlements()
+        packageApi.listMyEntitlements(),
+        projectApi.listApplications(projectId),
+        projectApi.listSmeOffers()
       ]);
       setProject(projectResponse);
       setEntitlements(entitlementResponse);
+      setApplications(applicationResponse);
+      setOffers(offerResponse.filter((offer) => offer.projectId === projectId));
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Không thể tải dữ liệu gợi ý AI.'));
     } finally {
@@ -684,7 +755,50 @@ export function SmeAiMatchingLivePage() {
   useEffect(() => {
     if (!projectId || !activePackage || result || running || loading) return;
     runMatching();
-  }, [activePackage, loading, projectId]);
+  }, [activePackage, loading, projectId, result, running]);
+
+  useEffect(() => {
+    if (!selectedRecommendation || !project) return;
+    offerForm.setFieldsValue({
+      offeredAmount: selectedRecommendation.proposedPrice || project.budgetAmount
+    });
+  }, [offerForm, project, selectedRecommendation]);
+
+  const openOfferModal = (recommendation) => {
+    setSelectedRecommendation(recommendation);
+    offerForm.setFieldsValue({
+      offeredAmount: recommendation.proposedPrice || project?.budgetAmount
+    });
+  };
+
+  const closeOfferModal = () => {
+    setSelectedRecommendation(null);
+    offerForm.resetFields();
+  };
+
+  const createOfferFromMatching = async (values) => {
+    if (!projectId || !selectedRecommendation) return;
+
+    const application = applicationByStudentId[selectedRecommendation.studentProfileId];
+    setActingOfferStudentId(selectedRecommendation.studentProfileId);
+    setError(null);
+
+    try {
+      await projectApi.createOffer(projectId, {
+        studentProfileId: selectedRecommendation.studentProfileId,
+        applicationId: application?.id || null,
+        offeredAmount: values.offeredAmount,
+        expiresAt: null
+      });
+      message.success('Đã gửi đề nghị cho student. Bạn có thể theo dõi phản hồi trong danh sách đề nghị.');
+      closeOfferModal();
+      await loadContext();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Không thể gửi đề nghị từ gợi ý AI.'));
+    } finally {
+      setActingOfferStudentId(null);
+    }
+  };
 
   if (error && !project && projectId) return <ErrorState description={error} onRetry={loadContext} />;
 
@@ -795,12 +909,88 @@ export function SmeAiMatchingLivePage() {
             dataSource={result.recommendations}
             renderItem={(item, index) => (
               <List.Item>
-                <RecommendationCard item={item} index={index} />
+                <RecommendationCard
+                  item={item}
+                  index={index}
+                  application={applicationByStudentId[item.studentProfileId] || null}
+                  activeOffer={activeOfferByStudentId[item.studentProfileId] || null}
+                  canCreateOffer={Boolean(activePackage && project)}
+                  actingOfferStudentId={actingOfferStudentId}
+                  onOpenOfferModal={openOfferModal}
+                  onGoToOffers={() => navigate('/sme/offers')}
+                />
               </List.Item>
             )}
           />
         )}
       </Card>
+
+      <Modal
+        title="Gửi đề nghị từ AI Matching"
+        open={Boolean(selectedRecommendation)}
+        footer={null}
+        onCancel={closeOfferModal}
+        destroyOnHidden
+      >
+        {selectedRecommendation ? (
+          <div className="grid gap-4">
+            <Alert
+              type="info"
+              showIcon
+              className="form-alert"
+              message="Student sẽ có thời gian phản hồi theo policy hiện có của hệ thống."
+              description="Sau khi student chấp nhận, SME mới tiếp tục thanh toán escrow qua PayOS."
+            />
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label="Student">{selectedRecommendation.studentFullName}</Descriptions.Item>
+              <Descriptions.Item label="Điểm phù hợp">{selectedRecommendation.matchScore}/100</Descriptions.Item>
+              <Descriptions.Item label="Nguồn đề nghị">
+                {applicationByStudentId[selectedRecommendation.studentProfileId]
+                  ? 'Đề nghị gắn với ứng tuyển hiện có'
+                  : 'Đề nghị trực tiếp từ AI Matching'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Giá đề xuất AI">
+                {selectedRecommendation.proposedPrice
+                  ? formatCurrency(selectedRecommendation.proposedPrice)
+                  : 'Chưa có, hệ thống dùng ngân sách dự án để gợi ý mặc định'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngân sách dự án">
+                {project ? formatCurrency(project.budgetAmount, project.currency) : 'Chưa có'}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Form form={offerForm} layout="vertical" onFinish={createOfferFromMatching}>
+              <Form.Item
+                name="offeredAmount"
+                label="Giá đề nghị"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập giá đề nghị.' },
+                  {
+                    validator: (_, value) => (
+                      Number(value) > 0
+                        ? Promise.resolve()
+                        : Promise.reject(new Error('Giá đề nghị phải lớn hơn 0.'))
+                    )
+                  }
+                ]}
+              >
+                <InputNumber min={1} step={10000} style={{ width: '100%' }} />
+              </Form.Item>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button onClick={closeOfferModal}>Hủy</Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={actingOfferStudentId === selectedRecommendation.studentProfileId}
+                  className="!rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
+                >
+                  Gửi đề nghị
+                </Button>
+              </div>
+            </Form>
+          </div>
+        ) : null}
+      </Modal>
     </>
   );
 }

@@ -29,6 +29,10 @@ function renderStatusOrFallback(value) {
   return value ? <StatusBadge status={value} /> : <span className="table-subtext">Chưa có</span>;
 }
 
+function getOfferSourceLabel(row) {
+  return row.applicationId ? 'Từ ứng tuyển' : 'Từ AI Matching';
+}
+
 export function SmeApplicationsPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -210,7 +214,7 @@ export function SmeOffersPage() {
       title: 'Dự án',
       dataIndex: 'projectTitle',
       width: 260,
-      render: (value, row) => renderPrimaryCell(value, `Sinh viên: ${row.studentFullName}`)
+      render: (value, row) => renderPrimaryCell(value, `Sinh viên: ${row.studentFullName} • ${getOfferSourceLabel(row)}`)
     },
     {
       title: 'Offer',
@@ -284,7 +288,7 @@ export function SmeOffersPage() {
       <PageHeader
         icon={<MessageOutlined />}
         title="Đề nghị"
-        description="Theo dõi offer, trạng thái sinh viên xác nhận, PayOS payment-in và escrow."
+        description="Theo dõi đề nghị từ ứng tuyển hoặc AI Matching, trạng thái sinh viên xác nhận, PayOS payment-in và escrow."
         extra={<Button onClick={loadRows}>Làm mới</Button>}
       />
       <Alert

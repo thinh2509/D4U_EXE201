@@ -813,10 +813,6 @@ public sealed class ProjectService(
                 throw new InvalidOperationException("Only submitted applications can be selected for offers.");
             }
         }
-        else if (project.ProjectType == ProjectType.OPEN)
-        {
-            throw new InvalidOperationException("Open project offers must select an existing application.");
-        }
 
         var hasPendingOffer = await unitOfWork.Repository<ProjectOffer>().AnyAsync(
             offer => offer.ProjectId == projectId &&

@@ -40,6 +40,10 @@ function renderStatusOrFallback(value) {
   return value ? <StatusBadge status={value} /> : <span className="table-subtext">Chưa có</span>;
 }
 
+function getOfferSourceLabel(row) {
+  return row.applicationId ? 'Từ ứng tuyển' : 'Từ AI Matching';
+}
+
 export function StudentApplicationsPage() {
   return (
     <StudentReadinessGate
@@ -235,7 +239,7 @@ function StudentOffersPageContent() {
       title: 'Dự án',
       dataIndex: 'projectTitle',
       width: 248,
-      render: (value, row) => renderPrimaryCell(value, `Offer: ${formatCurrency(row.offeredAmount)}`)
+      render: (value, row) => renderPrimaryCell(value, `${getOfferSourceLabel(row)} • Offer: ${formatCurrency(row.offeredAmount)}`)
     },
     {
       title: 'Offer',
@@ -306,7 +310,7 @@ function StudentOffersPageContent() {
       <PageHeader
         icon={<FileDoneOutlined />}
         title="Đề nghị"
-        description="Chấp nhận hoặc từ chối offer trước. Sau khi bạn chấp nhận, SME mới thanh toán escrow qua PayOS."
+        description="Chấp nhận hoặc từ chối đề nghị từ SME. Sau khi bạn chấp nhận, SME mới thanh toán escrow qua PayOS."
         extra={<Button onClick={loadRows}>Làm mới</Button>}
       />
       <Alert
