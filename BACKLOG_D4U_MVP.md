@@ -253,14 +253,15 @@ These items are outside Outcome 1 according to `D4U_Outcome1_Master.docx`. Do no
 
 ### Portfolio Builder
 
+- [x] Student can manage declared skills for profile showcase and future AI inputs.
 - [ ] Student can create and update a portfolio profile summary.
 - [ ] Student can create portfolio items with title, description, design category, role, tools, skills, and external link.
 - [ ] Student can attach portfolio item file metadata for jpg, png, and pdf files.
-- [ ] Student can mark portfolio items as public or private.
-- [ ] Student can feature or pin selected portfolio items.
-- [ ] Student can attach completed D4U project output to portfolio only when project confidentiality and `allowStudentPortfolio` permit it.
-- [ ] System blocks portfolio publishing for confidential projects or projects that do not allow Student portfolio use.
-- [ ] SME can view a Student public portfolio while reviewing applications or offers.
+- [x] Student can mark portfolio items as public or private.
+- [x] Student can feature or pin selected portfolio items.
+- [x] Student can attach completed D4U project output to portfolio only when project confidentiality and `allowStudentPortfolio` permit it.
+- [x] System blocks portfolio publishing for confidential projects or projects that do not allow Student portfolio use.
+- [x] SME can view a Student public portfolio while reviewing applications or offers.
 - [ ] Admin can hide inappropriate public portfolio items.
 - [ ] Record audit log for portfolio item create, update, publish, hide, and delete actions.
 

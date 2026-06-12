@@ -140,6 +140,21 @@ public enum NotificationStatus
     READ
 }
 
+public enum StudentSkillLevel
+{
+    BEGINNER,
+    INTERMEDIATE,
+    ADVANCED
+}
+
+public enum PortfolioItemStatus
+{
+    DRAFT,
+    PUBLIC,
+    PRIVATE,
+    HIDDEN
+}
+
 public enum FeaturePackageRole
 {
     STUDENT,

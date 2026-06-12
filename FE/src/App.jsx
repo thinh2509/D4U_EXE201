@@ -23,7 +23,9 @@ import { SmeProjectApplicationsPage } from './pages/sme/SmeProjectApplicationsPa
 import { SmeProjectDetailPage } from './pages/sme/SmeProjectDetailPage.jsx';
 import { SmeProjectFormPage } from './pages/sme/SmeProjectFormPage.jsx';
 import { SmeProjectListPage } from './pages/sme/SmeProjectListPage.jsx';
-import { StudentApplicationsPage, StudentMyProjectsPage, StudentOffersPage, StudentPortfolioPage, StudentRatingsPage, StudentWalletPage } from './pages/student/StudentShellPages.jsx';
+import { SmeStudentProfilePage } from './pages/sme/SmeStudentProfilePage.jsx';
+import { StudentApplicationsPage, StudentMyProjectsPage, StudentOffersPage, StudentRatingsPage, StudentWalletPage } from './pages/student/StudentShellPages.jsx';
+import { StudentPortfolioPage } from './pages/student/StudentPortfolioPage.jsx';
 import { StudentProfilePage } from './pages/student/StudentProfilePage.jsx';
 import { StudentProjectDetailPage } from './pages/student/StudentProjectDetailPage.jsx';
 import { StudentProjectListPage } from './pages/student/StudentProjectListPage.jsx';
@@ -67,6 +69,7 @@ export default function App() {
         <Route path="/sme/projects/:projectId" element={<SmeProjectDetailPage />} />
         <Route path="/sme/projects/:projectId/edit" element={<SmeProjectFormPage mode="edit" />} />
         <Route path="/sme/projects/:projectId/applications" element={<SmeProjectApplicationsPage />} />
+        <Route path="/sme/students/:studentId" element={<SmeStudentProfilePage />} />
         <Route path="/sme/applications" element={<SmeApplicationsPage />} />
         <Route path="/sme/offers" element={<SmeOffersPage />} />
         <Route path="/sme/ai-brief" element={<SmeAiBriefPage />} />

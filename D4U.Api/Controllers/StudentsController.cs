@@ -5,19 +5,22 @@ using System.Security.Claims;
 using D4U.Api.Application.Common.Files;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
+using D4U.Api.Application.Features.Students;
 using D4U.Api.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/v1/students")]
-[Authorize(Roles = nameof(UserRole.STUDENT))]
+[Authorize]
 public sealed class StudentsController(
     IProfileService profileService,
     IProjectService projectService,
+    IStudentCapabilityService studentCapabilityService,
     IUploadPathResolver uploadPathResolver) : ControllerBase
 {
     [HttpGet("me")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<StudentProfileResponse>> GetMe(CancellationToken cancellationToken)
     {
         var userId = GetRequiredUserId();
@@ -27,6 +30,7 @@ public sealed class StudentsController(
     }
 
     [HttpPut("me")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<StudentProfileResponse>> UpsertMe(
         UpsertStudentProfileRequest request,
         CancellationToken cancellationToken)
@@ -40,6 +44,7 @@ public sealed class StudentsController(
     }
 
     [HttpPost("me/verification")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<StudentVerificationResponse>> SubmitVerification(
         [FromForm] SubmitStudentVerificationFormRequest request,
@@ -100,6 +105,7 @@ public sealed class StudentsController(
     }
 
     [HttpPost("me/edu-verification/request")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<StudentEmailVerificationResponse>> RequestEduEmailVerification(
         RequestStudentEduEmailVerificationRequest request,
         CancellationToken cancellationToken)
@@ -113,6 +119,7 @@ public sealed class StudentsController(
     }
 
     [HttpPost("me/edu-verification/confirm")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<StudentEmailVerificationResponse>> ConfirmEduEmailVerification(
         ConfirmStudentEduEmailVerificationRequest request,
         CancellationToken cancellationToken)
@@ -126,6 +133,7 @@ public sealed class StudentsController(
     }
 
     [HttpGet("me/applications")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<IReadOnlyList<StudentProjectApplicationSummaryResponse>>> ListMyApplications(
         CancellationToken cancellationToken)
     {
@@ -134,6 +142,7 @@ public sealed class StudentsController(
     }
 
     [HttpGet("me/offers")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<IReadOnlyList<ProjectOfferFlowResponse>>> ListMyOffers(
         CancellationToken cancellationToken)
     {
@@ -142,10 +151,151 @@ public sealed class StudentsController(
     }
 
     [HttpGet("me/projects")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
     public async Task<ActionResult<IReadOnlyList<StudentProjectSummaryResponse>>> ListMyProjects(
         CancellationToken cancellationToken)
     {
         var response = await projectService.ListMyStudentProjectsAsync(GetRequiredUserId(), cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("me/skills")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<IReadOnlyList<StudentSkillResponse>>> ListMySkills(
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.ListMySkillsAsync(GetRequiredUserId(), cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("me/skills")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<StudentSkillResponse>> CreateSkill(
+        UpsertStudentSkillRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.CreateSkillAsync(GetRequiredUserId(), request, cancellationToken);
+        return Created($"/api/v1/students/me/skills/{response.Id}", response);
+    }
+
+    [HttpPut("me/skills/{skillId:guid}")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<StudentSkillResponse>> UpdateSkill(
+        Guid skillId,
+        UpsertStudentSkillRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.UpdateSkillAsync(
+            GetRequiredUserId(),
+            skillId,
+            request,
+            cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpDelete("me/skills/{skillId:guid}")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<IActionResult> DeleteSkill(
+        Guid skillId,
+        CancellationToken cancellationToken)
+    {
+        await studentCapabilityService.DeleteSkillAsync(GetRequiredUserId(), skillId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("me/portfolio")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<IReadOnlyList<StudentPortfolioItemResponse>>> ListMyPortfolio(
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.ListMyPortfolioAsync(GetRequiredUserId(), cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("me/portfolio-items")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<StudentPortfolioItemResponse>> CreatePortfolioItem(
+        UpsertStudentPortfolioItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.CreatePortfolioItemAsync(GetRequiredUserId(), request, cancellationToken);
+        return Created($"/api/v1/students/me/portfolio-items/{response.Id}", response);
+    }
+
+    [HttpPut("me/portfolio-items/{portfolioItemId:guid}")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<StudentPortfolioItemResponse>> UpdatePortfolioItem(
+        Guid portfolioItemId,
+        UpsertStudentPortfolioItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.UpdatePortfolioItemAsync(
+            GetRequiredUserId(),
+            portfolioItemId,
+            request,
+            cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpDelete("me/portfolio-items/{portfolioItemId:guid}")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<IActionResult> DeletePortfolioItem(
+        Guid portfolioItemId,
+        CancellationToken cancellationToken)
+    {
+        await studentCapabilityService.DeletePortfolioItemAsync(GetRequiredUserId(), portfolioItemId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("me/portfolio-items/{portfolioItemId:guid}/publish")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<StudentPortfolioItemResponse>> PublishPortfolioItem(
+        Guid portfolioItemId,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.PublishPortfolioItemAsync(
+            GetRequiredUserId(),
+            portfolioItemId,
+            cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("me/portfolio-items/{portfolioItemId:guid}/unpublish")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<StudentPortfolioItemResponse>> UnpublishPortfolioItem(
+        Guid portfolioItemId,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.UnpublishPortfolioItemAsync(
+            GetRequiredUserId(),
+            portfolioItemId,
+            cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("{studentId:guid}/profile")]
+    [Authorize(Roles = nameof(UserRole.SME) + "," + nameof(UserRole.ADMIN))]
+    public async Task<ActionResult<PublicStudentProfileResponse>> GetStudentProfile(
+        Guid studentId,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.GetStudentProfileForViewerAsync(
+            GetRequiredUserId(),
+            studentId,
+            cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("{studentId:guid}/portfolio")]
+    [Authorize(Roles = nameof(UserRole.SME) + "," + nameof(UserRole.ADMIN))]
+    public async Task<ActionResult<IReadOnlyList<StudentPortfolioItemResponse>>> GetStudentPortfolio(
+        Guid studentId,
+        CancellationToken cancellationToken)
+    {
+        var response = await studentCapabilityService.ListStudentPortfolioForViewerAsync(
+            GetRequiredUserId(),
+            studentId,
+            cancellationToken);
         return Ok(response);
     }
 

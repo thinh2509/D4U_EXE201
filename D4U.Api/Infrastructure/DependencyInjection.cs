@@ -14,6 +14,7 @@ using D4U.Api.Application.Features.Payments;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
 using D4U.Api.Application.Features.Ratings;
+using D4U.Api.Application.Features.Students;
 using D4U.Api.Hubs;
 using D4U.Api.Infrastructure.Ai;
 using D4U.Api.Infrastructure.Authentication;
@@ -125,6 +126,7 @@ public static class DependencyInjection
         services.AddScoped<IFeaturePackageService, FeaturePackageService>();
         services.AddScoped<IFeatureEntitlementService, FeatureEntitlementService>();
         services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IStudentCapabilityService, StudentCapabilityService>();
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IProjectWorkspaceService, ProjectWorkspaceService>();
         services.AddScoped<ISubmissionFileService, SubmissionFileService>();

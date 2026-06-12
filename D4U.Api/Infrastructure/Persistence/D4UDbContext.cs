@@ -12,6 +12,9 @@ public sealed class D4UDbContext(DbContextOptions<D4UDbContext> options) : DbCon
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<AdminProfile> AdminProfiles => Set<AdminProfile>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
+    public DbSet<StudentSkill> StudentSkills => Set<StudentSkill>();
+    public DbSet<StudentPortfolioItem> StudentPortfolioItems => Set<StudentPortfolioItem>();
+    public DbSet<StudentPortfolioItemSkill> StudentPortfolioItemSkills => Set<StudentPortfolioItemSkill>();
     public DbSet<StudentVerification> StudentVerifications => Set<StudentVerification>();
     public DbSet<StudentEmailVerification> StudentEmailVerifications => Set<StudentEmailVerification>();
     public DbSet<SmeProfile> SmeProfiles => Set<SmeProfile>();

@@ -112,11 +112,17 @@ export function SmeProjectApplicationsPage() {
     },
     {
       title: 'Hành động',
-      width: 176,
+      width: 248,
       align: 'right',
       className: 'table-cell-actions',
       render: (_, row) => (
-        <div className="table-actions-stack single">
+        <div className="table-actions-stack">
+          <Button
+            className="table-action-button"
+            onClick={() => navigate(`/sme/students/${row.studentProfileId}`)}
+          >
+            Xem hồ sơ
+          </Button>
           <Button
             className="table-action-button"
             type="primary"

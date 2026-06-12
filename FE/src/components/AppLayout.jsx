@@ -117,6 +117,7 @@ const pageTitleByPath = {
   '/sme/projects': 'Qu\u1ea3n l\u00fd d\u1ef1 \u00e1n',
   '/sme/projects/new': 'T\u1ea1o d\u1ef1 \u00e1n',
   '/sme/applications': '\u1ee8ng tuy\u1ec3n',
+  '/sme/students': 'Hồ sơ Student',
   '/sme/offers': '\u0110\u1ec1 ngh\u1ecb',
   '/sme/ai-brief': 'Trợ lý AI Brief',
   '/sme/ai-matching': 'Gợi ý AI',
@@ -280,6 +281,10 @@ export function AppLayout() {
 }
 
 function getSelectedKey(flatItems, pathname) {
+  if (pathname.startsWith('/sme/students/')) {
+    return '/sme/students';
+  }
+
   return [...flatItems]
     .sort((a, b) => b.key.length - a.key.length)
     .find((item) => pathname.startsWith(item.key))?.key || flatItems[0]?.key;
