@@ -999,17 +999,12 @@ public sealed class MoneyMovementService(
             throw new UnauthorizedAccessException("Payment method is not available.");
         }
 
-        if (string.IsNullOrWhiteSpace(paymentMethod.BankName))
+        var validation = EvaluatePaymentMethodForWithdrawal(paymentMethod);
+        if (!validation.IsUsableForWithdrawal)
         {
-            throw new InvalidOperationException("Payment method must include bank name before withdrawal.");
+            throw new InvalidOperationException(validation.ValidationIssueMessage ?? "Payment method is not available for withdrawal.");
         }
 
-        if (string.IsNullOrWhiteSpace(paymentMethod.AccountNumberEncrypted))
-        {
-            throw new InvalidOperationException("Payment method must include full account number before withdrawal.");
-        }
-
-        _ = UnprotectAccountNumber(paymentMethod.AccountNumberEncrypted);
         return paymentMethod;
     }
 
@@ -1090,6 +1085,63 @@ public sealed class MoneyMovementService(
     private static string BuildTransferContent(Guid withdrawalRequestId)
     {
         return $"D4U WD {withdrawalRequestId.ToString("N")[..8].ToUpperInvariant()}";
+    }
+
+    private PaymentMethodWithdrawalValidation EvaluatePaymentMethodForWithdrawal(PaymentMethod paymentMethod)
+    {
+        if (!string.Equals(paymentMethod.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            var requiresRecreation = string.Equals(paymentMethod.Status, "INVALID", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(paymentMethod.Status, "DISABLED", StringComparison.OrdinalIgnoreCase);
+
+            return new PaymentMethodWithdrawalValidation(
+                false,
+                requiresRecreation,
+                "STATUS_NOT_ACTIVE",
+                "Tài khoản nhận tiền hiện không ở trạng thái hoạt động.");
+        }
+
+        if (string.IsNullOrWhiteSpace(paymentMethod.BankName))
+        {
+            return new PaymentMethodWithdrawalValidation(
+                false,
+                true,
+                "MISSING_BANK_NAME",
+                "Tài khoản nhận tiền thiếu tên ngân hàng. Vui lòng tạo lại tài khoản mới.");
+        }
+
+        if (string.IsNullOrWhiteSpace(paymentMethod.AccountHolderName))
+        {
+            return new PaymentMethodWithdrawalValidation(
+                false,
+                true,
+                "MISSING_ACCOUNT_HOLDER_NAME",
+                "Tài khoản nhận tiền thiếu tên chủ tài khoản. Vui lòng tạo lại tài khoản mới.");
+        }
+
+        if (string.IsNullOrWhiteSpace(paymentMethod.AccountNumberEncrypted))
+        {
+            return new PaymentMethodWithdrawalValidation(
+                false,
+                true,
+                "MISSING_ACCOUNT_NUMBER",
+                "Tài khoản nhận tiền thiếu số tài khoản đầy đủ. Vui lòng tạo lại tài khoản mới.");
+        }
+
+        if (string.IsNullOrWhiteSpace(TryUnprotectAccountNumber(paymentMethod)))
+        {
+            return new PaymentMethodWithdrawalValidation(
+                false,
+                true,
+                "ACCOUNT_NUMBER_UNREADABLE",
+                "Tài khoản nhận tiền cũ không còn đọc được số tài khoản đầy đủ. Vui lòng tạo lại tài khoản mới.");
+        }
+
+        return new PaymentMethodWithdrawalValidation(
+            true,
+            false,
+            null,
+            null);
     }
 
     private async Task AddAuditLogAsync(
@@ -1181,6 +1233,7 @@ public sealed class MoneyMovementService(
 
     private PaymentMethodResponse ToPaymentMethodResponse(PaymentMethod method)
     {
+        var validation = EvaluatePaymentMethodForWithdrawal(method);
         var hasFullAccountNumber = !string.IsNullOrWhiteSpace(method.AccountNumberEncrypted) &&
             !string.IsNullOrWhiteSpace(TryUnprotectAccountNumber(method));
 
@@ -1194,6 +1247,10 @@ public sealed class MoneyMovementService(
             hasFullAccountNumber,
             method.IsDefault,
             method.Status,
+            validation.IsUsableForWithdrawal,
+            validation.RequiresRecreation,
+            validation.ValidationIssueCode,
+            validation.ValidationIssueMessage,
             method.CreatedAt);
     }
 
@@ -1252,6 +1309,12 @@ public sealed class MoneyMovementService(
             disbursement.CreatedAt,
             disbursement.CompletedAt);
     }
+
+    private sealed record PaymentMethodWithdrawalValidation(
+        bool IsUsableForWithdrawal,
+        bool RequiresRecreation,
+        string? ValidationIssueCode,
+        string? ValidationIssueMessage);
 
     private async Task<RefundResponse> ToRefundResponseAsync(
         Refund refund,

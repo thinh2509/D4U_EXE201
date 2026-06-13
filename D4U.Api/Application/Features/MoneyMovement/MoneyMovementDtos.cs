@@ -38,6 +38,10 @@ public sealed record PaymentMethodResponse(
     bool HasFullAccountNumber,
     bool IsDefault,
     string Status,
+    bool IsUsableForWithdrawal,
+    bool RequiresRecreation,
+    string? ValidationIssueCode,
+    string? ValidationIssueMessage,
     DateTimeOffset CreatedAt);
 
 public sealed record CreatePaymentMethodRequest(
