@@ -92,7 +92,6 @@ function StudentAiPlanSummaryCard({
   onReopenPurchasePayment
 }) {
   const isPendingPurchase = latestPurchase?.paymentStatus === 'PENDING';
-  const primaryActionLabel = activeEntitlement ? 'Gia hạn gói AI' : 'Mua gói AI';
 
   return (
     <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
@@ -118,15 +117,17 @@ function StudentAiPlanSummaryCard({
             </Paragraph>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="primary"
-                className="!h-11 !rounded-btn !px-5 !font-semibold"
-                loading={actingPackageId === aiPackage?.id}
-                disabled={!aiPackage}
-                onClick={onStartPurchase}
-              >
-                {primaryActionLabel}
-              </Button>
+              {!activeEntitlement ? (
+                <Button
+                  type="primary"
+                  className="!h-11 !rounded-btn !px-5 !font-semibold"
+                  loading={actingPackageId === aiPackage?.id}
+                  disabled={!aiPackage}
+                  onClick={onStartPurchase}
+                >
+                  Mua gói AI
+                </Button>
+              ) : null}
 
               {shouldShowRetryPurchase(latestPurchase) ? (
                 <Button
@@ -142,7 +143,7 @@ function StudentAiPlanSummaryCard({
 
           <div className="rounded-card border border-white/80 bg-white/90 p-5 shadow-sm">
             <SummaryStat label="Trạng thái" value={activeEntitlement ? 'Đang hoạt động' : isPendingPurchase ? 'Chờ xác nhận' : 'Chưa kích hoạt'} />
-            <SummaryStat label="Hiệu lực đến" value={activeEntitlement ? formatDate(activeEntitlement.expiresAt) : 'Chưa kích hoạt'} />
+            <SummaryStat label="Hiệu lực đến" value={activeEntitlement ? formatDate(activeEntitlement.expiresAt) : 'Hiện chưa có gói hoạt động'} />
             <SummaryStat label="AI usage" value={formatRemainingUsage(activeEntitlement)} />
             <SummaryStat label="Chi tiết usage" value={formatUsageDetail(activeEntitlement)} />
           </div>
@@ -211,15 +212,17 @@ function StudentAiPlanDetailsCard({
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button
-              type="primary"
-              className="!h-11 !rounded-btn !font-semibold"
-              loading={actingPackageId === aiPackage?.id}
-              disabled={!aiPackage}
-              onClick={onStartPurchase}
-            >
-              {activeEntitlement ? 'Gia hạn gói AI' : 'Mua gói AI'}
-            </Button>
+            {!activeEntitlement ? (
+              <Button
+                type="primary"
+                className="!h-11 !rounded-btn !font-semibold"
+                loading={actingPackageId === aiPackage?.id}
+                disabled={!aiPackage}
+                onClick={onStartPurchase}
+              >
+                Mua gói AI
+              </Button>
+            ) : null}
 
             {shouldShowRetryPurchase(latestPurchase) ? (
               <Button
@@ -443,8 +446,8 @@ export function StudentBillingPage() {
           type="info"
           showIcon
           className="form-alert"
-          message="Gói AI sẽ được kích hoạt sau khi PayOS webhook xác nhận thanh toán thành công."
-          description="Nếu bạn vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái entitlement mới nhất trước khi quay lại dùng AI Proposal Writer."
+          message={latestPurchase ? 'Gói AI đã hết hạn hoặc chưa được kích hoạt.' : 'Hiện chưa có gói AI hoạt động.'}
+          description="Khi cần dùng lại AI Proposal Writer, bạn có thể mua gói AI mới. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái entitlement mới nhất."
         />
       ) : null}
 
