@@ -26,6 +26,7 @@ import { SmeProjectListPage } from './pages/sme/SmeProjectListPage.jsx';
 import { SmeStudentProfilePage } from './pages/sme/SmeStudentProfilePage.jsx';
 import { StudentApplicationsPage, StudentMyProjectsPage, StudentOffersPage, StudentRatingsPage, StudentWalletPage } from './pages/student/StudentShellPages.jsx';
 import { StudentPortfolioPage } from './pages/student/StudentPortfolioPage.jsx';
+import { StudentBillingPage } from './pages/student/StudentBillingPage.jsx';
 import { StudentProfilePage } from './pages/student/StudentProfilePage.jsx';
 import { StudentProjectDetailPage } from './pages/student/StudentProjectDetailPage.jsx';
 import { StudentProjectListPage } from './pages/student/StudentProjectListPage.jsx';
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/student/offers" element={<StudentOffersPage />} />
         <Route path="/student/my-projects" element={<StudentMyProjectsPage />} />
         <Route path="/student/portfolio" element={<StudentPortfolioPage />} />
+        <Route path="/student/billing" element={<StudentBillingPage />} />
         <Route path="/student/wallet" element={<StudentWalletPage />} />
         <Route path="/student/ratings" element={<StudentRatingsPage />} />
       </Route>

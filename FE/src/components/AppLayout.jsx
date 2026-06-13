@@ -50,6 +50,7 @@ const menuByRole = {
       label: 'H\u1ed3 s\u01a1',
       children: [
         { key: '/student/portfolio', icon: <StarOutlined />, label: <Link to="/student/portfolio">Portfolio</Link> },
+        { key: '/student/billing', icon: <CreditCardOutlined />, label: <Link to="/student/billing">{'Gói AI'}</Link> },
         { key: '/student/wallet', icon: <WalletOutlined />, label: <Link to="/student/wallet">{'Ví D4U'}</Link> },
         { key: '/student/profile', icon: <UserOutlined />, label: <Link to="/student/profile">{'Hồ sơ sinh viên'}</Link> },
         { key: '/student/verification', icon: <SafetyCertificateOutlined />, label: <Link to="/student/verification">{'Xác thực'}</Link> },
@@ -109,6 +110,7 @@ const pageTitleByPath = {
   '/student/offers': '\u0110\u1ec1 ngh\u1ecb',
   '/student/my-projects': 'D\u1ef1 \u00e1n c\u1ee7a t\u00f4i',
   '/student/portfolio': 'Portfolio',
+  '/student/billing': 'Gói AI',
   '/student/wallet': 'V\u00ed D4U',
   '/student/profile': 'H\u1ed3 s\u01a1 sinh vi\u00ean',
   '/student/verification': 'X\u00e1c th\u1ef1c sinh vi\u00ean',
