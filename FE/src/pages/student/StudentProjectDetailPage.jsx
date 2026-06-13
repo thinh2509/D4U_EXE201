@@ -97,25 +97,27 @@ function formatProposalUsage(remainingUsage) {
 }
 
 function AiSuggestionCard({ proposalMeta }) {
+  const guidanceText = 'AI chỉ hỗ trợ tạo bản nháp, bạn nên chỉnh sửa để đúng với năng lực thật.';
+
   if (!proposalMeta) {
     return (
       <p className="text-xs leading-5 text-d4u-text-2">
-        AI chỉ tạo bản nháp, hãy kiểm tra trước khi gửi.
+        {guidanceText}
       </p>
     );
   }
 
   const strengths = proposalMeta.strengths?.filter(Boolean).slice(0, 3) ?? [];
-  const warnings = proposalMeta.warnings?.filter(Boolean).slice(0, 2) ?? [];
+  const showStrengths = strengths.length >= 2;
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+      <div className="flex items-start gap-2 text-xs leading-5 text-emerald-700">
         <CheckCircleFilled className="mt-0.5 text-emerald-500" />
-        <span>Đã tạo proposal bằng AI. Bạn có thể chỉnh sửa trước khi gửi.</span>
+        <span>Đã tạo bản nháp bằng AI. Hãy kiểm tra trước khi gửi.</span>
       </div>
 
-      {strengths.length ? (
+      {showStrengths ? (
         <div className="rounded-2xl border border-d4u-border bg-d4u-soft/60 px-3 py-2.5">
           <div className="text-xs font-semibold uppercase tracking-wide text-d4u-text-3">
             Điểm mạnh AI nhấn mạnh
@@ -128,11 +130,9 @@ function AiSuggestionCard({ proposalMeta }) {
         </div>
       ) : null}
 
-      {warnings.length ? (
-        <p className="text-xs leading-5 text-d4u-text-2">
-          Lưu ý: {warnings.join(' ')}
-        </p>
-      ) : null}
+      <p className="text-xs leading-5 text-d4u-text-2">
+        {guidanceText}
+      </p>
     </div>
   );
 }
@@ -417,11 +417,12 @@ export function StudentProjectDetailPage() {
               ]}
             >
               <Input.TextArea
-                rows={9}
+                rows={8}
                 maxLength={3000}
                 showCount
+                spellCheck={false}
                 placeholder="Giới thiệu ngắn về cách bạn tiếp cận brief, kỹ năng phù hợp, kinh nghiệm liên quan và cách bạn phối hợp với SME để hoàn thiện dự án."
-                className="min-h-[190px]"
+                className="min-h-[170px]"
               />
             </Form.Item>
 
@@ -435,13 +436,17 @@ export function StudentProjectDetailPage() {
                 >
                   Tạo proposal bằng AI
                 </Button>
-                {proposalUsageLabel ? <Tag color="processing">{proposalUsageLabel}</Tag> : null}
+                {proposalUsageLabel ? (
+                  <Tag color="processing" className="m-0 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                    {proposalUsageLabel}
+                  </Tag>
+                ) : null}
               </div>
 
               <AiSuggestionCard proposalMeta={proposalMeta} />
             </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3 border-t border-d4u-border pt-4">
+            <div className="mt-5 flex items-center justify-end gap-3 border-t border-d4u-border pt-4">
               <Button onClick={resetApplicationFlow} disabled={applying}>
                 Hủy
               </Button>
