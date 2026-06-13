@@ -1,11 +1,12 @@
 import {
   CalendarOutlined,
+  CheckCircleFilled,
   FolderOpenOutlined,
   SendOutlined,
   ThunderboltOutlined,
   WalletOutlined
 } from '@ant-design/icons';
-import { Alert, App, Button, Form, Input, InputNumber, Modal, Space, Tag } from 'antd';
+import { App, Button, Form, Input, InputNumber, Modal, Tag } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
@@ -28,6 +29,8 @@ const proposalFieldMap = {
   coverletter: 'coverLetter',
   estimateddurationdays: 'estimatedDurationDays'
 };
+
+const AI_UNLIMITED_USAGE_THRESHOLD = 2147483647;
 
 function formatDetailDate(value) {
   if (!value) return 'Chưa có';
@@ -81,47 +84,54 @@ function buildExecutionItems(project) {
   ];
 }
 
+function formatProposalUsage(remainingUsage) {
+  if (remainingUsage == null) {
+    return null;
+  }
+
+  if (remainingUsage >= AI_UNLIMITED_USAGE_THRESHOLD) {
+    return 'AI Pro';
+  }
+
+  return `Còn ${remainingUsage} lượt AI`;
+}
+
 function AiSuggestionCard({ proposalMeta }) {
   if (!proposalMeta) {
     return (
-      <Alert
-        type="info"
-        showIcon
-        message="AI sẽ dựa trên brief dự án và hồ sơ năng lực của bạn để gợi ý proposal nháp."
-      />
+      <p className="text-xs leading-5 text-d4u-text-2">
+        AI chỉ tạo bản nháp, hãy kiểm tra trước khi gửi.
+      </p>
     );
   }
 
+  const strengths = proposalMeta.strengths?.filter(Boolean).slice(0, 3) ?? [];
+  const warnings = proposalMeta.warnings?.filter(Boolean).slice(0, 2) ?? [];
+
   return (
-    <div className="flex flex-col gap-3">
-      <Alert
-        type="success"
-        showIcon
-        message={`Đã tạo proposal bằng ${proposalMeta.provider}. Còn ${proposalMeta.remainingUsage} lượt trong gói hiện tại.`}
-      />
-      {proposalMeta.strengths?.length ? (
-        <div className="rounded-2xl border border-d4u-border bg-d4u-soft/60 p-4">
-          <div className="text-sm font-semibold text-d4u-text-1">Điểm mạnh được AI nhấn mạnh</div>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-d4u-text-2">
-            {proposalMeta.strengths.map((item) => (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <CheckCircleFilled className="mt-0.5 text-emerald-500" />
+        <span>Đã tạo proposal bằng AI. Bạn có thể chỉnh sửa trước khi gửi.</span>
+      </div>
+
+      {strengths.length ? (
+        <div className="rounded-2xl border border-d4u-border bg-d4u-soft/60 px-3 py-2.5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-d4u-text-3">
+            Điểm mạnh AI nhấn mạnh
+          </div>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-5 text-d4u-text-2">
+            {strengths.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
       ) : null}
-      {proposalMeta.warnings?.length ? (
-        <Alert
-          type="warning"
-          showIcon
-          message="Lưu ý từ AI"
-          description={
-            <ul className="mb-0 list-disc pl-5">
-              {proposalMeta.warnings.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          }
-        />
+
+      {warnings.length ? (
+        <p className="text-xs leading-5 text-d4u-text-2">
+          Lưu ý: {warnings.join(' ')}
+        </p>
       ) : null}
     </div>
   );
@@ -194,6 +204,8 @@ export function StudentProjectDetailPage() {
   const [proposalMeta, setProposalMeta] = useState(null);
   const [error, setError] = useState(null);
   const readiness = useStudentReadiness();
+  const proposedPriceValue = Form.useWatch('proposedPrice', applicationForm);
+  const coverLetterValue = Form.useWatch('coverLetter', applicationForm);
 
   const loadProject = useCallback(async () => {
     setLoading(true);
@@ -282,6 +294,11 @@ export function StudentProjectDetailPage() {
   const canAccessMarketplaceActions = readiness.hasProfile && readiness.isApproved;
   const canApply = project.status === 'OPEN' && !hasApplied && canAccessMarketplaceActions;
   const applyButtonLabel = hasApplied ? 'Đã ứng tuyển' : 'Gửi ứng tuyển';
+  const normalizedCoverLetter = coverLetterValue?.trim?.() ?? '';
+  const isProposalValid = normalizedCoverLetter.length >= 20 && normalizedCoverLetter.length <= 3000;
+  const isPriceValid = Number(proposedPriceValue) > 0;
+  const canSubmitApplication = isPriceValid && isProposalValid && !applying;
+  const proposalUsageLabel = formatProposalUsage(proposalMeta?.remainingUsage);
   const readinessNotice = readiness.needsProfile ? (
     <StudentReadinessNotice
       compact
@@ -346,6 +363,7 @@ export function StudentProjectDetailPage() {
           footer={null}
           onCancel={resetApplicationFlow}
           destroyOnClose
+          width={600}
         >
           <Form
             form={applicationForm}
@@ -378,27 +396,9 @@ export function StudentProjectDetailPage() {
               <InputNumber className="full-width" min={1} addonAfter="VND" />
             </Form.Item>
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <Button
-                icon={<ThunderboltOutlined />}
-                loading={generatingProposal}
-                onClick={generateProposalWithAi}
-              >
-                Tạo proposal bằng AI
-              </Button>
-              {proposalMeta ? (
-                <Tag color="processing">Còn {proposalMeta.remainingUsage} lượt AI</Tag>
-              ) : null}
-            </div>
-
-            <div className="mb-4">
-              <AiSuggestionCard proposalMeta={proposalMeta} />
-            </div>
-
             <Form.Item
               name="coverLetter"
-              label="Giải pháp đề xuất"
-              extra="AI chỉ tạo bản nháp hỗ trợ. Bạn vẫn cần tự rà soát và chỉnh sửa trước khi gửi."
+              label="Nội dung ứng tuyển"
               rules={[
                 { required: true, message: 'Vui lòng nhập giải pháp đề xuất.' },
                 {
@@ -416,15 +416,44 @@ export function StudentProjectDetailPage() {
                 }
               ]}
             >
-              <Input.TextArea rows={7} maxLength={3000} showCount />
+              <Input.TextArea
+                rows={9}
+                maxLength={3000}
+                showCount
+                placeholder="Giới thiệu ngắn về cách bạn tiếp cận brief, kỹ năng phù hợp, kinh nghiệm liên quan và cách bạn phối hợp với SME để hoàn thiện dự án."
+                className="min-h-[190px]"
+              />
             </Form.Item>
 
-            <Space>
-              <Button type="primary" loading={applying} onClick={submitApplicationFromForm}>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  icon={<ThunderboltOutlined />}
+                  loading={generatingProposal}
+                  disabled={generatingProposal || applying}
+                  onClick={generateProposalWithAi}
+                >
+                  Tạo proposal bằng AI
+                </Button>
+                {proposalUsageLabel ? <Tag color="processing">{proposalUsageLabel}</Tag> : null}
+              </div>
+
+              <AiSuggestionCard proposalMeta={proposalMeta} />
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3 border-t border-d4u-border pt-4">
+              <Button onClick={resetApplicationFlow} disabled={applying}>
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                loading={applying}
+                disabled={!canSubmitApplication}
+                onClick={submitApplicationFromForm}
+              >
                 Gửi ứng tuyển
               </Button>
-              <Button onClick={resetApplicationFlow}>Hủy</Button>
-            </Space>
+            </div>
           </Form>
         </Modal>
       </div>
