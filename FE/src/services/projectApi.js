@@ -10,6 +10,7 @@ export const projectApi = {
   listStudentOffers: () => apiClient.get('/students/me/offers'),
   listStudentProjects: () => apiClient.get('/students/me/projects'),
   getProject: (projectId) => apiClient.get(`/projects/${projectId}`),
+  generateAiProposal: (projectId) => apiClient.post('/students/me/ai/proposal-writer', { projectId }),
   getWorkspace: (projectId) => apiClient.get(`/projects/${projectId}/workspace`),
   listSubmissions: (projectId) => apiClient.get(`/projects/${projectId}/submissions`),
   createDraft: (payload) => apiClient.post('/projects', payload),

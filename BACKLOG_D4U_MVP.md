@@ -301,6 +301,7 @@ These items are outside Outcome 1 according to `D4U_Outcome1_Master.docx`. Do no
 ### AI Matching
 
 - [ ] Student package can unlock AI matched project suggestions.
+- [x] Student can generate AI proposal drafts for open project applications when an active entitlement with remaining usage exists.
 - [ ] SME package can unlock AI matched student recommendations for a project.
 - [ ] Student can request AI matched open project suggestions when they have an active matching entitlement.
 - [ ] SME can request AI matched student recommendations for an owned project when they have an active matching entitlement.

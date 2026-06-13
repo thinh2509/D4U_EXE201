@@ -3,6 +3,7 @@ namespace D4U.Api.Controllers;
 using System.Security.Cryptography;
 using System.Security.Claims;
 using D4U.Api.Application.Common.Files;
+using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Profiles;
 using D4U.Api.Application.Features.Projects;
 using D4U.Api.Application.Features.Students;
@@ -16,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 public sealed class StudentsController(
     IProfileService profileService,
     IProjectService projectService,
+    IAiProposalWriterService aiProposalWriterService,
     IStudentCapabilityService studentCapabilityService,
     IUploadPathResolver uploadPathResolver) : ControllerBase
 {
@@ -138,6 +140,19 @@ public sealed class StudentsController(
         CancellationToken cancellationToken)
     {
         var response = await projectService.ListMyStudentApplicationsAsync(GetRequiredUserId(), cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost("me/ai/proposal-writer")]
+    [Authorize(Roles = nameof(UserRole.STUDENT))]
+    public async Task<ActionResult<GenerateAiProposalResponse>> GenerateAiProposal(
+        GenerateAiProposalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await aiProposalWriterService.GenerateProposalAsync(
+            GetRequiredUserId(),
+            request,
+            cancellationToken);
         return Ok(response);
     }
 

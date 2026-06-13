@@ -865,7 +865,9 @@ public sealed class PaymentService(
             "Goi AI Matching da duoc kich hoat",
             package.MaxActiveOpenProjectsOverride.HasValue
                 ? $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching va publish toi da {package.MaxActiveOpenProjectsOverride.Value} du an dang mo ngay bay gio."
-                : $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching ngay bay gio.",
+                : package.Role == FeaturePackageRole.STUDENT
+                    ? $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching va AI Proposal Writer ngay bay gio."
+                    : $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching ngay bay gio.",
             nameof(FeaturePackagePurchase),
             purchase.Id,
             now,

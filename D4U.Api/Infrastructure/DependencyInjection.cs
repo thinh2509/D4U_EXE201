@@ -84,6 +84,7 @@ public static class DependencyInjection
         services.AddSingleton<IUploadPathResolver, LocalUploadPathResolver>();
         services.AddScoped<MockAiProjectBriefAssistant>();
         services.AddScoped<MockAiMatchingService>();
+        services.AddScoped<MockAiProposalGenerator>();
         services.AddHttpClient<OpenAiProjectBriefAssistant>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IConfiguration>()
@@ -94,6 +95,15 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
         });
         services.AddHttpClient<OpenAiMatchingService>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>()
+                .GetSection(AiOptions.SectionName)
+                .Get<AiOptions>() ?? new AiOptions();
+
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+        });
+        services.AddHttpClient<OpenAiProposalGenerator>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IConfiguration>()
                 .GetSection(AiOptions.SectionName)
@@ -122,11 +132,22 @@ public static class DependencyInjection
                 ? serviceProvider.GetRequiredService<OpenAiMatchingService>()
                 : serviceProvider.GetRequiredService<MockAiMatchingService>();
         });
+        services.AddScoped<IAiProposalGenerator>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IConfiguration>()
+                .GetSection(AiOptions.SectionName)
+                .Get<AiOptions>() ?? new AiOptions();
+
+            return string.Equals(options.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<OpenAiProposalGenerator>()
+                : serviceProvider.GetRequiredService<MockAiProposalGenerator>();
+        });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFeaturePackageService, FeaturePackageService>();
         services.AddScoped<IFeatureEntitlementService, FeatureEntitlementService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IStudentCapabilityService, StudentCapabilityService>();
+        services.AddScoped<IAiProposalWriterService, AiProposalWriterService>();
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IProjectWorkspaceService, ProjectWorkspaceService>();
         services.AddScoped<ISubmissionFileService, SubmissionFileService>();

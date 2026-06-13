@@ -1,5 +1,6 @@
 namespace D4U.Api.Application.Features.FeaturePackages;
 
+using D4U.Api.Application.Common.Exceptions;
 using D4U.Api.Domain.Enums;
 using D4U.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +76,101 @@ public sealed class FeatureEntitlementService(D4UDbContext dbContext) : IFeature
                 (entitlement.Status != FeatureEntitlementStatus.ACTIVE || entitlement.ExpiresAt <= now)
             select entitlement.Id)
             .AnyAsync(cancellationToken);
+    }
+
+    public async Task<UsableFeatureEntitlementResponse> EnsureUsableEntitlementAsync(
+        Guid userId,
+        string entitlementCode,
+        string featureDisplayName,
+        CancellationToken cancellationToken = default)
+    {
+        await ExpireOverdueEntitlementsAsync(cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var entitlement = await dbContext.UserFeatureEntitlements
+            .Where(value => value.UserId == userId && value.EntitlementCode == entitlementCode)
+            .OrderByDescending(value => value.ExpiresAt)
+            .ThenByDescending(value => value.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (entitlement is null)
+        {
+            throw new ForbiddenException($"Bạn cần mua gói AI để {featureDisplayName}.");
+        }
+
+        if (entitlement.Status != FeatureEntitlementStatus.ACTIVE || entitlement.ExpiresAt <= now)
+        {
+            throw new ForbiddenException($"Gói AI của bạn đã hết hạn. Vui lòng gia hạn để tiếp tục {featureDisplayName}.");
+        }
+
+        var remainingUsage = entitlement.UsageLimit.HasValue
+            ? Math.Max(0, entitlement.UsageLimit.Value - entitlement.UsageConsumed)
+            : int.MaxValue;
+
+        if (entitlement.UsageLimit.HasValue && remainingUsage <= 0)
+        {
+            throw new ConflictException($"Bạn đã dùng hết lượt {featureDisplayName} của gói hiện tại.");
+        }
+
+        return new UsableFeatureEntitlementResponse(
+            entitlement.Id,
+            entitlement.EntitlementCode,
+            entitlement.UsageLimit,
+            entitlement.UsageConsumed,
+            remainingUsage,
+            entitlement.ActivatedAt,
+            entitlement.ExpiresAt);
+    }
+
+    public async Task<FeatureUsageConsumptionResponse> ConsumeUsageAsync(
+        Guid entitlementId,
+        int amount,
+        string featureDisplayName,
+        CancellationToken cancellationToken = default)
+    {
+        if (amount <= 0)
+        {
+            throw new ValidationException("Usage amount must be greater than 0.");
+        }
+
+        await ExpireOverdueEntitlementsAsync(cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var updatedRows = await dbContext.UserFeatureEntitlements
+            .Where(value =>
+                value.Id == entitlementId &&
+                value.Status == FeatureEntitlementStatus.ACTIVE &&
+                value.ExpiresAt > now &&
+                (!value.UsageLimit.HasValue || value.UsageConsumed + amount <= value.UsageLimit.Value))
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(value => value.UsageConsumed, value => value.UsageConsumed + amount)
+                    .SetProperty(value => value.UpdatedAt, now),
+                cancellationToken);
+
+        if (updatedRows == 0)
+        {
+            throw new ConflictException($"Bạn đã dùng hết lượt {featureDisplayName} của gói hiện tại.");
+        }
+
+        var entitlement = await dbContext.UserFeatureEntitlements
+            .Where(value => value.Id == entitlementId)
+            .Select(value => new
+            {
+                value.Id,
+                value.UsageLimit,
+                value.UsageConsumed
+            })
+            .FirstAsync(cancellationToken);
+
+        var remainingUsage = entitlement.UsageLimit.HasValue
+            ? Math.Max(0, entitlement.UsageLimit.Value - entitlement.UsageConsumed)
+            : int.MaxValue;
+
+        return new FeatureUsageConsumptionResponse(
+            entitlement.Id,
+            entitlement.UsageConsumed,
+            remainingUsage);
     }
 
     public async Task<IReadOnlyList<UserFeatureEntitlementResponse>> ListMyEntitlementsAsync(

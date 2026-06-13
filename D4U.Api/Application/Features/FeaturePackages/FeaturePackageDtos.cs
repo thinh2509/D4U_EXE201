@@ -71,3 +71,17 @@ public sealed record ActiveFeaturePackageSummaryResponse(
     int? MaxActiveOpenProjectsOverride,
     DateTimeOffset ActivatedAt,
     DateTimeOffset ExpiresAt);
+
+public sealed record UsableFeatureEntitlementResponse(
+    Guid EntitlementId,
+    string EntitlementCode,
+    int? UsageLimit,
+    int UsageConsumed,
+    int RemainingUsage,
+    DateTimeOffset ActivatedAt,
+    DateTimeOffset ExpiresAt);
+
+public sealed record FeatureUsageConsumptionResponse(
+    Guid EntitlementId,
+    int UsageConsumed,
+    int RemainingUsage);

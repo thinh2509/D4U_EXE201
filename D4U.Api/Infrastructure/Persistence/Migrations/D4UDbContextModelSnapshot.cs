@@ -435,14 +435,15 @@ namespace D4U.Api.Infrastructure.Persistence.Migrations
                             Code = "STUDENT_AI_MATCHING_30D",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Currency = "VND",
-                            Description = "Mo khoa AI Matching de goi y du an mo phu hop cho Student trong 30 ngay.",
+                            Description = "Mo khoa AI Matching va AI Proposal Writer cho Student trong 30 ngay.",
                             DurationDays = 30,
                             EntitlementCode = "STUDENT_AI_MATCHING",
                             IsActive = true,
                             Name = "Student AI Matching 30 ngày",
                             Price = 199000m,
                             Role = "STUDENT",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            UsageLimit = 30
                         });
                 });
 

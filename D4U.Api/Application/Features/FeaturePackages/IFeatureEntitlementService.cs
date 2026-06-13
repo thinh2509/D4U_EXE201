@@ -20,6 +20,18 @@ public interface IFeatureEntitlementService
         int? minimumOverrideExclusive,
         CancellationToken cancellationToken = default);
 
+    Task<UsableFeatureEntitlementResponse> EnsureUsableEntitlementAsync(
+        Guid userId,
+        string entitlementCode,
+        string featureDisplayName,
+        CancellationToken cancellationToken = default);
+
+    Task<FeatureUsageConsumptionResponse> ConsumeUsageAsync(
+        Guid entitlementId,
+        int amount,
+        string featureDisplayName,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<UserFeatureEntitlementResponse>> ListMyEntitlementsAsync(
         Guid userId,
         CancellationToken cancellationToken = default);

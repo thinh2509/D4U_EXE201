@@ -1,5 +1,11 @@
-import { CalendarOutlined, FolderOpenOutlined, SendOutlined, WalletOutlined } from '@ant-design/icons';
-import { App, Button, Form, Input, InputNumber, Modal, Space, Tag } from 'antd';
+import {
+  CalendarOutlined,
+  FolderOpenOutlined,
+  SendOutlined,
+  ThunderboltOutlined,
+  WalletOutlined
+} from '@ant-design/icons';
+import { Alert, App, Button, Form, Input, InputNumber, Modal, Space, Tag } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
@@ -16,17 +22,6 @@ import {
   ProjectExecutionInfoGrid,
   ProjectMetadataStrip
 } from '../shared/ProjectDetailUi.jsx';
-
-function ConfirmItem({ children, label, wide = false }) {
-  return (
-    <div className={`grid gap-2 rounded-2xl border border-d4u-border bg-d4u-soft/70 p-4 ${wide ? 'md:col-span-2' : ''}`}>
-      <span className="text-xs font-bold uppercase tracking-wide text-d4u-text-3">{label}</span>
-      <strong className="text-sm font-semibold leading-6 text-d4u-text-1">{children}</strong>
-    </div>
-  );
-}
-
-const QUICK_APPLY_NOTE = 'Student xác nhận thực hiện theo ngân sách và deadline đã công bố.';
 
 const proposalFieldMap = {
   proposedprice: 'proposedPrice',
@@ -86,6 +81,52 @@ function buildExecutionItems(project) {
   ];
 }
 
+function AiSuggestionCard({ proposalMeta }) {
+  if (!proposalMeta) {
+    return (
+      <Alert
+        type="info"
+        showIcon
+        message="AI sẽ dựa trên brief dự án và hồ sơ năng lực của bạn để gợi ý proposal nháp."
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Alert
+        type="success"
+        showIcon
+        message={`Đã tạo proposal bằng ${proposalMeta.provider}. Còn ${proposalMeta.remainingUsage} lượt trong gói hiện tại.`}
+      />
+      {proposalMeta.strengths?.length ? (
+        <div className="rounded-2xl border border-d4u-border bg-d4u-soft/60 p-4">
+          <div className="text-sm font-semibold text-d4u-text-1">Điểm mạnh được AI nhấn mạnh</div>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-d4u-text-2">
+            {proposalMeta.strengths.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {proposalMeta.warnings?.length ? (
+        <Alert
+          type="warning"
+          showIcon
+          message="Lưu ý từ AI"
+          description={
+            <ul className="mb-0 list-disc pl-5">
+              {proposalMeta.warnings.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          }
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function ProjectActionSidebar({
   project,
   applying,
@@ -93,8 +134,7 @@ function ProjectActionSidebar({
   applyButtonLabel,
   canAccessMarketplaceActions,
   readiness,
-  onQuickApply,
-  onCustomProposal
+  onApply
 }) {
   const sidebarStats = [
     { icon: <WalletOutlined className="h-5 w-5" />, label: 'Ngân sách', value: formatCurrency(project.budgetAmount, project.currency) },
@@ -110,18 +150,11 @@ function ProjectActionSidebar({
             disabled={!canApply}
             icon={<SendOutlined />}
             loading={applying}
-            onClick={onQuickApply}
+            onClick={onApply}
             title={!canApply && canAccessMarketplaceActions ? 'Bạn đã ứng tuyển hoặc dự án không còn mở để ứng tuyển.' : undefined}
             variant="primary"
           >
             {applyButtonLabel}
-          </ActionButton>
-          <ActionButton
-            disabled={!canApply || applying}
-            onClick={onCustomProposal}
-            variant="secondary"
-          >
-            Đề xuất khác
           </ActionButton>
         </div>
       </section>
@@ -152,14 +185,13 @@ function ProjectActionSidebar({
 export function StudentProjectDetailPage() {
   const { message } = App.useApp();
   const { projectId } = useParams();
-  const [customProposalForm] = Form.useForm();
+  const [applicationForm] = Form.useForm();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
-  const [quickConfirmationOpen, setQuickConfirmationOpen] = useState(false);
-  const [customProposalOpen, setCustomProposalOpen] = useState(false);
-  const [customConfirmationOpen, setCustomConfirmationOpen] = useState(false);
-  const [customProposal, setCustomProposal] = useState(null);
+  const [generatingProposal, setGeneratingProposal] = useState(false);
+  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
+  const [proposalMeta, setProposalMeta] = useState(null);
   const [error, setError] = useState(null);
   const readiness = useStudentReadiness();
 
@@ -179,23 +211,32 @@ export function StudentProjectDetailPage() {
     loadProject();
   }, [loadProject]);
 
+  const resetApplicationFlow = useCallback(() => {
+    setApplicationModalOpen(false);
+    setProposalMeta(null);
+    applicationForm.resetFields();
+  }, [applicationForm]);
+
+  const openApplicationModal = useCallback(() => {
+    applicationForm.setFieldsValue({
+      proposedPrice: project?.budgetAmount ?? null,
+      coverLetter: ''
+    });
+    setProposalMeta(null);
+    setApplicationModalOpen(true);
+  }, [applicationForm, project]);
+
   const submitApplication = async (payload) => {
     setApplying(true);
     try {
       await projectApi.submitApplication(projectId, payload);
       message.success('Đã gửi ứng tuyển.');
-      setQuickConfirmationOpen(false);
-      setCustomProposalOpen(false);
-      setCustomConfirmationOpen(false);
-      setCustomProposal(null);
-      customProposalForm.resetFields();
+      resetApplicationFlow();
       await loadProject();
     } catch (requestError) {
       const fieldErrors = extractApiFieldErrors(requestError, proposalFieldMap);
       if (fieldErrors.length > 0) {
-        setCustomConfirmationOpen(false);
-        setCustomProposalOpen(true);
-        customProposalForm.setFields(fieldErrors);
+        applicationForm.setFields(fieldErrors);
       }
 
       const errorMessage = getApiErrorMessage(requestError, 'Không thể gửi ứng tuyển.');
@@ -209,28 +250,28 @@ export function StudentProjectDetailPage() {
     }
   };
 
-  const submitQuickApplication = () => submitApplication({
-    proposedPrice: project.budgetAmount,
-    coverLetter: QUICK_APPLY_NOTE,
-    estimatedDurationDays: null
-  });
-
-  const reviewCustomProposal = async () => {
-    const values = await customProposalForm.validateFields();
-    setCustomProposal({
+  const submitApplicationFromForm = async () => {
+    const values = await applicationForm.validateFields();
+    await submitApplication({
       proposedPrice: Number(values.proposedPrice),
       coverLetter: values.coverLetter.trim(),
       estimatedDurationDays: null
     });
-    setCustomConfirmationOpen(true);
   };
 
-  const closeApplyFlow = () => {
-    setQuickConfirmationOpen(false);
-    setCustomProposalOpen(false);
-    setCustomConfirmationOpen(false);
-    setCustomProposal(null);
-    customProposalForm.resetFields();
+  const generateProposalWithAi = async () => {
+    setGeneratingProposal(true);
+    try {
+      const response = await projectApi.generateAiProposal(projectId);
+      applicationForm.setFieldValue('coverLetter', response.proposalText);
+      applicationForm.setFields([{ name: 'coverLetter', errors: [] }]);
+      setProposalMeta(response);
+      message.success('Đã tạo proposal bằng AI. Bạn có thể chỉnh sửa trước khi gửi.');
+    } catch (requestError) {
+      message.error(getApiErrorMessage(requestError, 'Không thể tạo proposal bằng AI.'));
+    } finally {
+      setGeneratingProposal(false);
+    }
   };
 
   if (loading || readiness.loading) return <LoadingState />;
@@ -241,10 +282,6 @@ export function StudentProjectDetailPage() {
   const canAccessMarketplaceActions = readiness.hasProfile && readiness.isApproved;
   const canApply = project.status === 'OPEN' && !hasApplied && canAccessMarketplaceActions;
   const applyButtonLabel = hasApplied ? 'Đã ứng tuyển' : 'Gửi ứng tuyển';
-  const openCustomProposal = () => {
-    setQuickConfirmationOpen(false);
-    setCustomProposalOpen(true);
-  };
   const readinessNotice = readiness.needsProfile ? (
     <StudentReadinessNotice
       compact
@@ -259,7 +296,7 @@ export function StudentProjectDetailPage() {
       compact
       mode="verification"
       title="Hoàn tất xác thực để ứng tuyển dự án này"
-      description="SME chỉ nên nhận proposal từ Student đã xác thực. Hãy hoàn tất xác thực để gửi ứng tuyển hoặc đề xuất khác."
+      description="SME chỉ nên nhận proposal từ Student đã xác thực. Hãy hoàn tất xác thực để gửi ứng tuyển."
       secondaryActionLabel="Tiếp tục đọc brief"
       secondaryActionPath={`/student/projects/${projectId}`}
     />
@@ -297,51 +334,32 @@ export function StudentProjectDetailPage() {
             applying={applying}
             canAccessMarketplaceActions={canAccessMarketplaceActions}
             canApply={canApply}
-            onCustomProposal={openCustomProposal}
-            onQuickApply={() => setQuickConfirmationOpen(true)}
+            onApply={openApplicationModal}
             project={project}
             readiness={readiness}
           />
         </div>
 
         <Modal
-          title="Xác nhận ứng tuyển"
-          open={quickConfirmationOpen}
-          confirmLoading={applying}
-          okText="Xác nhận gửi ứng tuyển"
-          cancelText="Hủy"
-          onOk={submitQuickApplication}
-          onCancel={() => setQuickConfirmationOpen(false)}
-          footer={(_, { OkBtn, CancelBtn }) => (
-            <>
-              <CancelBtn />
-              <Button onClick={openCustomProposal}>Đề xuất khác</Button>
-              <OkBtn />
-            </>
-          )}
+          title="Gửi ứng tuyển"
+          open={applicationModalOpen}
+          footer={null}
+          onCancel={resetApplicationFlow}
+          destroyOnClose
         >
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ConfirmItem label="Ngân sách">{formatCurrency(project.budgetAmount, project.currency)}</ConfirmItem>
-            <ConfirmItem label="Hạn Sketch">{formatDetailDate(project.sketchDeadlineAt)}</ConfirmItem>
-            <ConfirmItem label="Hạn Final">{formatDetailDate(project.finalDeadlineAt)}</ConfirmItem>
-            <ConfirmItem label="Hoàn tất review">{formatDetailDate(project.totalDeadlineAt)}</ConfirmItem>
-          </div>
-        </Modal>
-
-        <Modal title="Đề xuất khác" open={customProposalOpen} footer={null} onCancel={closeApplyFlow}>
           <Form
-            form={customProposalForm}
+            form={applicationForm}
             layout="vertical"
             requiredMark={false}
             validateTrigger={['onChange', 'onBlur']}
             onValuesChange={(changedValues) => {
               const nextFields = Object.keys(changedValues).map((name) => ({ name, errors: [] }));
-              customProposalForm.setFields(nextFields);
+              applicationForm.setFields(nextFields);
             }}
           >
             <Form.Item
               name="proposedPrice"
-              label="Giá đề xuất mới"
+              label="Giá đề xuất"
               rules={[
                 { required: true, message: 'Vui lòng nhập giá đề xuất.' },
                 {
@@ -359,9 +377,28 @@ export function StudentProjectDetailPage() {
             >
               <InputNumber className="full-width" min={1} addonAfter="VND" />
             </Form.Item>
+
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <Button
+                icon={<ThunderboltOutlined />}
+                loading={generatingProposal}
+                onClick={generateProposalWithAi}
+              >
+                Tạo proposal bằng AI
+              </Button>
+              {proposalMeta ? (
+                <Tag color="processing">Còn {proposalMeta.remainingUsage} lượt AI</Tag>
+              ) : null}
+            </div>
+
+            <div className="mb-4">
+              <AiSuggestionCard proposalMeta={proposalMeta} />
+            </div>
+
             <Form.Item
               name="coverLetter"
               label="Giải pháp đề xuất"
+              extra="AI chỉ tạo bản nháp hỗ trợ. Bạn vẫn cần tự rà soát và chỉnh sửa trước khi gửi."
               rules={[
                 { required: true, message: 'Vui lòng nhập giải pháp đề xuất.' },
                 {
@@ -379,28 +416,16 @@ export function StudentProjectDetailPage() {
                 }
               ]}
             >
-              <Input.TextArea rows={5} maxLength={3000} showCount />
+              <Input.TextArea rows={7} maxLength={3000} showCount />
             </Form.Item>
+
             <Space>
-              <Button type="primary" onClick={reviewCustomProposal}>Tiếp tục</Button>
-              <Button onClick={closeApplyFlow}>Hủy</Button>
+              <Button type="primary" loading={applying} onClick={submitApplicationFromForm}>
+                Gửi ứng tuyển
+              </Button>
+              <Button onClick={resetApplicationFlow}>Hủy</Button>
             </Space>
           </Form>
-        </Modal>
-
-        <Modal
-          title="Xác nhận đề xuất khác"
-          open={customConfirmationOpen}
-          confirmLoading={applying}
-          okText="Gửi ứng tuyển"
-          cancelText="Quay lại chỉnh sửa"
-          onOk={() => submitApplication(customProposal)}
-          onCancel={() => setCustomConfirmationOpen(false)}
-        >
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ConfirmItem label="Giá đề xuất">{formatCurrency(customProposal?.proposedPrice, project.currency)}</ConfirmItem>
-            <ConfirmItem label="Giải pháp" wide>{customProposal?.coverLetter}</ConfirmItem>
-          </div>
         </Modal>
       </div>
     </div>
