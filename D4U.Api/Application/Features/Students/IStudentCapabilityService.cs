@@ -66,4 +66,9 @@ public interface IStudentCapabilityService
         Guid studentProfileId,
         Guid? designCategoryId = null,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<Guid, StudentCapabilitySummaryResponse>> GetStudentCapabilitySummariesAsync(
+        IReadOnlyList<Guid> studentProfileIds,
+        Guid? designCategoryId = null,
+        CancellationToken cancellationToken = default);
 }

@@ -10,50 +10,31 @@ public sealed class OpenAiMatchingService(
     HttpClient httpClient,
     IOptions<AiOptions> aiOptions,
     MockAiMatchingService fallbackService,
-    ILogger<OpenAiMatchingService> logger) : IAiMatchingService
+    ILogger<OpenAiMatchingService> logger) : IAiMatchingReranker
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public async Task<MatchStudentsForProjectResponse> MatchStudentsForProjectAsync(
-        Guid userId,
-        Guid projectId,
-        MatchStudentsForProjectRequest request,
+    public async Task<AiMatchingRerankerResponse> RerankAsync(
+        AiMatchingRerankerRequest request,
         CancellationToken cancellationToken = default)
     {
         var options = aiOptions.Value;
         if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
             return await HandleFallbackAsync(
-                userId,
-                projectId,
                 request,
-                "OpenAI chưa được cấu hình API key; hệ thống đang dùng matching fallback.",
+                "Dang dung che do goi y du phong vi OpenAI chua duoc cau hinh.",
                 cancellationToken);
-        }
-
-        var project = await fallbackService.RequireOwnedProjectAsync(userId, projectId, cancellationToken);
-        MockAiMatchingService.EnsureProjectSupportsMatching(project);
-        await fallbackService.EnsureMatchingEntitlementAsync(userId, cancellationToken);
-
-        var candidates = await fallbackService.LoadCandidatesAsync(projectId, cancellationToken);
-        if (candidates.Count == 0)
-        {
-            return new MatchStudentsForProjectResponse(
-                project.Id,
-                project.Title,
-                "OpenAI",
-                ["Chưa có dữ liệu sinh viên phù hợp để gợi ý cho dự án này."],
-                []);
         }
 
         try
         {
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "responses");
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
-            httpRequest.Content = JsonContent.Create(BuildRequestPayload(project, candidates, request, options.Model));
+            httpRequest.Content = JsonContent.Create(BuildRequestPayload(request, options.Model));
 
             using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -61,15 +42,13 @@ public sealed class OpenAiMatchingService(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning(
-                    "OpenAI AI matching request failed with status {StatusCode}: {Response}",
+                    "OpenAI AI matching rerank failed with status {StatusCode}: {Response}",
                     response.StatusCode,
                     responseJson);
 
                 return await HandleFallbackAsync(
-                    userId,
-                    projectId,
                     request,
-                    "OpenAI đang không phản hồi thành công; hệ thống đang dùng matching fallback.",
+                    "Dang tam thoi dung che do goi y du phong do AI rerank khong phan hoi on dinh.",
                     cancellationToken);
             }
 
@@ -77,38 +56,20 @@ public sealed class OpenAiMatchingService(
             var suggestion = JsonSerializer.Deserialize<OpenAiMatchingResponse>(outputText, SerializerOptions)
                 ?? throw new InvalidOperationException("OpenAI returned an empty matching payload.");
 
-            ValidateSuggestion(suggestion, candidates);
+            ValidateSuggestion(suggestion, request.Candidates);
 
-            var candidateMap = candidates.ToDictionary(value => value.StudentProfileId);
-            var recommendations = suggestion.Recommendations
-                .Take(Math.Clamp(request.MaxResults ?? 5, 1, 10))
-                .Select(value =>
-                {
-                    var candidate = candidateMap[value.StudentProfileId];
-                    return new StudentMatchRecommendationResponse(
-                        candidate.StudentProfileId,
-                        candidate.StudentUserId,
-                        candidate.StudentFullName,
-                        candidate.School,
-                        candidate.Major,
-                        candidate.Bio,
-                        candidate.VerificationStatus,
-                        candidate.AverageRating,
-                        candidate.CompletedProjectsCount,
-                        candidate.HasAppliedToProject,
-                        candidate.ProposedPrice,
+            return new AiMatchingRerankerResponse(
+                "OpenAI",
+                suggestion.Warnings.Where(value => !string.IsNullOrWhiteSpace(value)).Distinct().ToList(),
+                suggestion.Recommendations
+                    .Take(request.MaxResults)
+                    .Select(value => new AiMatchingRerankedCandidate(
+                        value.StudentProfileId,
                         Math.Clamp(value.MatchScore, 1, 100),
                         value.Reasons.Where(reason => !string.IsNullOrWhiteSpace(reason)).Distinct().Take(4).ToList(),
-                        value.Warnings.Where(warning => !string.IsNullOrWhiteSpace(warning)).Distinct().Take(4).ToList());
-                })
-                .ToList();
-
-            return new MatchStudentsForProjectResponse(
-                project.Id,
-                project.Title,
-                "OpenAI",
-                suggestion.Warnings.Where(warning => !string.IsNullOrWhiteSpace(warning)).Distinct().ToList(),
-                recommendations);
+                        value.MissingDataWarnings.Where(warning => !string.IsNullOrWhiteSpace(warning)).Distinct().Take(4).ToList(),
+                        value.FitWarnings.Where(warning => !string.IsNullOrWhiteSpace(warning)).Distinct().Take(4).ToList()))
+                    .ToList());
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -116,20 +77,16 @@ public sealed class OpenAiMatchingService(
         }
         catch (Exception exception)
         {
-            logger.LogWarning(exception, "OpenAI AI matching failed for project {ProjectId}.", projectId);
+            logger.LogWarning(exception, "OpenAI AI matching rerank failed for project {ProjectId}.", request.Project.ProjectId);
             return await HandleFallbackAsync(
-                userId,
-                projectId,
                 request,
-                "OpenAI gặp lỗi khi xếp hạng matching; hệ thống đang dùng fallback để tránh gián đoạn.",
+                "Dang tam thoi dung che do goi y du phong de tranh gian doan.",
                 cancellationToken);
         }
     }
 
-    private async Task<MatchStudentsForProjectResponse> HandleFallbackAsync(
-        Guid userId,
-        Guid projectId,
-        MatchStudentsForProjectRequest request,
+    private async Task<AiMatchingRerankerResponse> HandleFallbackAsync(
+        AiMatchingRerankerRequest request,
         string warning,
         CancellationToken cancellationToken)
     {
@@ -138,18 +95,14 @@ public sealed class OpenAiMatchingService(
             throw new InvalidOperationException(warning);
         }
 
-        var fallback = await fallbackService.MatchStudentsForProjectAsync(userId, projectId, request, cancellationToken);
+        var fallback = await fallbackService.RerankAsync(request, cancellationToken);
         return fallback with
         {
             Warnings = fallback.Warnings.Concat([warning]).Distinct().ToList()
         };
     }
 
-    private static object BuildRequestPayload(
-        Domain.Entities.Project project,
-        IReadOnlyList<MockAiMatchingService.StudentCandidateModel> candidates,
-        MatchStudentsForProjectRequest request,
-        string model)
+    private static object BuildRequestPayload(AiMatchingRerankerRequest request, string model)
     {
         return new
         {
@@ -166,34 +119,31 @@ public sealed class OpenAiMatchingService(
                     role = "user",
                     content = JsonSerializer.Serialize(new
                     {
-                        project = new
+                        mode = request.Mode,
+                        maxResults = request.MaxResults,
+                        project = request.Project,
+                        candidates = request.Candidates.Select(candidate => new
                         {
-                            project.Id,
-                            project.Title,
-                            project.Brief,
-                            project.UsagePurpose,
-                            project.BudgetAmount,
-                            project.Currency,
-                            project.SketchDeadlineAt,
-                            project.FinalDeadlineAt,
-                            project.TotalDeadlineAt,
-                            project.ProjectType,
-                            project.Status
-                        },
-                        maxResults = Math.Clamp(request.MaxResults ?? 5, 1, 10),
-                        candidates = candidates.Select(value => new
-                        {
-                            value.StudentProfileId,
-                            value.StudentFullName,
-                            value.School,
-                            value.Major,
-                            value.Bio,
-                            value.VerificationStatus,
-                            value.AverageRating,
-                            value.CompletedProjectsCount,
-                            value.HasAppliedToProject,
-                            value.ProposedPrice
-                        })
+                            candidate.StudentProfileId,
+                            candidate.StudentFullName,
+                            candidate.School,
+                            candidate.Major,
+                            candidate.Bio,
+                            candidate.VerificationStatus,
+                            candidate.AverageRating,
+                            candidate.CompletedProjectsCount,
+                            candidate.HasAppliedToProject,
+                            candidate.ProposedPrice,
+                            candidate.BaseScore,
+                            candidate.MatchTier,
+                            candidate.Reasons,
+                            candidate.ReasonGroups,
+                            candidate.MissingDataWarnings,
+                            candidate.FitWarnings,
+                            candidate.MatchedSkillNames,
+                            candidate.MatchedPortfolioHighlights,
+                            candidate.ProfileCompleteness
+                        }),
                     }, SerializerOptions)
                 }
             },
@@ -202,12 +152,12 @@ public sealed class OpenAiMatchingService(
                 format = new
                 {
                     type = "json_schema",
-                    name = "d4u_sme_student_matching",
+                    name = "d4u_sme_student_matching_v2",
                     strict = true,
                     schema = BuildResponseSchema()
                 }
             },
-            max_output_tokens = 1800
+            max_output_tokens = 2200
         };
     }
 
@@ -229,12 +179,12 @@ public sealed class OpenAiMatchingService(
                 {
                     type = "array",
                     minItems = 1,
-                    maxItems = 10,
+                    maxItems = 15,
                     items = new
                     {
                         type = "object",
                         additionalProperties = false,
-                        required = new[] { "studentProfileId", "matchScore", "reasons", "warnings" },
+                        required = new[] { "studentProfileId", "matchScore", "reasons", "missingDataWarnings", "fitWarnings" },
                         properties = new Dictionary<string, object>
                         {
                             ["studentProfileId"] = new { type = "string", format = "uuid" },
@@ -246,7 +196,12 @@ public sealed class OpenAiMatchingService(
                                 maxItems = 4,
                                 items = new { type = "string" }
                             },
-                            ["warnings"] = new
+                            ["missingDataWarnings"] = new
+                            {
+                                type = "array",
+                                items = new { type = "string" }
+                            },
+                            ["fitWarnings"] = new
                             {
                                 type = "array",
                                 items = new { type = "string" }
@@ -295,7 +250,7 @@ public sealed class OpenAiMatchingService(
 
     private static void ValidateSuggestion(
         OpenAiMatchingResponse suggestion,
-        IReadOnlyList<MockAiMatchingService.StudentCandidateModel> candidates)
+        IReadOnlyList<MatchingCandidateEvaluation> candidates)
     {
         if (suggestion.Recommendations.Count == 0)
         {
@@ -325,19 +280,20 @@ public sealed class OpenAiMatchingService(
         Guid StudentProfileId,
         int MatchScore,
         IReadOnlyList<string> Reasons,
-        IReadOnlyList<string> Warnings);
+        IReadOnlyList<string> MissingDataWarnings,
+        IReadOnlyList<string> FitWarnings);
 
     private const string SystemPrompt =
         """
-        Bạn là AI Matching cho D4U, một marketplace kết nối SME với Student Designer.
+        Ban la AI Matching cho D4U.
 
-        Nhiệm vụ:
-        - Xếp hạng danh sách student phù hợp cho dự án của SME.
-        - Chỉ đưa ra gợi ý, không tự động mời, không tự động chọn, không tự động định giá.
-        - Luôn trả về JSON hợp lệ theo schema.
-        - Sử dụng score 1..100, score cao hơn nghĩa là phù hợp hơn.
-        - Ưu tiên candidate đã ứng tuyển, đã xác thực, có rating tốt, có lịch sử hoàn thành dự án, và phù hợp với budget/timeline.
-        - Nếu dữ liệu còn thiếu, đưa cảnh báo vào warnings thay vì bịa thêm.
-        - Viết reasons/warnings ngắn gọn, rõ nghĩa, bằng tiếng Việt có dấu.
+        Nhiem vu:
+        - Rerank nhe top candidate cho project cua SME.
+        - Khong tu dong moi, khong tu dong chon, khong tu dong bao gia.
+        - Du lieu base score va reason groups da co san; ban chi duoc phep tinh chinh score va viet lai ly do ngan gon, ro nghia.
+        - Uu tien do khop category, ky nang, portfolio cong khai, tin hieu da ung tuyen, va muc do day du ho so.
+        - Neu du lieu con thieu, dua vao missingDataWarnings thay vi suy doan.
+        - Luon tra ve JSON hop le theo schema.
+        - Viet reasons va warnings bang tieng Viet co dau.
         """;
 }

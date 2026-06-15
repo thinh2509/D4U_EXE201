@@ -275,49 +275,109 @@ public sealed partial class StudentCapabilityService(IUnitOfWork unitOfWork) : I
         Guid? designCategoryId = null,
         CancellationToken cancellationToken = default)
     {
-        var profile = await RequireStudentProfileAsync(studentProfileId, cancellationToken);
-        var user = await RequireUserAsync(profile.UserId, cancellationToken);
-        var skills = await ListSkillsByProfileIdAsync(studentProfileId, cancellationToken);
+        var summaries = await GetStudentCapabilitySummariesAsync([studentProfileId], designCategoryId, cancellationToken);
+        return summaries.TryGetValue(studentProfileId, out var summary)
+            ? summary
+            : throw new InvalidOperationException("Student capability summary was not found.");
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, StudentCapabilitySummaryResponse>> GetStudentCapabilitySummariesAsync(
+        IReadOnlyList<Guid> studentProfileIds,
+        Guid? designCategoryId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedIds = studentProfileIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (normalizedIds.Count == 0)
+        {
+            return new Dictionary<Guid, StudentCapabilitySummaryResponse>();
+        }
+
+        var profiles = await unitOfWork.Repository<StudentProfile>().Query()
+            .Where(profile => normalizedIds.Contains(profile.Id))
+            .ToListAsync(cancellationToken);
+
+        if (profiles.Count == 0)
+        {
+            return new Dictionary<Guid, StudentCapabilitySummaryResponse>();
+        }
+
+        var userIds = profiles
+            .Select(profile => profile.UserId)
+            .Distinct()
+            .ToList();
+
+        var users = await unitOfWork.Repository<User>().Query()
+            .Where(user => userIds.Contains(user.Id))
+            .ToDictionaryAsync(user => user.Id, cancellationToken);
+
+        var skills = await unitOfWork.Repository<StudentSkill>().Query()
+            .Where(skill => normalizedIds.Contains(skill.StudentProfileId))
+            .OrderByDescending(skill => skill.IsHighlighted)
+            .ThenBy(skill => skill.SkillName)
+            .Select(skill => new StudentSkillResponse(
+                skill.Id,
+                skill.StudentProfileId,
+                skill.SkillName,
+                skill.Level,
+                skill.YearsOfExperience,
+                skill.ExperienceNote,
+                skill.IsHighlighted,
+                skill.CreatedAt,
+                skill.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
         var publicPortfolio = await BuildPortfolioResponsesAsync(
-            studentProfileId,
+            normalizedIds,
             [PortfolioItemStatus.PUBLIC],
+            null,
             cancellationToken);
 
-        var relatedSkills = designCategoryId.HasValue
-            ? publicPortfolio
-                .Where(item => item.DesignCategoryId == designCategoryId.Value)
-                .SelectMany(item => item.SkillsUsed)
-                .GroupBy(item => item.Id)
-                .Select(group => new StudentSkillResponse(
-                    group.First().Id,
-                    studentProfileId,
-                    group.First().SkillName,
-                    group.First().Level,
-                    skills.FirstOrDefault(skill => skill.Id == group.Key)?.YearsOfExperience,
-                    skills.FirstOrDefault(skill => skill.Id == group.Key)?.ExperienceNote,
-                    group.First().IsHighlighted,
-                    skills.FirstOrDefault(skill => skill.Id == group.Key)?.CreatedAt ?? default,
-                    skills.FirstOrDefault(skill => skill.Id == group.Key)?.UpdatedAt ?? default))
-                .ToList()
-            : [];
+        var skillsByProfile = skills
+            .GroupBy(skill => skill.StudentProfileId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<StudentSkillResponse>)group.ToList());
 
-        return new StudentCapabilitySummaryResponse(
-            studentProfileId,
-            new StudentBasicProfileSummaryResponse(
+        var portfolioByProfile = publicPortfolio
+            .GroupBy(item => item.StudentProfileId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<StudentPortfolioItemResponse>)group.ToList());
+
+        var summaries = new Dictionary<Guid, StudentCapabilitySummaryResponse>(profiles.Count);
+        foreach (var profile in profiles)
+        {
+            if (!users.TryGetValue(profile.UserId, out var user))
+            {
+                continue;
+            }
+
+            var profileSkills = skillsByProfile.TryGetValue(profile.Id, out var studentSkills) ? studentSkills : [];
+            var profilePortfolio = portfolioByProfile.TryGetValue(profile.Id, out var portfolioItems) ? portfolioItems : [];
+            var relatedSkills = BuildRelatedSkills(profile.Id, profileSkills, profilePortfolio, designCategoryId);
+
+            summaries[profile.Id] = new StudentCapabilitySummaryResponse(
                 profile.Id,
-                user.Id,
-                user.FullName,
-                profile.School,
-                profile.Major,
-                profile.Bio,
-                profile.VerificationStatus,
-                profile.AverageRating,
-                profile.CompletedProjectsCount),
-            BuildSkillsSummary(skills),
-            BuildPortfolioSummary(publicPortfolio),
-            skills.Where(skill => skill.IsHighlighted).ToList(),
-            publicPortfolio.Where(item => item.IsFeatured).ToList(),
-            relatedSkills);
+                new StudentBasicProfileSummaryResponse(
+                    profile.Id,
+                    user.Id,
+                    user.FullName,
+                    profile.School,
+                    profile.Major,
+                    profile.Bio,
+                    profile.VerificationStatus,
+                    profile.AverageRating,
+                    profile.CompletedProjectsCount),
+                BuildSkillsSummary(profileSkills),
+                BuildPortfolioSummary(profilePortfolio),
+                profileSkills,
+                profilePortfolio,
+                profileSkills.Where(skill => skill.IsHighlighted).ToList(),
+                profilePortfolio.Where(item => item.IsFeatured).ToList(),
+                relatedSkills);
+        }
+
+        return summaries;
     }
 
     private async Task ReplacePortfolioSkillLinksAsync(
@@ -467,21 +527,30 @@ public sealed partial class StudentCapabilityService(IUnitOfWork unitOfWork) : I
         PortfolioItemStatus[]? visibleStatuses,
         CancellationToken cancellationToken)
     {
-        return await BuildPortfolioResponsesAsync(studentProfileId, visibleStatuses, null, cancellationToken);
+        return await BuildPortfolioResponsesAsync(
+            studentProfileId.HasValue ? [studentProfileId.Value] : null,
+            visibleStatuses,
+            null,
+            cancellationToken);
     }
 
     private async Task<IReadOnlyList<StudentPortfolioItemResponse>> BuildPortfolioResponsesAsync(
-        Guid? studentProfileId,
+        IReadOnlyList<Guid>? studentProfileIds,
         PortfolioItemStatus[]? visibleStatuses,
         Guid? portfolioItemId,
         CancellationToken cancellationToken)
     {
+        var normalizedProfileIds = studentProfileIds?
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
         var itemsQuery =
             from item in unitOfWork.Repository<StudentPortfolioItem>().Query()
             join category in unitOfWork.Repository<DesignCategory>().Query()
                 on item.DesignCategoryId equals category.Id into categoryJoin
             from category in categoryJoin.DefaultIfEmpty()
-            where (!studentProfileId.HasValue || item.StudentProfileId == studentProfileId.Value) &&
+            where (normalizedProfileIds == null || normalizedProfileIds.Contains(item.StudentProfileId)) &&
                   (!portfolioItemId.HasValue || item.Id == portfolioItemId.Value) &&
                   (visibleStatuses == null || visibleStatuses.Contains(item.Status))
             orderby item.IsFeatured descending, item.UpdatedAt descending
@@ -558,6 +627,34 @@ public sealed partial class StudentCapabilityService(IUnitOfWork unitOfWork) : I
                 skill.CreatedAt,
                 skill.UpdatedAt))
             .ToListAsync(cancellationToken);
+    }
+
+    private static IReadOnlyList<StudentSkillResponse> BuildRelatedSkills(
+        Guid studentProfileId,
+        IReadOnlyList<StudentSkillResponse> skills,
+        IReadOnlyList<StudentPortfolioItemResponse> publicPortfolio,
+        Guid? designCategoryId)
+    {
+        if (!designCategoryId.HasValue)
+        {
+            return [];
+        }
+
+        return publicPortfolio
+            .Where(item => item.DesignCategoryId == designCategoryId.Value)
+            .SelectMany(item => item.SkillsUsed)
+            .GroupBy(item => item.Id)
+            .Select(group => new StudentSkillResponse(
+                group.First().Id,
+                studentProfileId,
+                group.First().SkillName,
+                group.First().Level,
+                skills.FirstOrDefault(skill => skill.Id == group.Key)?.YearsOfExperience,
+                skills.FirstOrDefault(skill => skill.Id == group.Key)?.ExperienceNote,
+                group.First().IsHighlighted,
+                skills.FirstOrDefault(skill => skill.Id == group.Key)?.CreatedAt ?? default,
+                skills.FirstOrDefault(skill => skill.Id == group.Key)?.UpdatedAt ?? default))
+            .ToList();
     }
 
     private async Task<StudentProfile> RequireActiveStudentOwnerProfileAsync(

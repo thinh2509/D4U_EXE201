@@ -40,6 +40,11 @@ import { formatCurrency, formatDate } from '../../utils/format.js';
 const { Paragraph, Title } = Typography;
 const ACTIVE_OFFER_STATUSES = ['WAITING_ACCEPTANCE', 'ACCEPTED', 'PENDING_PAYMENT', 'PAYMENT_FAILED', 'ACTIVE'];
 const AI_MATCHING_ELIGIBLE_PROJECT_STATUSES = ['DRAFT', 'OPEN', 'PRIVATE_INVITED'];
+const MATCHING_VIEW_OPTIONS = [
+  { key: 'ALL', label: 'Tat ca' },
+  { key: 'APPLIED', label: 'Da ung tuyen' },
+  { key: 'DISCOVER', label: 'Chua ung tuyen' }
+];
 
 function renderPrimaryCell(title, subtitle) {
   return (
@@ -161,6 +166,64 @@ function RecommendationReason({ reason }) {
   );
 }
 
+function getMatchTierCopy(tier) {
+  if (tier === 'STRONG') return { label: 'Rat phu hop', tone: 'success' };
+  if (tier === 'GOOD') return { label: 'Phu hop tot', tone: 'info' };
+  return { label: 'Can review', tone: 'warning' };
+}
+
+function buildMatchingProviderCopy(provider) {
+  if (provider === 'OpenAI') {
+    return 'Dang dung AI rerank de giai thich top candidate.';
+  }
+
+  return 'Dang dung che do goi y du phong tu du lieu ho so hien co.';
+}
+
+function MatchingFilterBar({ viewMode, onChange, result }) {
+  return (
+    <div className="flex flex-col gap-3 border-b border-d4u-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-semibold text-d4u-text-1">Danh sach goi y</p>
+        <p className="mt-1 text-sm text-d4u-text-3">{buildMatchingProviderCopy(result?.provider)}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {MATCHING_VIEW_OPTIONS.map((option) => (
+          <Button
+            key={option.key}
+            size="small"
+            type={viewMode === option.key ? 'primary' : 'default'}
+            className={viewMode === option.key
+              ? '!rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover'
+              : '!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep'}
+            onClick={() => onChange(option.key)}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MatchingResultSection({ title, description, items, renderItem }) {
+  if (!items?.length) return null;
+
+  return (
+    <section className="grid gap-4">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-semibold text-d4u-text-1">{title}</p>
+        {description ? <p className="text-sm text-d4u-text-3">{description}</p> : null}
+      </div>
+      <List
+        className="[&_.ant-list-item]:!border-0 [&_.ant-list-item]:!px-0 [&_.ant-list-item]:!pt-0 [&_.ant-list-item]:!pb-5 last:[&_.ant-list-item]:!pb-0"
+        dataSource={items}
+        renderItem={renderItem}
+      />
+    </section>
+  );
+}
+
 function ProjectSummaryHero({ project, activePackage }) {
   return (
     <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
@@ -213,11 +276,14 @@ function RecommendationCard({
   canCreateOffer,
   actingOfferStudentId,
   onOpenOfferModal,
+  onOpenProfile,
   onGoToOffers
 }) {
   const isTopMatch = index === 0;
   const isCreatingOffer = actingOfferStudentId === item.studentProfileId;
   const hasActiveOffer = Boolean(activeOffer);
+  const tierCopy = getMatchTierCopy(item.matchTier);
+  const primaryWarnings = [...(item.fitWarnings || []), ...(item.missingDataWarnings || [])].slice(0, 3);
 
   return (
     <Card
@@ -237,6 +303,7 @@ function RecommendationCard({
                   #{index + 1}
                 </PillBadge>
                 <ScoreBadge score={item.matchScore} />
+                <PillBadge tone={tierCopy.tone}>{tierCopy.label}</PillBadge>
                 {item.verificationStatus && item.verificationStatus !== 'UNVERIFIED' ? (
                   <PillBadge tone="success">
                     <SafetyCertificateOutlined />
@@ -288,12 +355,45 @@ function RecommendationCard({
             <MetricPill icon={<TeamOutlined />} label="Dự án đã xong" value={`${item.completedProjectsCount ?? 0} dự án`} />
           </div>
 
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Do day du ho so</p>
+              <p className="mt-2 text-2xl font-semibold text-d4u-teal-deep">{item.profileCompleteness ?? 0}%</p>
+              <p className="mt-1 text-sm text-d4u-text-3">Tong hop tu bio, skills va portfolio cong khai.</p>
+            </div>
+            <div className="rounded-2xl border border-d4u-border bg-white/90 p-4 lg:col-span-2">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tin hieu nang luc</p>
+              {item.matchedSkillNames?.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {item.matchedSkillNames.slice(0, 6).map((skill) => (
+                    <PillBadge key={skill} tone="info">{skill}</PillBadge>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-d4u-text-2">
+                  He thong uu tien danh gia tu portfolio cong khai, muc do day du ho so va tin hieu ung tuyen hien co.
+                </p>
+              )}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tóm tắt hồ sơ</p>
             <Paragraph className="!mb-0 mt-2 !text-sm !leading-6 !text-d4u-text-2">
               {item.bio || 'Sinh viên chưa bổ sung phần giới thiệu chi tiết, nên hệ thống ưu tiên đánh giá từ trạng thái xác thực, lịch sử dự án và dữ liệu ứng tuyển hiện có.'}
             </Paragraph>
           </div>
+
+          {item.matchedPortfolioHighlights?.length ? (
+            <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tin hieu portfolio</p>
+              <ul className="mt-3 grid gap-2">
+                {item.matchedPortfolioHighlights.slice(0, 3).map((portfolio) => (
+                  <li key={portfolio} className="text-sm leading-6 text-d4u-text-2">{portfolio}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="rounded-block border border-d4u-cyan/15 bg-d4u-soft/75 p-4 sm:p-5">
             <div className="mb-3 flex items-center gap-2">
@@ -310,10 +410,14 @@ function RecommendationCard({
             </ul>
           </div>
 
-          {item.warnings?.length ? (
+          {primaryWarnings.length ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Cảnh báo dữ liệu</p>
-              <p className="mt-2 text-sm leading-6 text-amber-800">{item.warnings.join(' ')}</p>
+              <ul className="mt-2 grid gap-2">
+                {primaryWarnings.map((warning) => (
+                  <li key={warning} className="text-sm leading-6 text-amber-800">{warning}</li>
+                ))}
+              </ul>
             </div>
           ) : null}
 
@@ -326,7 +430,13 @@ function RecommendationCard({
                   : 'Bạn có thể gửi đề nghị trực tiếp từ AI Matching ngay cả khi student chưa ứng tuyển.'}
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:min-w-[220px]">
+            <div className="flex flex-col gap-3 sm:min-w-[240px]">
+              <Button
+                className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                onClick={() => onOpenProfile(item.studentProfileId)}
+              >
+                Xem ho so
+              </Button>
               <Button
                 type="primary"
                 className="!h-11 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
@@ -787,6 +897,7 @@ export function SmeAiMatchingLivePage() {
   const [running, setRunning] = useState(false);
   const [actingOfferStudentId, setActingOfferStudentId] = useState(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState(null);
+  const [viewMode, setViewMode] = useState('ALL');
   const [error, setError] = useState(null);
   const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
   const canUseAiMatching = useMemo(() => canUseAiMatchingForProject(project?.status), [project?.status]);
@@ -802,6 +913,63 @@ export function SmeAiMatchingLivePage() {
     ),
     [offers]
   );
+  const filteredRecommendations = useMemo(() => {
+    const recommendations = result?.recommendations || [];
+
+    if (viewMode === 'APPLIED') {
+      return recommendations.filter((item) => item.hasAppliedToProject);
+    }
+
+    if (viewMode === 'DISCOVER') {
+      return recommendations.filter((item) => !item.hasAppliedToProject);
+    }
+
+    return recommendations;
+  }, [result, viewMode]);
+  const recommendationSections = useMemo(() => {
+    if (viewMode === 'APPLIED') {
+      return [{
+        key: 'applied',
+        title: 'Da ung tuyen va dang duoc uu tien review',
+        description: 'Nhom candidate da chu dong nop application vao du an nay.',
+        items: filteredRecommendations
+      }];
+    }
+
+    if (viewMode === 'DISCOVER') {
+      return [{
+        key: 'discover',
+        title: 'Phu hop nhung chua ung tuyen',
+        description: 'Nhom candidate duoc mo rong tu marketplace de SME can nhac gui de nghi truc tiep.',
+        items: filteredRecommendations
+      }];
+    }
+
+    const topMatches = filteredRecommendations.slice(0, 3);
+    const topIds = new Set(topMatches.map((item) => item.studentProfileId));
+    const remaining = filteredRecommendations.filter((item) => !topIds.has(item.studentProfileId));
+
+    return [
+      {
+        key: 'top',
+        title: 'Top matches',
+        description: 'Danh sach uu tien cao nhat sau khi ket hop base scoring va AI rerank.',
+        items: topMatches
+      },
+      {
+        key: 'applied',
+        title: 'Da ung tuyen va phu hop',
+        description: 'Nhung student da nop ung tuyen va van duoc score tot.',
+        items: remaining.filter((item) => item.hasAppliedToProject)
+      },
+      {
+        key: 'discover',
+        title: 'Phu hop nhung chua ung tuyen',
+        description: 'SME co the mo rong candidate pool va gui de nghi truc tiep neu can.',
+        items: remaining.filter((item) => !item.hasAppliedToProject)
+      }
+    ].filter((section) => section.items.length > 0);
+  }, [filteredRecommendations, viewMode]);
 
   const loadContext = async () => {
     if (!projectId) {
@@ -1043,24 +1211,46 @@ export function SmeAiMatchingLivePage() {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         ) : (
-          <List
-            className="[&_.ant-list-item]:!border-0 [&_.ant-list-item]:!px-0 [&_.ant-list-item]:!pt-0 [&_.ant-list-item]:!pb-5 last:[&_.ant-list-item]:!pb-0"
-            dataSource={result.recommendations}
-            renderItem={(item, index) => (
-              <List.Item>
-                <RecommendationCard
-                  item={item}
-                  index={index}
-                  application={applicationByStudentId[item.studentProfileId] || null}
-                  activeOffer={activeOfferByStudentId[item.studentProfileId] || null}
-                  canCreateOffer={Boolean(activePackage && project && canUseAiMatching)}
-                  actingOfferStudentId={actingOfferStudentId}
-                  onOpenOfferModal={openOfferModal}
-                  onGoToOffers={() => navigate('/sme/offers')}
-                />
-              </List.Item>
+          <div className="grid gap-6">
+            <MatchingFilterBar viewMode={viewMode} onChange={setViewMode} result={result} />
+
+            {result.warnings?.length ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Luu y he thong</p>
+                <ul className="mt-2 grid gap-2">
+                  {result.warnings.slice(0, 3).map((warning) => (
+                    <li key={warning} className="text-sm leading-6 text-amber-800">{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {recommendationSections.length ? recommendationSections.map((section) => (
+              <MatchingResultSection
+                key={section.key}
+                title={section.title}
+                description={section.description}
+                items={section.items}
+                renderItem={(item, index) => (
+                  <List.Item>
+                    <RecommendationCard
+                      item={item}
+                      index={index}
+                      application={applicationByStudentId[item.studentProfileId] || null}
+                      activeOffer={activeOfferByStudentId[item.studentProfileId] || null}
+                      canCreateOffer={Boolean(activePackage && project && canUseAiMatching)}
+                      actingOfferStudentId={actingOfferStudentId}
+                      onOpenOfferModal={openOfferModal}
+                      onOpenProfile={(studentProfileId) => navigate(`/sme/students/${studentProfileId}`)}
+                      onGoToOffers={() => navigate('/sme/offers')}
+                    />
+                  </List.Item>
+                )}
+              />
+            )) : (
+              <Empty description="Khong co candidate nao phu hop voi bo loc hien tai." image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
-          />
+          </div>
         )}
       </Card>
 

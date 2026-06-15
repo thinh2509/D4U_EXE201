@@ -85,6 +85,9 @@ public static class DependencyInjection
         services.AddScoped<MockAiProjectBriefAssistant>();
         services.AddScoped<MockAiMatchingService>();
         services.AddScoped<MockAiProposalGenerator>();
+        services.AddScoped<IMatchingCandidateBuilder, MatchingCandidateBuilder>();
+        services.AddScoped<IMatchingScoringService, MatchingScoringService>();
+        services.AddScoped<IAiMatchingService, AiMatchingService>();
         services.AddHttpClient<OpenAiProjectBriefAssistant>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IConfiguration>()
@@ -122,7 +125,7 @@ public static class DependencyInjection
                 ? serviceProvider.GetRequiredService<OpenAiProjectBriefAssistant>()
                 : serviceProvider.GetRequiredService<MockAiProjectBriefAssistant>();
         });
-        services.AddScoped<IAiMatchingService>(serviceProvider =>
+        services.AddScoped<IAiMatchingReranker>(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IConfiguration>()
                 .GetSection(AiOptions.SectionName)

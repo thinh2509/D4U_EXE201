@@ -1,7 +1,14 @@
 namespace D4U.Api.Application.Features.Ai;
 
 public sealed record MatchStudentsForProjectRequest(
-    int? MaxResults);
+    int? MaxResults,
+    string? Mode = null);
+
+public sealed record MatchReasonGroupsResponse(
+    IReadOnlyList<string> Skills,
+    IReadOnlyList<string> Portfolio,
+    IReadOnlyList<string> Trust,
+    IReadOnlyList<string> Application);
 
 public sealed record StudentMatchRecommendationResponse(
     Guid StudentProfileId,
@@ -16,8 +23,14 @@ public sealed record StudentMatchRecommendationResponse(
     bool HasAppliedToProject,
     decimal? ProposedPrice,
     int MatchScore,
+    string MatchTier,
     IReadOnlyList<string> Reasons,
-    IReadOnlyList<string> MissingDataWarnings);
+    MatchReasonGroupsResponse ReasonGroups,
+    IReadOnlyList<string> MissingDataWarnings,
+    IReadOnlyList<string> FitWarnings,
+    IReadOnlyList<string> MatchedSkillNames,
+    IReadOnlyList<string> MatchedPortfolioHighlights,
+    int ProfileCompleteness);
 
 public sealed record MatchStudentsForProjectResponse(
     Guid ProjectId,

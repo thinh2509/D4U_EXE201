@@ -91,6 +91,8 @@ public sealed record StudentCapabilitySummaryResponse(
     StudentBasicProfileSummaryResponse BasicProfileSummary,
     string SkillsSummary,
     string PortfolioSummary,
+    IReadOnlyList<StudentSkillResponse> PublicSkills,
+    IReadOnlyList<StudentPortfolioItemResponse> PublicPortfolio,
     IReadOnlyList<StudentSkillResponse> HighlightedSkills,
     IReadOnlyList<StudentPortfolioItemResponse> FeaturedPortfolio,
     IReadOnlyList<StudentSkillResponse> RelatedSkillsByCategory);
