@@ -283,6 +283,24 @@ function renderBillingRule(profile, activePackage) {
   return 'Gói Free cho phép tối đa 2 dự án đang mở và không giới hạn thời gian sử dụng.';
 }
 
+function getSmeBillingPackageDisplayName(pkg) {
+  if (!pkg) return 'Gói SME 30 ngày';
+  if (pkg.code === 'SME_GROWTH_30D') return 'SME Growth 30 ngày';
+  return pkg.name;
+}
+
+function getSmeBillingPackageDescription(pkg) {
+  if (!pkg) {
+    return 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
+  }
+
+  if (pkg.code === 'SME_GROWTH_30D') {
+    return 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
+  }
+
+  return pkg.description || 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
+}
+
 function shouldShowBillingRetryPurchase(purchase) {
   return Boolean(purchase && ['PENDING', 'FAILED'].includes(purchase.paymentStatus));
 }
@@ -361,10 +379,10 @@ function SmePlanPackageCard({
           <PillBadge tone="neutral">{pkg.durationDays} ngày</PillBadge>
         </div>
         <Title level={4} className="!mb-1 !mt-3 !font-display !text-[26px] !font-bold !tracking-tight !text-d4u-teal-deep">
-          {pkg.name}
+          {getSmeBillingPackageDisplayName(pkg)}
         </Title>
         <Paragraph className="!mb-0 !text-[15px] !leading-7 !text-d4u-text-2">
-          {pkg.description || 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.'}
+          {getSmeBillingPackageDescription(pkg)}
         </Paragraph>
       </div>
 
