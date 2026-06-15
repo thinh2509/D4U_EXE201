@@ -1,6 +1,7 @@
 import { apiClient } from './apiClient';
 
 export const adminApi = {
+  getDashboardStats: () => apiClient.get('/admin/dashboard/stats'),
   listStudentVerifications: (status) =>
     apiClient.get('/admin/student-verifications', {
       params: status && status !== 'ALL' ? { status } : undefined

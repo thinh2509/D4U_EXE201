@@ -5,6 +5,7 @@ using System.Text;
 using D4U.Api.Application.Common.Data;
 using D4U.Api.Application.Common.Files;
 using D4U.Api.Application.Common.Security;
+using D4U.Api.Application.Features.Admin;
 using D4U.Api.Application.Features.Ai;
 using D4U.Api.Application.Features.Auth;
 using D4U.Api.Application.Features.FeaturePackages;
@@ -146,6 +147,7 @@ public static class DependencyInjection
                 : serviceProvider.GetRequiredService<MockAiProposalGenerator>();
         });
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
         services.AddScoped<IFeaturePackageService, FeaturePackageService>();
         services.AddScoped<IFeatureEntitlementService, FeatureEntitlementService>();
         services.AddScoped<IProfileService, ProfileService>();

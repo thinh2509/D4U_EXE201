@@ -20,9 +20,11 @@ import { PageHeader } from '../../components/PageHeader.jsx';
 import { DataPanel, PageShell } from '../../components/PageShell.jsx';
 import { BackendGapState, ErrorState } from '../../components/StateViews.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { adminApi } from '../../services/adminApi.js';
 import { profileApi } from '../../services/profileApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+import { formatCurrency, formatDate } from '../../utils/format.js';
 
 const approvedStatuses = new Set(['APPROVED', 'VERIFIED']);
 
@@ -304,6 +306,10 @@ async function loadSmeDashboard() {
   return { profile, projects, applications, offers };
 }
 
+async function loadAdminDashboard() {
+  return await adminApi.getDashboardStats();
+}
+
 function DashboardSkeleton() {
   return (
     <PageShell size="wide" density="relaxed">
@@ -389,6 +395,237 @@ function OperationalDashboard({ content, data, onNavigate }) {
   );
 }
 
+function getAdminStatusTag(status) {
+  const colorMap = {
+    PENDING: 'gold',
+    PROCESSING: 'blue',
+    ACTIVE: 'green',
+    APPROVED: 'green',
+    SUCCESS: 'green',
+    FAILED: 'red',
+    REJECTED: 'red',
+    CANCELLED: 'default',
+    EXPIRED: 'default'
+  };
+
+  return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
+}
+
+function AdminRecentList({ title, description, actionLabel, actionPath, items, renderItem, onNavigate }) {
+  return (
+    <DataPanel
+      title={title}
+      description={description}
+      extra={(
+        <Button onClick={() => onNavigate(actionPath)}>
+          {actionLabel}
+        </Button>
+      )}
+    >
+      {items.length > 0 ? (
+        <div className="grid gap-3">
+          {items.map((item) => (
+            <article key={item.id} className="rounded-card border border-d4u-border/80 bg-d4u-soft/45 p-4">
+              {renderItem(item)}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-card border border-dashed border-d4u-border bg-d4u-soft/35 p-6 text-sm text-d4u-text-2">
+          Chưa có dữ liệu gần đây.
+        </div>
+      )}
+    </DataPanel>
+  );
+}
+
+function AdminDashboard({ content, data, onNavigate }) {
+  const summaryMetrics = [
+    {
+      label: 'Tổng người dùng',
+      value: data.summary.totalUsers,
+      helper: `${data.summary.totalStudents} Student • ${data.summary.totalSmes} SME`
+    },
+    {
+      label: 'Tổng dự án',
+      value: data.summary.totalProjects,
+      helper: `${data.summary.openProjects} đang mở • ${data.summary.completedProjects} đã hoàn thành`
+    },
+    {
+      label: 'Việc cần xử lý',
+      value: data.actions.needsAttentionCount,
+      helper: 'Tổng các hàng đợi đang chờ admin xử lý'
+    },
+    {
+      label: 'Gói trả phí',
+      value: data.packages.totalPurchases,
+      helper: `${data.packages.pendingPurchases} chờ • ${data.packages.activePurchases} đang hoạt động`
+    }
+  ];
+
+  const queueCards = [
+    {
+      label: 'Xác thực chờ duyệt',
+      value: data.queues.pendingVerifications,
+      helper: 'Đi tới màn duyệt xác thực sinh viên',
+      path: '/admin/verifications'
+    },
+    {
+      label: 'Rút tiền chờ xử lý',
+      value: data.queues.pendingWithdrawals,
+      helper: 'Các yêu cầu mới cần admin nhận xử lý',
+      path: '/admin/withdrawals'
+    },
+    {
+      label: 'Rút tiền đang xử lý',
+      value: data.queues.processingWithdrawals,
+      helper: 'Các yêu cầu đang chờ xác nhận chuyển khoản',
+      path: '/admin/withdrawals'
+    },
+    {
+      label: 'Refund chờ hoàn',
+      value: data.queues.pendingRefunds,
+      helper: 'Refund thủ công SME đang chờ cập nhật',
+      path: '/admin/withdrawals'
+    },
+    {
+      label: 'Mua gói chờ xác nhận',
+      value: data.queues.pendingPackagePurchases,
+      helper: 'Theo dõi thanh toán gói và entitlement',
+      path: '/admin/package-support'
+    }
+  ];
+
+  return (
+    <PageShell size="wide" density="relaxed">
+      <PageHeader
+        icon={<DashboardOutlined />}
+        eyebrow={content.label}
+        title="Tổng quan vận hành"
+        description="Theo dõi các hàng đợi cần xử lý và snapshot hiện tại của hệ thống admin mà không cần mở từng màn hình riêng lẻ."
+        extra={<Button type="primary" onClick={() => onNavigate('/admin/verifications')}>Duyệt xác thực</Button>}
+      />
+
+      <DataPanel>
+        <div className="dashboard-hero-copy">
+          <Tag color="cyan">{content.label}</Tag>
+          <h2>{content.title}</h2>
+          <p>{content.description}</p>
+          <div className="dashboard-insight">
+            <span>Ưu tiên hôm nay</span>
+            <strong>{content.insight}</strong>
+          </div>
+        </div>
+      </DataPanel>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {summaryMetrics.map((metric) => (
+          <article key={metric.label} className="grid gap-3 rounded-card border border-d4u-border/80 bg-white/92 p-5 shadow-soft">
+            <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-d4u-text-3">{metric.label}</span>
+            <strong className="text-[26px] font-semibold leading-none text-d4u-text-1">{metric.value}</strong>
+            <p className="text-sm leading-6 text-d4u-text-2">{metric.helper}</p>
+          </article>
+        ))}
+      </section>
+
+      <DataPanel title="Hàng đợi vận hành" description="Mở thẳng các màn cần xử lý khi số lượng đang tăng.">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          {queueCards.map((card) => (
+            <button
+              key={card.label}
+              type="button"
+              className="grid gap-2 rounded-card border border-d4u-border/80 bg-d4u-soft/35 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:bg-white"
+              onClick={() => onNavigate(card.path)}
+            >
+              <span className="text-xs font-bold uppercase tracking-[0.05em] text-d4u-text-3">{card.label}</span>
+              <strong className="text-[28px] font-semibold leading-none text-d4u-teal-deep">{card.value}</strong>
+              <p className="text-sm leading-6 text-d4u-text-2">{card.helper}</p>
+            </button>
+          ))}
+        </div>
+      </DataPanel>
+
+      <DataPanel title="Snapshot gói & thanh toán" description="Tóm tắt nhanh tình trạng mua gói hiện tại.">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            ['Tổng lượt mua gói', data.packages.totalPurchases],
+            ['Gói đang hoạt động', data.packages.activePurchases],
+            ['Chờ xác nhận', data.packages.pendingPurchases],
+            ['Thanh toán thất bại', data.packages.failedPurchases]
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-card border border-d4u-border/80 bg-white/92 p-4 shadow-soft">
+              <span className="text-xs font-bold uppercase tracking-[0.05em] text-d4u-text-3">{label}</span>
+              <strong className="mt-2 block text-2xl font-semibold leading-none text-d4u-text-1">{value}</strong>
+            </div>
+          ))}
+        </div>
+      </DataPanel>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <AdminRecentList
+          title="Xác thực mới nhất"
+          description="Ưu tiên hồ sơ sinh viên vừa gửi để không làm chậm luồng marketplace."
+          actionLabel="Mở duyệt xác thực"
+          actionPath="/admin/verifications"
+          items={data.recent.latestVerifications}
+          onNavigate={onNavigate}
+          renderItem={(item) => (
+            <div className="grid gap-1">
+              <div className="flex items-start justify-between gap-3">
+                <strong className="text-sm text-d4u-text-1">{item.studentFullName}</strong>
+                {getAdminStatusTag(item.status)}
+              </div>
+              <span className="text-sm text-d4u-text-2">{item.school || 'Chưa có trường học'}</span>
+              <span className="text-xs text-d4u-text-3">Gửi lúc {formatDate(item.submittedAt)}</span>
+            </div>
+          )}
+        />
+
+        <AdminRecentList
+          title="Yêu cầu rút tiền mới"
+          description="Theo dõi các yêu cầu rút tiền cần finance/admin xử lý thủ công."
+          actionLabel="Mở rút tiền"
+          actionPath="/admin/withdrawals"
+          items={data.recent.latestWithdrawals}
+          onNavigate={onNavigate}
+          renderItem={(item) => (
+            <div className="grid gap-1">
+              <div className="flex items-start justify-between gap-3">
+                <strong className="text-sm text-d4u-text-1">{item.studentFullName}</strong>
+                {getAdminStatusTag(item.status)}
+              </div>
+              <span className="text-sm font-semibold text-d4u-teal-deep">{formatCurrency(item.amount, 'VND')}</span>
+              <span className="text-xs text-d4u-text-3">Tạo lúc {formatDate(item.createdAt)}</span>
+            </div>
+          )}
+        />
+
+        <AdminRecentList
+          title="Mua gói gần nhất"
+          description="Giúp admin nhìn nhanh các giao dịch gói đang phát sinh."
+          actionLabel="Mở package support"
+          actionPath="/admin/package-support"
+          items={data.recent.latestPackagePurchases}
+          onNavigate={onNavigate}
+          renderItem={(item) => (
+            <div className="grid gap-1">
+              <div className="flex items-start justify-between gap-3">
+                <strong className="text-sm text-d4u-text-1">{item.buyerName}</strong>
+                {getAdminStatusTag(item.status)}
+              </div>
+              <span className="text-sm text-d4u-text-2">{item.packageName}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {item.paymentStatus ? getAdminStatusTag(item.paymentStatus) : null}
+                <span className="text-xs text-d4u-text-3">Tạo lúc {formatDate(item.createdAt)}</span>
+              </div>
+            </div>
+          )}
+        />
+      </div>
+    </PageShell>
+  );
+}
+
 function buildOperationalReadinessModal(role, data) {
   if (role === 'STUDENT') {
     if (!data.profile) {
@@ -443,7 +680,8 @@ export function DashboardPage() {
   const role = user?.role || 'STUDENT';
   const content = dashboardContent[role] || dashboardContent.STUDENT;
   const isOperationalRole = useMemo(() => role === 'STUDENT' || role === 'SME', [role]);
-  const [loading, setLoading] = useState(isOperationalRole);
+  const isDataDrivenRole = useMemo(() => role === 'STUDENT' || role === 'SME' || role === 'ADMIN', [role]);
+  const [loading, setLoading] = useState(isDataDrivenRole);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
   const [reloadSeed, setReloadSeed] = useState(0);
@@ -451,7 +689,7 @@ export function DashboardPage() {
   const readinessModalKeyRef = useRef(null);
 
   useEffect(() => {
-    if (!isOperationalRole) return undefined;
+    if (!isDataDrivenRole) return undefined;
 
     let ignore = false;
 
@@ -461,7 +699,9 @@ export function DashboardPage() {
       try {
         const nextData = role === 'STUDENT'
           ? await loadStudentDashboard()
-          : await loadSmeDashboard();
+          : role === 'SME'
+            ? await loadSmeDashboard()
+            : await loadAdminDashboard();
 
         if (!ignore) {
           setData(nextData);
@@ -481,7 +721,7 @@ export function DashboardPage() {
     return () => {
       ignore = true;
     };
-  }, [isOperationalRole, reloadSeed, role]);
+  }, [isDataDrivenRole, reloadSeed, role]);
 
   useEffect(() => {
     if (!isOperationalRole || !data) return;
@@ -499,8 +739,8 @@ export function DashboardPage() {
     }
   }, [data, isOperationalRole, role]);
 
-  if (isOperationalRole && loading) return <DashboardSkeleton />;
-  if (isOperationalRole && error) {
+  if (isDataDrivenRole && loading) return <DashboardSkeleton />;
+  if (isDataDrivenRole && error) {
     return (
       <ErrorState
         title="Không thể tải dashboard"
@@ -508,6 +748,10 @@ export function DashboardPage() {
         onRetry={() => setReloadSeed((current) => current + 1)}
       />
     );
+  }
+
+  if (role === 'ADMIN' && data) {
+    return <AdminDashboard content={content} data={data} onNavigate={navigate} />;
   }
 
   if (isOperationalRole && data) {
