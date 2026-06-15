@@ -398,37 +398,33 @@ public sealed class ProjectService(
     {
         var user = await RequireUserAsync(userId, cancellationToken);
         var smeProfile = await RequireSmeProfileAsync(user, cancellationToken);
-
-        return await (
+        var projects = await (
             from project in unitOfWork.Repository<Project>().Query()
             join category in unitOfWork.Repository<DesignCategory>().Query()
                 on project.DesignCategoryId equals category.Id
             where project.SmeProfileId == smeProfile.Id
             orderby project.UpdatedAt descending
-            select new ProjectResponse(
-                project.Id,
-                project.SmeProfileId,
-                project.DesignCategoryId,
-                category.Name,
-                project.Title,
-                project.Brief,
-                project.UsagePurpose,
-                project.ProjectType,
-                project.Status,
-                project.BudgetAmount,
-                project.Currency,
-                project.TotalDeadlineAt,
-                project.SketchDeadlineAt,
-                project.FinalDeadlineAt,
-                project.CurrentRevisionRound,
-                project.IsConfidential,
-                project.AllowStudentPortfolio,
-                project.PublishedAt,
-                project.CreatedAt,
-                project.UpdatedAt,
-                false,
-                null))
+            select new { Project = project, Category = category })
             .ToListAsync(cancellationToken);
+
+        var ratingsByProjectId = await GetCurrentUserRatingsByProjectIdAsync(
+            userId,
+            projects.Select(value => value.Project.Id).ToList(),
+            cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+
+        return projects
+            .Select(value => ToProjectResponse(
+                value.Project,
+                value.Category,
+                ratingState: BuildRatingState(
+                    value.Project,
+                    user.Role,
+                    isOwnerSme: true,
+                    isSelectedStudent: false,
+                    existingRating: ratingsByProjectId.GetValueOrDefault(value.Project.Id),
+                    now)))
+            .ToList();
     }
 
     public async Task<ProjectResponse> GetProjectAsync(
@@ -439,6 +435,9 @@ public sealed class ProjectService(
         var user = await RequireUserAsync(userId, cancellationToken);
         var project = await RequireProjectAsync(projectId, cancellationToken);
         StudentProfile? studentProfile = null;
+        SmeProfile? smeProfile = null;
+        var isOwnerSme = false;
+        var isSelectedStudent = false;
 
         if (user.Role == UserRole.STUDENT)
         {
@@ -449,12 +448,11 @@ public sealed class ProjectService(
 
         if (project.Status != ProjectStatus.OPEN)
         {
-            var isOwnerSme = false;
             var isRelatedStudent = false;
 
             if (user.Role == UserRole.SME)
             {
-                var smeProfile = await unitOfWork.Repository<SmeProfile>().FirstOrDefaultAsync(
+                smeProfile = await unitOfWork.Repository<SmeProfile>().FirstOrDefaultAsync(
                     profile => profile.UserId == userId,
                     cancellationToken);
 
@@ -488,10 +486,27 @@ public sealed class ProjectService(
                 application = await unitOfWork.Repository<ProjectApplication>().FirstOrDefaultAsync(
                     value => value.ProjectId == projectId && value.StudentProfileId == studentProfile.Id,
                     cancellationToken);
+                isSelectedStudent = project.SelectedStudentProfileId == studentProfile.Id;
             }
         }
+        else if (user.Role == UserRole.SME)
+        {
+            smeProfile ??= await unitOfWork.Repository<SmeProfile>().FirstOrDefaultAsync(
+                profile => profile.UserId == userId,
+                cancellationToken);
+            isOwnerSme = smeProfile?.Id == project.SmeProfileId;
+        }
 
-        return ToProjectResponse(project, category, application is not null, application?.Id);
+        var currentRating = await unitOfWork.Repository<Rating>().FirstOrDefaultAsync(
+            value => value.ProjectId == projectId && value.RaterUserId == userId,
+            cancellationToken);
+
+        return ToProjectResponse(
+            project,
+            category,
+            application is not null,
+            application?.Id,
+            BuildRatingState(project, user.Role, isOwnerSme, isSelectedStudent, currentRating, DateTimeOffset.UtcNow));
     }
 
     public async Task<ProjectApplicationResponse> SubmitApplicationAsync(
@@ -726,11 +741,21 @@ public sealed class ProjectService(
             .Where(value => value.StudentProfileId == studentProfile.Id && projectIds.Contains(value.ProjectId))
             .ToListAsync(cancellationToken);
         var escrowsByProjectId = escrows.ToDictionary(value => value.ProjectId);
+        var ratingsByProjectId = await GetCurrentUserRatingsByProjectIdAsync(userId, projectIds, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
 
         return projects
             .Select(project =>
             {
                 escrowsByProjectId.TryGetValue(project.Id, out var escrow);
+                var ratingState = BuildRatingState(
+                    project,
+                    user.Role,
+                    isOwnerSme: false,
+                    isSelectedStudent: true,
+                    existingRating: ratingsByProjectId.GetValueOrDefault(project.Id),
+                    now);
+
                 return new StudentProjectSummaryResponse(
                     project.Id,
                     project.Title,
@@ -740,7 +765,12 @@ public sealed class ProjectService(
                     project.TotalDeadlineAt,
                     project.AcceptedAt,
                     escrow?.Id,
-                    escrow?.Status);
+                    escrow?.Status,
+                    project.CompletedAt,
+                    project.RatingDueAt,
+                    ratingState.CanRate,
+                    ratingState.HasRated,
+                    ratingState.RatedAt);
             })
             .ToList();
     }
@@ -2183,8 +2213,11 @@ public sealed class ProjectService(
         Project project,
         DesignCategory category,
         bool hasApplied = false,
-        Guid? myApplicationId = null)
+        Guid? myApplicationId = null,
+        RatingStateSnapshot? ratingState = null)
     {
+        var effectiveRatingState = ratingState ?? RatingStateSnapshot.Empty;
+
         return new ProjectResponse(
             project.Id,
             project.SmeProfileId,
@@ -2207,7 +2240,75 @@ public sealed class ProjectService(
             project.CreatedAt,
             project.UpdatedAt,
             hasApplied,
-            myApplicationId);
+            myApplicationId,
+            project.CompletedAt,
+            project.RatingDueAt,
+            effectiveRatingState.CanRate,
+            effectiveRatingState.HasRated,
+            effectiveRatingState.RatedAt);
+    }
+
+    private async Task<Dictionary<Guid, Rating>> GetCurrentUserRatingsByProjectIdAsync(
+        Guid userId,
+        IReadOnlyCollection<Guid> projectIds,
+        CancellationToken cancellationToken)
+    {
+        if (projectIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await unitOfWork.Repository<Rating>().Query()
+            .Where(value => value.RaterUserId == userId && projectIds.Contains(value.ProjectId))
+            .GroupBy(value => value.ProjectId)
+            .ToDictionaryAsync(
+                group => group.Key,
+                group => group.OrderByDescending(value => value.CreatedAt).First(),
+                cancellationToken);
+    }
+
+    private static RatingStateSnapshot BuildRatingState(
+        Project project,
+        UserRole userRole,
+        bool isOwnerSme,
+        bool isSelectedStudent,
+        Rating? existingRating,
+        DateTimeOffset now)
+    {
+        var hasRated = existingRating is not null;
+        var ratedAt = existingRating?.CreatedAt;
+
+        if (project.Status != ProjectStatus.COMPLETED || !project.RatingDueAt.HasValue)
+        {
+            return new RatingStateSnapshot(false, hasRated, ratedAt);
+        }
+
+        if (hasRated)
+        {
+            return new RatingStateSnapshot(false, true, ratedAt);
+        }
+
+        if (project.RatingDueAt.Value <= now)
+        {
+            return new RatingStateSnapshot(false, false, null);
+        }
+
+        var canRate = userRole switch
+        {
+            UserRole.SME => isOwnerSme && project.SelectedStudentProfileId.HasValue,
+            UserRole.STUDENT => isSelectedStudent,
+            _ => false
+        };
+
+        return new RatingStateSnapshot(canRate, false, null);
+    }
+
+    private sealed record RatingStateSnapshot(
+        bool CanRate,
+        bool HasRated,
+        DateTimeOffset? RatedAt)
+    {
+        public static readonly RatingStateSnapshot Empty = new(false, false, null);
     }
 
     private static DateTimeOffset AddBusinessDays(DateTimeOffset start, int businessDays)

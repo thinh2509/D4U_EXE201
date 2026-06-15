@@ -1,29 +1,69 @@
-import { ReloadOutlined, StarOutlined } from '@ant-design/icons';
-import { App, Alert, Button, Card, Form, Input, Rate, Switch, Table, Tag } from 'antd';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { PageHeader } from '../../components/PageHeader.jsx';
-import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
-import { useAuth } from '../../contexts/AuthContext.jsx';
-import { projectApi } from '../../services/projectApi.js';
-import { ratingApi } from '../../services/ratingApi.js';
-import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatDate } from '../../utils/format.js';
+import { ReloadOutlined, StarOutlined } from "@ant-design/icons";
+import {
+  App,
+  Alert,
+  Button,
+  Card,
+  Form,
+  Input,
+  Rate,
+  Switch,
+  Table,
+  Tag,
+} from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { PageHeader } from "../../components/PageHeader.jsx";
+import { ErrorState, LoadingState } from "../../components/StateViews.jsx";
+import { useAuth } from "../../contexts/AuthContext.jsx";
+import { projectApi } from "../../services/projectApi.js";
+import { ratingApi } from "../../services/ratingApi.js";
+import { getApiErrorMessage } from "../../utils/apiError.js";
+import { formatDate } from "../../utils/format.js";
+import { getRatingStateMeta } from "../../utils/ratingState.js";
 
 function getRatingDirection(rating, userId) {
-  if (rating.raterUserId === userId) return <Tag color="blue">Bạn đã đánh giá</Tag>;
-  if (rating.ratedUserId === userId) return <Tag color="green">Bạn nhận được</Tag>;
+  if (rating.raterUserId === userId) {
+    return <Tag color="blue">Bạn đã đánh giá</Tag>;
+  }
+  if (rating.ratedUserId === userId) {
+    return <Tag color="green">Bạn nhận được</Tag>;
+  }
   return <Tag>Liên quan</Tag>;
 }
 
 function ratingColumns(userId) {
   return [
-    { title: 'Loại', render: (_, row) => getRatingDirection(row, userId) },
-    { title: 'Dự án', dataIndex: 'projectId', render: (value) => <span className="monospace-id">{value.slice(0, 8)}</span> },
-    { title: 'Điểm', dataIndex: 'ratingValue', render: (value) => <Rate disabled value={value} /> },
-    { title: 'Bình luận', dataIndex: 'comment', render: (value) => value || 'Không có' },
-    { title: 'Hiển thị', dataIndex: 'isPublic', render: (value) => value ? <Tag color="success">Public</Tag> : <Tag>Private</Tag> },
-    { title: 'Thời gian', dataIndex: 'createdAt', render: formatDate }
+    { title: "Loại", render: (_, row) => getRatingDirection(row, userId) },
+    {
+      title: "Dự án",
+      dataIndex: "projectTitle",
+      render: (value, row) => (
+        <div className="table-title-cell">
+          <strong>{value || `Dự án ${row.projectId.slice(0, 8)}`}</strong>
+          <div className="table-subtext">
+            {`${row.raterDisplayName} → ${row.ratedDisplayName}`}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Điểm",
+      dataIndex: "ratingValue",
+      render: (value) => <Rate disabled value={value} />,
+    },
+    {
+      title: "Bình luận",
+      dataIndex: "comment",
+      render: (value) => value || "Không có",
+    },
+    {
+      title: "Hiển thị",
+      dataIndex: "isPublic",
+      render: (value) =>
+        value ? <Tag color="success">Công khai</Tag> : <Tag>Riêng tư</Tag>,
+    },
+    { title: "Thời gian", dataIndex: "createdAt", render: formatDate },
   ];
 }
 
@@ -39,7 +79,7 @@ export function MyRatingsPage({ role }) {
     try {
       setRows(await ratingApi.listMyRatings());
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể tải đánh giá.'));
+      setError(getApiErrorMessage(requestError, "Không thể tải đánh giá."));
     } finally {
       setLoading(false);
     }
@@ -56,8 +96,16 @@ export function MyRatingsPage({ role }) {
       <PageHeader
         icon={<StarOutlined />}
         title="Đánh giá"
-        description={role === 'SME' ? 'Theo dõi đánh giá bạn đã gửi cho Student và đánh giá SME nhận được.' : 'Theo dõi đánh giá bạn đã gửi cho SME và đánh giá Student nhận được.'}
-        extra={<Button icon={<ReloadOutlined />} onClick={loadRows}>Làm mới</Button>}
+        description={
+          role === "SME"
+            ? "Theo dõi các đánh giá bạn đã gửi cho Student và các đánh giá SME đã nhận được."
+            : "Theo dõi các đánh giá bạn đã gửi cho SME và các đánh giá Student đã nhận được."
+        }
+        extra={
+          <Button icon={<ReloadOutlined />} onClick={loadRows}>
+            Làm mới
+          </Button>
+        }
       />
       <Card className="table-card">
         <Table
@@ -67,7 +115,7 @@ export function MyRatingsPage({ role }) {
           dataSource={rows}
           scroll={{ x: 980 }}
           pagination={{ pageSize: 8 }}
-          locale={{ emptyText: 'Chưa có đánh giá nào.' }}
+          locale={{ emptyText: "Chưa có đánh giá nào." }}
         />
       </Card>
     </>
@@ -92,12 +140,12 @@ export function ProjectRatingPage() {
     try {
       const [projectResult, ratingsResult] = await Promise.all([
         projectApi.getProject(projectId),
-        ratingApi.listMyRatings()
+        ratingApi.listMyRatings(),
       ]);
       setProject(projectResult);
       setRatings(ratingsResult.filter((rating) => rating.projectId === projectId));
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể tải màn đánh giá.'));
+      setError(getApiErrorMessage(requestError, "Không thể tải màn đánh giá."));
     } finally {
       setLoading(false);
     }
@@ -113,38 +161,87 @@ export function ProjectRatingPage() {
       await ratingApi.submitProjectRating(projectId, {
         ratingValue: values.ratingValue,
         comment: values.comment,
-        isPublic: values.isPublic ?? true
+        isPublic: values.isPublic ?? true,
       });
-      message.success('Đã gửi đánh giá.');
+      message.success("Đã gửi đánh giá.");
       form.resetFields();
       await loadPage();
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Không thể gửi đánh giá.'));
+      message.error(getApiErrorMessage(requestError, "Không thể gửi đánh giá."));
     } finally {
       setSubmitting(false);
     }
   };
 
+  const ratingState = useMemo(
+    () =>
+      getRatingStateMeta({
+        projectStatus: project?.status,
+        ratingDueAt: project?.ratingDueAt,
+        canCurrentUserRate: project?.canCurrentUserRate,
+        hasCurrentUserRated: project?.hasCurrentUserRated,
+        currentUserRatedAt: project?.currentUserRatedAt,
+      }),
+    [project],
+  );
+
+  const ratingAlert = (() => {
+    if (!project) return null;
+    if (ratingState.key === "AVAILABLE") {
+      return {
+        type: "info",
+        message: ratingState.label,
+        description: ratingState.helper,
+      };
+    }
+    if (ratingState.key === "RATED") {
+      return {
+        type: "success",
+        message: ratingState.label,
+        description: ratingState.helper,
+      };
+    }
+    if (ratingState.key === "EXPIRED") {
+      return {
+        type: "warning",
+        message: ratingState.label,
+        description: ratingState.helper,
+      };
+    }
+
+    return {
+      type: "warning",
+      message: ratingState.label,
+      description: ratingState.helper,
+    };
+  })();
+
   if (loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadPage} />;
 
-  const alreadyRated = ratings.some((rating) => rating.raterUserId === user?.id);
-  const canRate = project?.status === 'COMPLETED' && !alreadyRated;
+  const canRate = Boolean(project?.canCurrentUserRate);
 
   return (
     <>
       <PageHeader
         icon={<StarOutlined />}
         title="Đánh giá dự án"
-        description={project?.title || 'Gửi đánh giá sau khi dự án hoàn thành.'}
-        extra={<Button onClick={() => navigate(`/projects/${projectId}/execution`)}>Về workspace</Button>}
+        description={project?.title || "Gửi đánh giá sau khi dự án hoàn thành."}
+        extra={
+          <Button onClick={() => navigate(`/projects/${projectId}/execution`)}>
+            Về workspace
+          </Button>
+        }
       />
 
-      {project?.status !== 'COMPLETED' ? (
-        <Alert type="warning" showIcon className="form-alert" message="Chỉ có thể đánh giá sau khi dự án hoàn thành." />
-      ) : null}
-      {alreadyRated ? (
-        <Alert type="success" showIcon className="form-alert" message="Bạn đã đánh giá dự án này." />
+      {ratingAlert ? (
+        <Alert
+          type={ratingAlert.type}
+          showIcon
+          className="form-alert"
+          message={ratingAlert.message}
+          description={ratingAlert.description}
+        />
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,520px)_1fr]">
@@ -156,16 +253,34 @@ export function ProjectRatingPage() {
             onFinish={submitRating}
             disabled={!canRate}
           >
-            <Form.Item name="ratingValue" label="Điểm đánh giá" rules={[{ required: true, message: 'Chọn điểm đánh giá.' }]}>
+            <Form.Item
+              name="ratingValue"
+              label="Điểm đánh giá"
+              rules={[{ required: true, message: "Chọn điểm đánh giá." }]}
+            >
               <Rate />
             </Form.Item>
             <Form.Item name="comment" label="Bình luận">
-              <Input.TextArea rows={4} maxLength={500} showCount />
+              <Input.TextArea
+                rows={4}
+                maxLength={500}
+                showCount
+                placeholder="Chia sẻ ngắn gọn về trải nghiệm hợp tác của bạn."
+              />
             </Form.Item>
-            <Form.Item name="isPublic" label="Hiển thị công khai" valuePropName="checked">
+            <Form.Item
+              name="isPublic"
+              label="Hiển thị công khai"
+              valuePropName="checked"
+            >
               <Switch />
             </Form.Item>
-            <Button type="primary" htmlType="submit" loading={submitting} disabled={!canRate}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              disabled={!canRate}
+            >
               Gửi đánh giá
             </Button>
           </Form>
@@ -178,7 +293,7 @@ export function ProjectRatingPage() {
             dataSource={ratings}
             pagination={false}
             scroll={{ x: 760 }}
-            locale={{ emptyText: 'Chưa có đánh giá cho dự án này.' }}
+            locale={{ emptyText: "Chưa có đánh giá nào cho dự án này." }}
           />
         </Card>
       </div>

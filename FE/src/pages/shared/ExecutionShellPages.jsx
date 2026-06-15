@@ -22,6 +22,7 @@ import {
 } from '../../utils/reviewDeadlineValidation.js';
 import { FeatureShellPage } from './MvpShellPage.jsx';
 import {
+  CompletedWorkspaceRatingPanel,
   SmeReviewWorkspace,
   SubmissionMilestoneBoard,
   StudentSubmissionWorkspace,
@@ -546,7 +547,12 @@ export function ProjectExecutionPage() {
           <section className="workspace-v2-control-layer">
             <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
 
-            {workspace.viewerRole === 'STUDENT' ? (
+            {workspace.projectStatus === 'COMPLETED' ? (
+              <CompletedWorkspaceRatingPanel
+                workspace={workspace}
+                onOpenRating={() => navigate(`/projects/${projectId}/rating`)}
+              />
+            ) : workspace.viewerRole === 'STUDENT' ? (
               <StudentSubmissionWorkspace
                 workspace={workspace}
                 canSubmit={canSubmit}

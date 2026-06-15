@@ -10,6 +10,7 @@ import { projectApi } from '../../services/projectApi.js';
 import { walletApi } from '../../services/walletApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
+import { getRatingStateMeta } from '../../utils/ratingState.js';
 import { FeatureShellPage } from '../shared/MvpShellPage.jsx';
 import { MyRatingsPage } from '../shared/RatingPages.jsx';
 
@@ -42,6 +43,27 @@ function renderStatusOrFallback(value) {
 
 function getOfferSourceLabel(row) {
   return row.applicationId ? 'Từ ứng tuyển' : 'Từ AI Matching';
+}
+
+function getProjectRatingLabel(project) {
+  const ratingState = getRatingStateMeta({
+    projectStatus: project.projectStatus,
+    ratingDueAt: project.ratingDueAt,
+    canCurrentUserRate: project.canCurrentUserRate,
+    hasCurrentUserRated: project.hasCurrentUserRated,
+    currentUserRatedAt: project.currentUserRatedAt
+  });
+
+  switch (ratingState.key) {
+    case 'AVAILABLE':
+      return 'Đánh giá';
+    case 'RATED':
+      return 'Xem đánh giá';
+    case 'EXPIRED':
+      return 'Hết hạn đánh giá';
+    default:
+      return null;
+  }
 }
 
 export function StudentApplicationsPage() {

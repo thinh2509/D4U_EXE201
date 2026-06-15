@@ -8,8 +8,11 @@ public sealed record SubmitRatingRequest(
 public sealed record RatingResponse(
     Guid Id,
     Guid ProjectId,
+    string ProjectTitle,
     Guid RaterUserId,
+    string RaterDisplayName,
     Guid RatedUserId,
+    string RatedDisplayName,
     int RatingValue,
     string? Comment,
     bool IsPublic,

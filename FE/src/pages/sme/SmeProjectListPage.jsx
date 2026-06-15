@@ -13,6 +13,28 @@ import {
 } from "../../components/StateViews.jsx";
 import { projectApi } from "../../services/projectApi.js";
 import { getApiErrorMessage } from "../../utils/apiError.js";
+import { getRatingStateMeta } from "../../utils/ratingState.js";
+
+function getProjectRatingAction(project) {
+  const ratingState = getRatingStateMeta({
+    projectStatus: project.status,
+    ratingDueAt: project.ratingDueAt,
+    canCurrentUserRate: project.canCurrentUserRate,
+    hasCurrentUserRated: project.hasCurrentUserRated,
+    currentUserRatedAt: project.currentUserRatedAt,
+  });
+
+  switch (ratingState.key) {
+    case "AVAILABLE":
+      return "Đánh giá";
+    case "RATED":
+      return "Xem đánh giá";
+    case "EXPIRED":
+      return "Hết hạn đánh giá";
+    default:
+      return null;
+  }
+}
 
 export function SmeProjectListPage() {
   const navigate = useNavigate();
@@ -38,13 +60,15 @@ export function SmeProjectListPage() {
     loadProjects();
   }, []);
 
-  const categories = useMemo(() => {
-    return [
-      ...new Set(
-        projects.map((project) => project.designCategoryName).filter(Boolean),
-      ),
-    ].sort();
-  }, [projects]);
+  const categories = useMemo(
+    () =>
+      [
+        ...new Set(
+          projects.map((project) => project.designCategoryName).filter(Boolean),
+        ),
+      ].sort(),
+    [projects],
+  );
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -107,7 +131,11 @@ export function SmeProjectListPage() {
                 key={project.id}
                 project={project}
                 actionLabel="Quản lý"
+                secondaryActionLabel={getProjectRatingAction(project)}
                 onOpen={() => navigate(`/sme/projects/${project.id}`)}
+                onSecondaryAction={() =>
+                  navigate(`/projects/${project.id}/rating`)
+                }
               />
             ))}
           </div>

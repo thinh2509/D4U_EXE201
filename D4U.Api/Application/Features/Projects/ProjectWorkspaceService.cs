@@ -57,6 +57,13 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
                 select user.FullName)
                 .FirstOrDefaultAsync(cancellationToken);
         var nextAction = GetNextAction(access.Project, offer, submissions);
+        var currentRating = await dbContext.Ratings
+            .Where(value => value.ProjectId == projectId && value.RaterUserId == userId)
+            .OrderByDescending(value => value.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        var isOwnerSme = access.User.Role == UserRole.SME;
+        var isSelectedStudent = access.User.Role == UserRole.STUDENT;
+        var ratingState = BuildRatingState(access.Project, access.User.Role, isOwnerSme, isSelectedStudent, currentRating, DateTimeOffset.UtcNow);
 
         return new ProjectWorkspaceResponse(
             access.Project.Id,
@@ -72,6 +79,10 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
             access.Project.FinalDeadlineAt,
             access.Project.AcceptedAt,
             access.Project.CompletedAt,
+            access.Project.RatingDueAt,
+            ratingState.CanRate,
+            ratingState.HasRated,
+            ratingState.RatedAt,
             access.Project.CurrentRevisionRound,
             offer is null
                 ? null
@@ -297,4 +308,45 @@ public sealed class ProjectWorkspaceService(D4UDbContext dbContext) : IProjectWo
     private sealed record WorkspaceAccess(User User, Project Project);
 
     private sealed record WorkspaceNextAction(string Action, string Role);
+
+    private static RatingStateSnapshot BuildRatingState(
+        Project project,
+        UserRole userRole,
+        bool isOwnerSme,
+        bool isSelectedStudent,
+        Rating? existingRating,
+        DateTimeOffset now)
+    {
+        var hasRated = existingRating is not null;
+        var ratedAt = existingRating?.CreatedAt;
+
+        if (project.Status != ProjectStatus.COMPLETED || !project.RatingDueAt.HasValue)
+        {
+            return new RatingStateSnapshot(false, hasRated, ratedAt);
+        }
+
+        if (hasRated)
+        {
+            return new RatingStateSnapshot(false, true, ratedAt);
+        }
+
+        if (project.RatingDueAt.Value <= now)
+        {
+            return new RatingStateSnapshot(false, false, null);
+        }
+
+        var canRate = userRole switch
+        {
+            UserRole.SME => isOwnerSme && project.SelectedStudentProfileId.HasValue,
+            UserRole.STUDENT => isSelectedStudent,
+            _ => false
+        };
+
+        return new RatingStateSnapshot(canRate, false, null);
+    }
+
+    private sealed record RatingStateSnapshot(
+        bool CanRate,
+        bool HasRated,
+        DateTimeOffset? RatedAt);
 }

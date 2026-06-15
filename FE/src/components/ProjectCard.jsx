@@ -9,7 +9,17 @@ import { Button, Tag } from "antd";
 import { StatusBadge } from "./StatusBadge.jsx";
 import { formatCurrency, formatDate } from "../utils/format.js";
 
-export function ProjectCard({ project, onOpen, actionLabel = "Xem chi tiết" }) {
+export function ProjectCard({
+  project,
+  onOpen,
+  actionLabel = "Xem chi tiết",
+  secondaryActionLabel = null,
+  onSecondaryAction = null,
+  secondaryActionDisabled = false,
+}) {
+  const primaryIcon =
+    actionLabel === "Xem chi tiết" ? <EyeOutlined /> : <FileTextOutlined />;
+
   return (
     <article
       className="group relative flex h-full flex-col overflow-hidden rounded-panel border border-d4u-border/80 bg-white/92 p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card"
@@ -56,7 +66,7 @@ export function ProjectCard({ project, onOpen, actionLabel = "Xem chi tiết" })
               <CalendarOutlined className="mt-0.5 text-d4u-cyan" />
               <span className="grid gap-1">
                 <small className="text-[11px] font-bold uppercase tracking-[0.04em] text-d4u-text-3">
-                  Hoàn thành review
+                  Hạn hoàn thành
                 </small>
                 <strong className="text-sm leading-tight text-d4u-text-1">
                   {formatDate(project.totalDeadlineAt)}
@@ -65,24 +75,41 @@ export function ProjectCard({ project, onOpen, actionLabel = "Xem chi tiết" })
             </span>
           </div>
 
-          <Button
-            className="inline-flex min-h-[44px] items-center justify-center rounded-btn"
-            type="primary"
-            ghost
-            icon={
-              actionLabel === "Xem chi tiết" ? (
-                <EyeOutlined />
-              ) : (
-                <FileTextOutlined />
-              )
-            }
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpen();
-            }}
+          <div
+            className={`grid gap-2 ${
+              secondaryActionLabel && onSecondaryAction
+                ? "sm:grid-cols-2"
+                : "sm:grid-cols-1"
+            }`}
           >
-            {project.hasApplied ? "Đã ứng tuyển" : actionLabel}
-          </Button>
+            <Button
+              className="inline-flex min-h-[44px] items-center justify-center rounded-btn"
+              type="primary"
+              ghost
+              icon={primaryIcon}
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen();
+              }}
+            >
+              {project.hasApplied && actionLabel === "Xem chi tiết"
+                ? "Đã ứng tuyển"
+                : actionLabel}
+            </Button>
+
+            {secondaryActionLabel && onSecondaryAction ? (
+              <Button
+                className="inline-flex min-h-[44px] items-center justify-center rounded-btn"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSecondaryAction();
+                }}
+                disabled={secondaryActionDisabled}
+              >
+                {secondaryActionLabel}
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
 

@@ -19,6 +19,12 @@ public sealed class RatingService(D4UDbContext dbContext) : IRatingService
             throw new ValidationException("Rating value must be between 1 and 5.");
         }
 
+        var trimmedComment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim();
+        if (trimmedComment?.Length > 500)
+        {
+            throw new ValidationException("Rating comment must not exceed 500 characters.");
+        }
+
         var project = await dbContext.Projects.FirstOrDefaultAsync(value => value.Id == projectId, cancellationToken)
             ?? throw new NotFoundException("Project was not found.");
 
@@ -27,7 +33,12 @@ public sealed class RatingService(D4UDbContext dbContext) : IRatingService
             throw new ConflictException("Project must be completed before rating.");
         }
 
-        if (DateTimeOffset.UtcNow > project.CompletedAt.Value.AddDays(7))
+        if (!project.RatingDueAt.HasValue)
+        {
+            throw new ConflictException("Project rating window is not available.");
+        }
+
+        if (DateTimeOffset.UtcNow > project.RatingDueAt.Value)
         {
             throw new GoneException("Project rating window has expired.");
         }
@@ -53,7 +64,7 @@ public sealed class RatingService(D4UDbContext dbContext) : IRatingService
             RaterUserId = userId,
             RatedUserId = ratedUserId,
             RatingValue = request.RatingValue,
-            Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim(),
+            Comment = trimmedComment,
             IsPublic = request.IsPublic,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -61,17 +72,32 @@ public sealed class RatingService(D4UDbContext dbContext) : IRatingService
         await dbContext.Ratings.AddAsync(rating, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await RecalculateAverageRatingAsync(ratedUserId, cancellationToken);
-        return ToResponse(rating);
+        return await ToResponseAsync(rating, cancellationToken);
     }
 
     public async Task<IReadOnlyList<RatingResponse>> ListMyRatingsAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        return await dbContext.Ratings
-            .Where(value => value.RaterUserId == userId || value.RatedUserId == userId)
-            .OrderByDescending(value => value.CreatedAt)
-            .Select(value => ToResponse(value))
+        return await (
+            from rating in dbContext.Ratings
+            join project in dbContext.Projects on rating.ProjectId equals project.Id
+            join rater in dbContext.Users on rating.RaterUserId equals rater.Id
+            join rated in dbContext.Users on rating.RatedUserId equals rated.Id
+            where rating.RaterUserId == userId || rating.RatedUserId == userId
+            orderby rating.CreatedAt descending
+            select new RatingResponse(
+                rating.Id,
+                rating.ProjectId,
+                project.Title,
+                rating.RaterUserId,
+                rater.FullName,
+                rating.RatedUserId,
+                rated.FullName,
+                rating.RatingValue,
+                rating.Comment,
+                rating.IsPublic,
+                rating.CreatedAt))
             .ToListAsync(cancellationToken);
     }
 
@@ -153,13 +179,20 @@ public sealed class RatingService(D4UDbContext dbContext) : IRatingService
         }
     }
 
-    private static RatingResponse ToResponse(Rating rating)
+    private async Task<RatingResponse> ToResponseAsync(Rating rating, CancellationToken cancellationToken)
     {
+        var project = await dbContext.Projects.FirstAsync(value => value.Id == rating.ProjectId, cancellationToken);
+        var rater = await dbContext.Users.FirstAsync(value => value.Id == rating.RaterUserId, cancellationToken);
+        var rated = await dbContext.Users.FirstAsync(value => value.Id == rating.RatedUserId, cancellationToken);
+
         return new RatingResponse(
             rating.Id,
             rating.ProjectId,
+            project.Title,
             rating.RaterUserId,
+            rater.FullName,
             rating.RatedUserId,
+            rated.FullName,
             rating.RatingValue,
             rating.Comment,
             rating.IsPublic,

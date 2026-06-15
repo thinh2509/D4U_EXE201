@@ -38,7 +38,12 @@ public sealed record ProjectResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     bool HasApplied,
-    Guid? MyApplicationId);
+    Guid? MyApplicationId,
+    DateTimeOffset? CompletedAt,
+    DateTimeOffset? RatingDueAt,
+    bool CanCurrentUserRate,
+    bool HasCurrentUserRated,
+    DateTimeOffset? CurrentUserRatedAt);
 
 public sealed record CancelProjectRequest(
     string? CancellationReason);
@@ -128,7 +133,12 @@ public sealed record StudentProjectSummaryResponse(
     DateTimeOffset TotalDeadlineAt,
     DateTimeOffset? AcceptedAt,
     Guid? EscrowId,
-    EscrowStatus? EscrowStatus);
+    EscrowStatus? EscrowStatus,
+    DateTimeOffset? CompletedAt,
+    DateTimeOffset? RatingDueAt,
+    bool CanCurrentUserRate,
+    bool HasCurrentUserRated,
+    DateTimeOffset? CurrentUserRatedAt);
 
 public sealed record CreateProjectOfferRequest(
     Guid StudentProfileId,

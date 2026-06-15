@@ -15,6 +15,7 @@ import {
 import { Button, Card, Empty, Form, Input, Tag, Upload } from 'antd';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { formatCurrency, formatFileSize, getFileExtension } from '../../utils/format.js';
+import { getRatingStateMeta } from '../../utils/ratingState.js';
 
 const TIME_ZONE = 'Asia/Ho_Chi_Minh';
 const approvedActions = new Set(['APPROVE_SKETCH', 'APPROVE_FINAL', 'AUTO_APPROVE_SKETCH', 'AUTO_APPROVE_FINAL']);
@@ -669,7 +670,50 @@ function SummaryGroup({ title, rows }) {
   );
 }
 
+export function CompletedWorkspaceRatingPanel({ workspace, onOpenRating }) {
+  const ratingState = getRatingStateMeta({
+    projectStatus: workspace.projectStatus,
+    ratingDueAt: workspace.ratingDueAt,
+    canCurrentUserRate: workspace.canCurrentUserRate,
+    hasCurrentUserRated: workspace.hasCurrentUserRated,
+    currentUserRatedAt: workspace.currentUserRatedAt
+  });
+
+  const tone = ratingState.key === 'AVAILABLE'
+    ? 'warning'
+    : ratingState.key === 'RATED'
+      ? 'success'
+      : 'info';
+
+  const actionLabel = ratingState.key === 'AVAILABLE'
+    ? 'Đánh giá dự án'
+    : 'Xem trạng thái đánh giá';
+
+  return (
+    <StatusBlock
+      tone={tone}
+      icon={<CheckCircleOutlined />}
+      eyebrow="Đánh giá sau hoàn thành"
+      title={ratingState.label}
+      description={ratingState.helper}
+      actions={(
+        <Button type="primary" onClick={onOpenRating}>
+          {actionLabel}
+        </Button>
+      )}
+    />
+  );
+}
+
 export function WorkspaceSummaryPanel({ workspace }) {
+  const ratingState = getRatingStateMeta({
+    projectStatus: workspace.projectStatus,
+    ratingDueAt: workspace.ratingDueAt,
+    canCurrentUserRate: workspace.canCurrentUserRate,
+    hasCurrentUserRated: workspace.hasCurrentUserRated,
+    currentUserRatedAt: workspace.currentUserRatedAt
+  });
+
   return (
     <Card className="workspace-v3-sidebar-card workspace-v3-summary-panel" title="Tổng quan dự án">
       <div className="workspace-v3-summary-groups">
