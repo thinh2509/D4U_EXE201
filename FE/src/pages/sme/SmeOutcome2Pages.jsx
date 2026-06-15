@@ -155,6 +155,349 @@ function renderPlanPrice(profile) {
   return `${formatCurrency(profile.subscriptionPlan.monthlyPrice)}/thang`;
 }
 
+function getBillingStatusTone(toneKey) {
+  return {
+    success: 'success',
+    warning: 'warning',
+    info: 'info',
+    neutral: 'neutral'
+  }[toneKey] || 'neutral';
+}
+
+function BillingStatusBadge({ label, tone = 'neutral' }) {
+  return <PillBadge tone={getBillingStatusTone(tone)}>{label}</PillBadge>;
+}
+
+function mapBillingPurchaseStatus(status) {
+  const mapping = {
+    ACTIVE: { label: 'Đã kích hoạt', tone: 'success' },
+    PENDING: { label: 'Đang chờ', tone: 'warning' },
+    FAILED: { label: 'Thất bại', tone: 'warning' },
+    CANCELLED: { label: 'Đã hủy', tone: 'neutral' },
+    EXPIRED: { label: 'Hết hiệu lực', tone: 'neutral' }
+  };
+
+  return mapping[status] || { label: status || 'Chưa có', tone: 'neutral' };
+}
+
+function mapBillingPaymentStatus(status) {
+  const mapping = {
+    SUCCESS: { label: 'Đã thanh toán', tone: 'success' },
+    PENDING: { label: 'Chờ thanh toán', tone: 'warning' },
+    FAILED: { label: 'Thanh toán thất bại', tone: 'warning' },
+    CANCELLED: { label: 'Đã hủy', tone: 'neutral' },
+    EXPIRED: { label: 'Đã hết hạn', tone: 'neutral' }
+  };
+
+  return mapping[status] || { label: status || 'Chưa có', tone: 'neutral' };
+}
+
+function mapBillingEntitlementStatus(status) {
+  const mapping = {
+    ACTIVE: { label: 'Đang hoạt động', tone: 'success' },
+    EXPIRED: { label: 'Hết hiệu lực', tone: 'neutral' },
+    CANCELLED: { label: 'Đã hủy', tone: 'neutral' }
+  };
+
+  return mapping[status] || { label: 'Chưa kích hoạt', tone: 'neutral' };
+}
+
+function renderBillingDateCell(value, fallback = 'Chưa có') {
+  return value
+    ? <span className="text-sm font-medium text-d4u-text-2">{formatDate(value)}</span>
+    : <span className="text-sm text-d4u-text-3">{fallback}</span>;
+}
+
+function buildBillingPackageName(profile, activePackage) {
+  return activePackage?.packageName || profile?.activePackageSummary?.packageName || profile?.subscriptionPlan?.name || 'Gói Free';
+}
+
+function buildBillingSummaryStatus(profile, activePackage, latestPurchase) {
+  if (activePackage) {
+    return { label: 'Đang hoạt động', tone: 'success' };
+  }
+
+  if (latestPurchase?.paymentStatus === 'PENDING') {
+    return { label: 'Chờ xác nhận', tone: 'warning' };
+  }
+
+  if (latestPurchase?.entitlementStatus === 'EXPIRED' || latestPurchase?.status === 'EXPIRED') {
+    return { label: 'Hết hiệu lực', tone: 'neutral' };
+  }
+
+  if (profile?.isFreePlan) {
+    return { label: 'Đang sử dụng', tone: 'info' };
+  }
+
+  return { label: 'Chưa kích hoạt', tone: 'neutral' };
+}
+
+function renderBillingProjectLimit(profile) {
+  const activeCount = profile?.activeOpenProjectCount ?? 0;
+  const maxOpenProjects = profile?.effectiveMaxActiveOpenProjects ?? (profile?.isFreePlan ? 2 : null);
+
+  if (maxOpenProjects == null) {
+    return `${activeCount} dự án đang mở`;
+  }
+
+  return `${activeCount}/${maxOpenProjects} dự án đang mở`;
+}
+
+function renderBillingPlanPrice(profile, activePackage, featuredPackage) {
+  if (activePackage?.price != null) {
+    return `${formatCurrency(activePackage.price, activePackage.currency)}/30 ngày`;
+  }
+
+  if (profile?.isFreePlan) {
+    return '0 VND/tháng';
+  }
+
+  if (featuredPackage?.price != null) {
+    return `${formatCurrency(featuredPackage.price, featuredPackage.currency)}/30 ngày`;
+  }
+
+  return 'Chưa có';
+}
+
+function renderBillingExpiry(profile, activePackage, latestPurchase) {
+  if (profile?.isFreePlan && !activePackage) {
+    return 'Không hết hạn';
+  }
+
+  if (activePackage?.expiresAt) {
+    return `Đến ${formatDate(activePackage.expiresAt)}`;
+  }
+
+  if (latestPurchase?.paymentStatus === 'PENDING') {
+    return 'Sẽ cập nhật sau khi thanh toán được xác nhận';
+  }
+
+  return 'Hiện chưa có gói hoạt động';
+}
+
+function renderBillingRule(profile, activePackage) {
+  if (activePackage) {
+    return 'AI Matching và giới hạn tối đa 10 dự án đang mở trong thời hạn gói.';
+  }
+
+  return 'Gói Free cho phép tối đa 2 dự án đang mở và không giới hạn thời gian sử dụng.';
+}
+
+function shouldShowBillingRetryPurchase(purchase) {
+  return Boolean(purchase && ['PENDING', 'FAILED'].includes(purchase.paymentStatus));
+}
+
+function SmePlanSummaryCard({ profile, activePackage, featuredPackage, latestPurchase }) {
+  const summaryStatus = buildBillingSummaryStatus(profile, activePackage, latestPurchase);
+  const packageName = profile?.isFreePlan && !activePackage
+    ? 'Gói Free'
+    : buildBillingPackageName(profile, activePackage);
+
+  return (
+    <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
+      <div className="relative p-6 sm:p-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-d4u-soft via-white to-sky-50" />
+        <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+          <div className="min-w-0">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <BillingStatusBadge label={summaryStatus.label} tone={summaryStatus.tone} />
+              <PillBadge tone="neutral">{renderBillingProjectLimit(profile)}</PillBadge>
+            </div>
+
+            <Title level={3} className="!mb-2 !font-display !text-d4u-teal-deep">
+              {packageName}
+            </Title>
+
+            <Paragraph className="!mb-0 max-w-3xl !text-sm !leading-6 !text-d4u-text-2">
+              {renderBillingRule(profile, activePackage)}
+            </Paragraph>
+          </div>
+
+          <div className="rounded-card border border-white/80 bg-white/90 p-5 shadow-sm">
+            <SummaryStat label="Trạng thái" value={summaryStatus.label} />
+            <SummaryStat label="Giá" value={renderBillingPlanPrice(profile, activePackage, featuredPackage)} />
+            <SummaryStat label="Hạn dùng" value={renderBillingExpiry(profile, activePackage, latestPurchase)} />
+            <SummaryStat label="Dự án đang mở" value={renderBillingProjectLimit(profile)} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SummaryStat({ label, value }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-d4u-border/70 py-3 last:border-b-0 last:pb-0 first:pt-0">
+      <span className="text-sm text-d4u-text-2">{label}</span>
+      <span className="text-right text-sm font-semibold text-d4u-text-1">{value}</span>
+    </div>
+  );
+}
+
+function SmePlanPackageCard({
+  pkg,
+  activePackage,
+  latestPurchase,
+  actingPackageId,
+  actingPurchaseId,
+  onStartPurchase,
+  onReopenPurchasePayment
+}) {
+  if (!pkg) return null;
+
+  const packageStatus = activePackage?.packageId === pkg.id
+    ? { label: 'Đang hoạt động', tone: 'success' }
+    : latestPurchase?.paymentStatus === 'PENDING'
+      ? { label: 'Chờ xác nhận', tone: 'warning' }
+      : latestPurchase?.entitlementStatus === 'EXPIRED'
+        ? { label: 'Hết hiệu lực', tone: 'neutral' }
+        : { label: 'Chưa kích hoạt', tone: 'neutral' };
+
+  return (
+    <Card className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft" bodyStyle={{ padding: 0 }}>
+      <div className="border-b border-d4u-border/60 px-5 py-5 sm:px-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <BillingStatusBadge label={packageStatus.label} tone={packageStatus.tone} />
+          <PillBadge tone="neutral">{pkg.durationDays} ngày</PillBadge>
+        </div>
+        <Title level={4} className="!mb-1 !mt-3 !font-display !text-d4u-teal-deep">
+          {pkg.name}
+        </Title>
+        <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
+          {pkg.description || 'Gói mở khóa AI Matching cho SME trong 30 ngày.'}
+        </Paragraph>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="min-w-0">
+          <div className="rounded-2xl bg-d4u-soft/70 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Quyền lợi chính</p>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-d4u-text-2">
+              <li>AI Matching cho SME.</li>
+              <li>Tối đa 10 dự án đang mở cùng lúc.</li>
+              <li>Mở khóa sau khi thanh toán được xác nhận thành công.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between gap-4 rounded-2xl bg-white/90 p-4 ring-1 ring-d4u-border/70">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-sm text-d4u-text-2">
+              <CreditCardOutlined className="text-d4u-teal-deep" />
+              <span>Giá gói</span>
+            </div>
+            <p className="text-lg font-semibold text-d4u-text-1">
+              {formatCurrency(pkg.price, pkg.currency)}
+            </p>
+
+            <div className="flex items-center gap-3 pt-2 text-sm text-d4u-text-2">
+              <SafetyCertificateOutlined className="text-d4u-teal-deep" />
+              <span>Trạng thái hiện tại</span>
+            </div>
+            <p className="text-sm font-semibold text-d4u-text-1">{packageStatus.label}</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {!activePackage || activePackage.packageId !== pkg.id ? (
+              <Button
+                type="primary"
+                className="!h-11 !rounded-btn !font-semibold"
+                loading={actingPackageId === pkg.id}
+                onClick={() => onStartPurchase(pkg)}
+              >
+                Mua gói
+              </Button>
+            ) : null}
+
+            {shouldShowBillingRetryPurchase(latestPurchase) ? (
+              <Button
+                className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                loading={actingPurchaseId === latestPurchase.id}
+                onClick={() => onReopenPurchasePayment(latestPurchase)}
+              >
+                Mở lại thanh toán
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReopenPurchasePayment }) {
+  return (
+    <Card
+      className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
+      title={<span className="font-display text-lg font-semibold text-d4u-text-1">Lịch sử mua gói</span>}
+    >
+      <Table
+        rowKey="id"
+        loading={loading}
+        dataSource={purchases}
+        scroll={{ x: 860 }}
+        pagination={{ pageSize: 6 }}
+        locale={{ emptyText: 'Chưa có giao dịch mua gói nào.' }}
+        columns={[
+          {
+            title: 'Gói',
+            dataIndex: 'packageName',
+            width: 240,
+            render: (value, row) => renderPrimaryCell(value, row.createdAt ? `Mua ngày ${formatDate(row.createdAt)}` : null)
+          },
+          {
+            title: 'Trạng thái',
+            dataIndex: 'status',
+            width: 150,
+            render: (value) => {
+              const mapped = mapBillingPurchaseStatus(value);
+              return <BillingStatusBadge label={mapped.label} tone={mapped.tone} />;
+            }
+          },
+          {
+            title: 'Thanh toán',
+            dataIndex: 'paymentStatus',
+            width: 170,
+            render: (value) => {
+              const mapped = mapBillingPaymentStatus(value);
+              return <BillingStatusBadge label={mapped.label} tone={mapped.tone} />;
+            }
+          },
+          {
+            title: 'Số tiền',
+            dataIndex: 'price',
+            width: 150,
+            render: (value, row) => <span className="text-sm font-semibold text-d4u-text-1">{formatCurrency(value, row.currency)}</span>
+          },
+          {
+            title: 'Hạn dùng',
+            dataIndex: 'expiresAt',
+            width: 180,
+            render: (value) => renderBillingDateCell(value, 'Chưa kích hoạt')
+          },
+          {
+            title: 'Thao tác',
+            width: 170,
+            render: (_, row) => (
+              shouldShowBillingRetryPurchase(row)
+                ? (
+                  <Button
+                    className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                    loading={actingPurchaseId === row.id}
+                    onClick={() => onReopenPurchasePayment(row)}
+                  >
+                    Mở lại thanh toán
+                  </Button>
+                )
+                : null
+            )
+          }
+        ]}
+      />
+    </Card>
+  );
+}
+
 function RecommendationReason({ reason }) {
   return (
     <li className="flex items-start gap-3">
@@ -588,6 +931,10 @@ export function SmeBillingLivePage() {
   const [actingPurchaseId, setActingPurchaseId] = useState(null);
   const [error, setError] = useState(null);
   const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
+  const featuredPackage = useMemo(
+    () => packages.find((pkg) => pkg.maxActiveOpenProjectsOverride) || packages[0] || null,
+    [packages]
+  );
 
   const loadData = async () => {
     setLoading(true);
@@ -671,6 +1018,7 @@ export function SmeBillingLivePage() {
         .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))[0] || null
     ])
   );
+  const latestPurchase = featuredPackage ? latestPurchaseByPackage[featuredPackage.id] : purchases[0] || null;
 
   return (
     <>
@@ -689,54 +1037,16 @@ export function SmeBillingLivePage() {
       />
 
       {profile ? (
-        <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
-          <div className="flex flex-col gap-4 bg-gradient-to-r from-d4u-soft via-white to-sky-50 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <PillBadge tone={profile.isFreePlan ? 'info' : 'success'}>
-                  {profile.isFreePlan ? 'Goi Free' : profile.activePackageSummary?.packageName || profile.subscriptionPlan?.name || 'Goi hien tai'}
-                </PillBadge>
-                <PillBadge tone="neutral">{renderProjectLimitDescription(profile)}</PillBadge>
-              </div>
-              <Title level={4} className="!mb-1 !font-display !text-d4u-teal-deep">
-                {profile.isFreePlan
-                  ? 'SME dang o goi Free mac dinh'
-                  : `SME dang o goi ${profile.activePackageSummary?.packageName || profile.subscriptionPlan?.name || 'hien tai'}`}
-              </Title>
-              <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                {profile.isFreePlan
-                  ? 'Goi Free khong het han, cho phep dang toi da 2 du an OPEN cung luc. Gioi han nay khong duoc tinh theo so du an da dang trong thang.'
-                  : 'Goi 30 ngay mo khoa AI Matching va nang gioi han dang du an dang mo. Khi goi het han, he thong giu nguyen cac du an dang mo nhung chan publish moi neu vuot limit hien hanh.'}
-              </Paragraph>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[520px]">
-              <MetricPill
-                icon={<CreditCardOutlined />}
-                label="Goi"
-                value={profile.activePackageSummary?.packageName || profile.subscriptionPlan?.name || 'Chua co'}
-              />
-              <MetricPill icon={<DollarOutlined />} label="Gia" value={renderPlanPrice(profile)} />
-              <MetricPill icon={<TeamOutlined />} label="Open projects" value={renderProjectLimit(profile)} />
-              <MetricPill icon={<CheckCircleFilled />} label="Thoi han" value={renderSubscriptionDuration(profile)} />
-              <MetricPill
-                icon={<SafetyCertificateOutlined />}
-                label="Budget toi da"
-                value={profile.subscriptionPlan?.maxProjectBudget != null
-                  ? formatCurrency(profile.subscriptionPlan.maxProjectBudget)
-                  : 'Khong gioi han'}
-              />
-              <MetricPill
-                icon={<ReadOutlined />}
-                label="Rule"
-                value={profile.canPublishMoreProjects ? 'Co the publish them' : 'Can giam du an mo hoac gia han goi'}
-              />
-            </div>
-          </div>
-        </section>
+        <SmePlanSummaryCard
+          profile={profile}
+          activePackage={activePackage}
+          featuredPackage={featuredPackage}
+          latestPurchase={latestPurchase}
+        />
       ) : null}
 
       {activePackage ? (
-        <section className="overflow-hidden rounded-panel border border-emerald-200 bg-white shadow-soft">
+        <section className="hidden overflow-hidden rounded-panel border border-emerald-200 bg-white shadow-soft">
           <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-50 via-white to-d4u-soft px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -764,7 +1074,7 @@ export function SmeBillingLivePage() {
         <Alert
           type="info"
           showIcon
-          className="form-alert"
+          className="hidden form-alert"
           message="Gói chỉ được kích hoạt sau khi PayOS webhook xác nhận thành công."
           description="Trang return từ PayOS không tự mở khóa tính năng. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái mới nhất."
         />
@@ -772,7 +1082,26 @@ export function SmeBillingLivePage() {
 
       {error ? <Alert type="error" showIcon className="form-alert" message={error} /> : null}
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+      <div className="grid gap-6">
+        <SmePlanPackageCard
+          pkg={featuredPackage}
+          activePackage={activePackage}
+          latestPurchase={latestPurchase}
+          actingPackageId={actingPackageId}
+          actingPurchaseId={actingPurchaseId}
+          onStartPurchase={startPurchase}
+          onReopenPurchasePayment={reopenPurchasePayment}
+        />
+
+        <SmePurchaseHistorySection
+          purchases={purchases}
+          loading={loading}
+          actingPurchaseId={actingPurchaseId}
+          onReopenPurchasePayment={reopenPurchasePayment}
+        />
+      </div>
+
+      <section className="hidden grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <div className="grid grid-cols-1 gap-6">
           {packages.map((pkg) => {
             const latestPurchase = latestPurchaseByPackage[pkg.id];
@@ -814,7 +1143,7 @@ export function SmeBillingLivePage() {
       </section>
 
       <Card
-        className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
+        className="hidden overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
         title={<span className="font-display text-lg font-semibold text-d4u-text-1">Lịch sử mua gói</span>}
       >
         <Table
