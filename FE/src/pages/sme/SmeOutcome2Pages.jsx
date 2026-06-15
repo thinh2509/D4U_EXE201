@@ -49,8 +49,8 @@ const MATCHING_VIEW_OPTIONS = [
 function renderPrimaryCell(title, subtitle) {
   return (
     <div className="min-w-0">
-      <strong className="block truncate text-sm font-semibold text-d4u-text-1">{title}</strong>
-      {subtitle ? <div className="mt-1 text-xs text-d4u-text-3">{subtitle}</div> : null}
+      <strong className="block truncate text-[15px] font-semibold text-d4u-text-1">{title}</strong>
+      {subtitle ? <div className="mt-1 text-xs font-medium text-d4u-text-2">{subtitle}</div> : null}
     </div>
   );
 }
@@ -88,10 +88,10 @@ function getScoreTone(score) {
 
 function PillBadge({ tone = 'neutral', children }) {
   const toneClass = {
-    success: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    info: 'bg-sky-50 text-sky-700 ring-sky-200',
-    warning: 'bg-amber-50 text-amber-700 ring-amber-200',
-    neutral: 'bg-slate-100 text-slate-700 ring-slate-200'
+    success: 'bg-emerald-50/80 text-emerald-700 ring-emerald-100',
+    info: 'bg-cyan-50/85 text-cyan-700 ring-cyan-100',
+    warning: 'bg-amber-50/80 text-amber-700 ring-amber-100',
+    neutral: 'bg-slate-50 text-slate-600 ring-slate-200/80'
   }[tone];
 
   return (
@@ -277,7 +277,7 @@ function renderBillingExpiry(profile, activePackage, latestPurchase) {
 
 function renderBillingRule(profile, activePackage) {
   if (activePackage) {
-    return 'AI Matching và giới hạn tối đa 10 dự án đang mở trong thời hạn gói.';
+    return 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
   }
 
   return 'Gói Free cho phép tối đa 2 dự án đang mở và không giới hạn thời gian sử dụng.';
@@ -304,16 +304,16 @@ function SmePlanSummaryCard({ profile, activePackage, featuredPackage, latestPur
               <PillBadge tone="neutral">{renderBillingProjectLimit(profile)}</PillBadge>
             </div>
 
-            <Title level={3} className="!mb-2 !font-display !text-d4u-teal-deep">
+            <Title level={3} className="!mb-2 !font-display !text-[30px] !font-bold !tracking-tight !text-d4u-teal-deep sm:!text-[34px]">
               {packageName}
             </Title>
 
-            <Paragraph className="!mb-0 max-w-3xl !text-sm !leading-6 !text-d4u-text-2">
+            <Paragraph className="!mb-0 max-w-3xl !text-[15px] !leading-7 !text-d4u-text-2">
               {renderBillingRule(profile, activePackage)}
             </Paragraph>
           </div>
 
-          <div className="rounded-card border border-white/80 bg-white/90 p-5 shadow-sm">
+          <div className="rounded-card border border-white/80 bg-white/95 p-5 shadow-sm">
             <SummaryStat label="Trạng thái" value={summaryStatus.label} />
             <SummaryStat label="Giá" value={renderBillingPlanPrice(profile, activePackage, featuredPackage)} />
             <SummaryStat label="Hạn dùng" value={renderBillingExpiry(profile, activePackage, latestPurchase)} />
@@ -328,8 +328,8 @@ function SmePlanSummaryCard({ profile, activePackage, featuredPackage, latestPur
 function SummaryStat({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-d4u-border/70 py-3 last:border-b-0 last:pb-0 first:pt-0">
-      <span className="text-sm text-d4u-text-2">{label}</span>
-      <span className="text-right text-sm font-semibold text-d4u-text-1">{value}</span>
+      <span className="text-[13px] font-medium text-d4u-text-2">{label}</span>
+      <span className="text-right text-[15px] font-semibold leading-6 text-d4u-text-1">{value}</span>
     </div>
   );
 }
@@ -360,19 +360,19 @@ function SmePlanPackageCard({
           <BillingStatusBadge label={packageStatus.label} tone={packageStatus.tone} />
           <PillBadge tone="neutral">{pkg.durationDays} ngày</PillBadge>
         </div>
-        <Title level={4} className="!mb-1 !mt-3 !font-display !text-d4u-teal-deep">
+        <Title level={4} className="!mb-1 !mt-3 !font-display !text-[26px] !font-bold !tracking-tight !text-d4u-teal-deep">
           {pkg.name}
         </Title>
-        <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-          {pkg.description || 'Gói mở khóa AI Matching cho SME trong 30 ngày.'}
+        <Paragraph className="!mb-0 !text-[15px] !leading-7 !text-d4u-text-2">
+          {pkg.description || 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.'}
         </Paragraph>
       </div>
 
       <div className="grid grid-cols-1 gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0">
           <div className="rounded-2xl bg-d4u-soft/70 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Quyền lợi chính</p>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-d4u-text-2">
+            <p className="text-xs font-semibold tracking-[0.04em] text-d4u-text-3">Quyền lợi chính</p>
+            <ul className="mt-3 list-disc space-y-2.5 pl-5 text-[15px] leading-7 text-d4u-text-2">
               <li>AI Matching cho SME.</li>
               <li>Tối đa 10 dự án đang mở cùng lúc.</li>
               <li>Mở khóa sau khi thanh toán được xác nhận thành công.</li>
@@ -384,17 +384,17 @@ function SmePlanPackageCard({
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sm text-d4u-text-2">
               <CreditCardOutlined className="text-d4u-teal-deep" />
-              <span>Giá gói</span>
+              <span className="font-medium">Giá gói</span>
             </div>
-            <p className="text-lg font-semibold text-d4u-text-1">
+            <p className="text-[28px] font-bold leading-none tracking-tight text-d4u-teal-deep">
               {formatCurrency(pkg.price, pkg.currency)}
             </p>
 
             <div className="flex items-center gap-3 pt-2 text-sm text-d4u-text-2">
               <SafetyCertificateOutlined className="text-d4u-teal-deep" />
-              <span>Trạng thái hiện tại</span>
+              <span className="font-medium">Trạng thái hiện tại</span>
             </div>
-            <p className="text-sm font-semibold text-d4u-text-1">{packageStatus.label}</p>
+            <p className="text-[15px] font-semibold text-d4u-text-1">{packageStatus.label}</p>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -429,7 +429,7 @@ function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReo
   return (
     <Card
       className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
-      title={<span className="font-display text-lg font-semibold text-d4u-text-1">Lịch sử mua gói</span>}
+      title={<span className="font-display text-lg font-semibold text-d4u-teal-deep">Lịch sử mua gói</span>}
     >
       <Table
         rowKey="id"
@@ -440,13 +440,13 @@ function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReo
         locale={{ emptyText: 'Chưa có giao dịch mua gói nào.' }}
         columns={[
           {
-            title: 'Gói',
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Gói</span>,
             dataIndex: 'packageName',
             width: 240,
             render: (value, row) => renderPrimaryCell(value, row.createdAt ? `Mua ngày ${formatDate(row.createdAt)}` : null)
           },
           {
-            title: 'Trạng thái',
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Trạng thái</span>,
             dataIndex: 'status',
             width: 150,
             render: (value) => {
@@ -455,7 +455,7 @@ function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReo
             }
           },
           {
-            title: 'Thanh toán',
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Thanh toán</span>,
             dataIndex: 'paymentStatus',
             width: 170,
             render: (value) => {
@@ -464,19 +464,19 @@ function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReo
             }
           },
           {
-            title: 'Số tiền',
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Số tiền</span>,
             dataIndex: 'price',
             width: 150,
-            render: (value, row) => <span className="text-sm font-semibold text-d4u-text-1">{formatCurrency(value, row.currency)}</span>
+            render: (value, row) => <span className="text-[15px] font-bold text-d4u-teal-deep">{formatCurrency(value, row.currency)}</span>
           },
           {
-            title: 'Hạn dùng',
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Hạn dùng</span>,
             dataIndex: 'expiresAt',
             width: 180,
             render: (value) => renderBillingDateCell(value, 'Chưa kích hoạt')
           },
           {
-            title: 'Thao tác',
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Thao tác</span>,
             width: 170,
             render: (_, row) => (
               shouldShowBillingRetryPurchase(row)
@@ -1024,8 +1024,8 @@ export function SmeBillingLivePage() {
     <>
       <PageHeader
         icon={<CreditCardOutlined />}
-        title="Gói & thanh toán"
-        description="Quản lý gói Free và gói Paid 30 ngày cho SME, bao gồm AI Matching, giới hạn dự án đang mở và các giao dịch gần nhất."
+        title={<span className="font-display font-bold tracking-tight text-d4u-teal-deep">Gói & thanh toán</span>}
+        description={<span className="text-d4u-text-2">Quản lý gói Free và gói 30 ngày dành cho SME, bao gồm AI Matching, giới hạn dự án đang mở và các giao dịch gần nhất.</span>}
         extra={(
           <Button
             className="!h-11 !rounded-btn !border-d4u-border !px-5 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
