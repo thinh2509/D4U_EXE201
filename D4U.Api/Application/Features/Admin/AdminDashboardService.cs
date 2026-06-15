@@ -17,6 +17,13 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
         var totalProjects = await dbContext.Projects.CountAsync(cancellationToken);
         var openProjects = await dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.OPEN, cancellationToken);
         var completedProjects = await dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.COMPLETED, cancellationToken);
+        var totalPlatformRevenue = await dbContext.Disbursements
+            .SumAsync(value => (decimal?)value.PlatformFeeAmount, cancellationToken) ?? 0m;
+        var totalPackageRevenue = await dbContext.Payments
+            .Where(value =>
+                value.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE &&
+                value.Status == PaymentStatus.SUCCESS)
+            .SumAsync(value => (decimal?)value.Amount, cancellationToken) ?? 0m;
 
         var pendingVerifications = await dbContext.StudentVerifications.CountAsync(value => value.Status == "PENDING", cancellationToken);
         var pendingWithdrawals = await dbContext.WithdrawalRequests.CountAsync(value => value.Status == "PENDING", cancellationToken);
@@ -95,7 +102,8 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
                 totalSmes,
                 totalProjects,
                 openProjects,
-                completedProjects),
+                completedProjects,
+                totalPlatformRevenue + totalPackageRevenue),
             queues,
             new AdminDashboardPackageSnapshotDto(
                 totalPackagePurchases,

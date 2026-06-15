@@ -15,7 +15,8 @@ public sealed record AdminDashboardSummaryDto(
     int TotalSmes,
     int TotalProjects,
     int OpenProjects,
-    int CompletedProjects);
+    int CompletedProjects,
+    decimal TotalRevenue);
 
 public sealed record AdminDashboardQueuesDto(
     int PendingVerifications,

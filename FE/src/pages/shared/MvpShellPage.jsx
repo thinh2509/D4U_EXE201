@@ -24,8 +24,10 @@ import { adminApi } from '../../services/adminApi.js';
 import { profileApi } from '../../services/profileApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
+import { formatCurrency, formatDate } from '../../utils/format.js';
 
 const approvedStatuses = new Set(['APPROVED', 'VERIFIED']);
+const countFormatter = new Intl.NumberFormat('vi-VN');
 
 const dashboardContent = {
   STUDENT: {
@@ -438,7 +440,116 @@ function AdminRecentList({ title, description, actionLabel, actionPath, items, r
   );
 }
 
-function AdminDashboard({ content, data, onNavigate }) {
+function formatCount(value) {
+  return countFormatter.format(value ?? 0);
+}
+
+function AdminSummaryCard({ metric, onNavigate }) {
+  const isAccent = metric.tone === 'accent';
+  const accentClass = isAccent
+    ? 'border-d4u-cyan/35 bg-gradient-to-br from-d4u-soft-2 via-white to-d4u-soft shadow-card'
+    : 'border-d4u-border/80 bg-white/95 shadow-soft';
+  const valueClass = isAccent ? 'text-d4u-teal-deep' : 'text-d4u-text-1';
+  const iconClass = isAccent
+    ? 'bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15'
+    : 'bg-d4u-soft text-d4u-teal-deep';
+
+  return (
+    <button
+      type="button"
+      className={`grid h-full gap-4 rounded-panel border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card ${accentClass}`}
+      onClick={() => onNavigate(metric.path)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`inline-flex h-11 w-11 items-center justify-center rounded-card text-[20px] ${iconClass}`}>
+          {metric.icon}
+        </div>
+        {metric.badge ? (
+          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${isAccent ? 'bg-white text-d4u-teal-deep ring-1 ring-d4u-cyan/15' : 'bg-d4u-soft text-d4u-text-2'}`}>
+            {metric.badge}
+          </span>
+        ) : null}
+      </div>
+      <div className="grid gap-2">
+        <span className="text-sm font-semibold text-d4u-text-2">{metric.label}</span>
+        <strong className={`text-[30px] font-bold leading-none tracking-tight ${valueClass}`}>{metric.value}</strong>
+        <p className="text-sm leading-6 text-d4u-text-2">{metric.helper}</p>
+      </div>
+    </button>
+  );
+}
+
+function AdminQueueCard({ card, onNavigate }) {
+  const isActive = card.value > 0;
+  const isWarning = card.tone === 'warning';
+  const activeClass = isWarning
+    ? 'border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-50'
+    : 'border-d4u-cyan/30 bg-gradient-to-br from-d4u-soft-2 via-white to-d4u-soft';
+  const neutralClass = 'border-d4u-border/75 bg-white/88';
+  const iconClass = isActive
+    ? isWarning
+      ? 'bg-amber-100 text-amber-700'
+      : 'bg-d4u-soft text-d4u-cyan'
+    : 'bg-slate-100 text-slate-500';
+  const valueClass = isActive
+    ? isWarning
+      ? 'text-amber-700'
+      : 'text-d4u-teal-deep'
+    : 'text-d4u-text-2';
+
+  return (
+    <button
+      type="button"
+      className={`grid h-full gap-3 rounded-card border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft ${isActive ? activeClass : neutralClass}`}
+      onClick={() => onNavigate(card.path)}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[18px] ${iconClass}`}>
+          {card.icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-5 text-d4u-text-1">{card.label}</p>
+          <p className="mt-1 text-xs leading-5 text-d4u-text-3">{card.helper}</p>
+        </div>
+      </div>
+      <div className="flex items-end justify-between gap-3 border-t border-black/5 pt-3">
+        <strong className={`text-[30px] font-bold leading-none tracking-tight ${valueClass}`}>{formatCount(card.value)}</strong>
+        <span className={`text-xs font-semibold ${isActive ? 'text-d4u-teal-deep' : 'text-d4u-text-3'}`}>
+          {isActive ? 'Cần xử lý' : 'Ổn định'}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function AdminSnapshotMetric({ label, value, helper, tone = 'neutral' }) {
+  const toneClass = {
+    warning: 'border-amber-200 bg-amber-50',
+    success: 'border-emerald-200 bg-emerald-50',
+    info: 'border-d4u-cyan/25 bg-d4u-soft/70',
+    neutral: 'border-d4u-border/75 bg-white/90'
+  };
+  const valueClass = {
+    warning: 'text-amber-700',
+    success: 'text-emerald-700',
+    info: 'text-d4u-teal-deep',
+    neutral: 'text-d4u-text-1'
+  };
+
+  return (
+    <div className={`rounded-card border p-4 ${toneClass[tone] || toneClass.neutral}`}>
+      <span className="text-xs font-semibold text-d4u-text-2">{label}</span>
+      <strong className={`mt-2 block text-[28px] font-bold leading-none tracking-tight ${valueClass[tone] || valueClass.neutral}`}>
+        {formatCount(value)}
+      </strong>
+      <p className="mt-2 text-sm leading-6 text-d4u-text-3">{helper}</p>
+    </div>
+  );
+}
+
+// Legacy admin dashboard kept temporarily to avoid risky large-block replacement while the new layout settles.
+// eslint-disable-next-line no-unused-vars
+function LegacyAdminDashboard({ content, data, onNavigate }) {
   const summaryMetrics = [
     {
       label: 'Tổng người dùng',
@@ -621,6 +732,216 @@ function AdminDashboard({ content, data, onNavigate }) {
           )}
         />
       </div> : null}
+    </PageShell>
+  );
+}
+
+function AdminDashboard({ content, data, onNavigate }) {
+  const summaryMetrics = [
+    {
+      label: 'Tổng người dùng',
+      value: formatCount(data.summary.totalUsers),
+      helper: `${formatCount(data.summary.totalStudents)} Student • ${formatCount(data.summary.totalSmes)} SME`,
+      path: '/admin/users',
+      icon: <TeamOutlined />
+    },
+    {
+      label: 'Tổng dự án',
+      value: formatCount(data.summary.totalProjects),
+      helper: `${formatCount(data.summary.openProjects)} đang mở • ${formatCount(data.summary.completedProjects)} đã hoàn thành`,
+      path: '/admin/audit-logs',
+      icon: <FolderOpenOutlined />
+    },
+    {
+      label: 'Việc cần xử lý',
+      value: formatCount(data.actions.needsAttentionCount),
+      helper: 'Hàng đợi đang chờ admin',
+      path: '/admin/verifications',
+      icon: <ExclamationCircleFilled />,
+      tone: 'accent',
+      badge: 'Ưu tiên'
+    },
+    {
+      label: 'Gói trả phí',
+      value: formatCount(data.packages.totalPurchases),
+      helper: `${formatCount(data.packages.pendingPurchases)} chờ • ${formatCount(data.packages.activePurchases)} đang hoạt động`,
+      path: '/admin/package-support',
+      icon: <CreditCardOutlined />
+    }
+  ];
+
+  const queueCards = [
+    {
+      label: 'Xác thực chờ duyệt',
+      value: data.queues.pendingVerifications,
+      helper: 'Đi tới duyệt xác thực',
+      path: '/admin/verifications',
+      icon: <SafetyCertificateOutlined />
+    },
+    {
+      label: 'Rút tiền chờ xử lý',
+      value: data.queues.pendingWithdrawals,
+      helper: 'Yêu cầu mới cần xử lý',
+      path: '/admin/withdrawals',
+      icon: <WalletOutlined />
+    },
+    {
+      label: 'Rút tiền đang xác nhận',
+      value: data.queues.processingWithdrawals,
+      helper: 'Đang chờ xác nhận chuyển khoản',
+      path: '/admin/withdrawals',
+      icon: <FileDoneOutlined />
+    },
+    {
+      label: 'Refund chờ xử lý',
+      value: data.queues.pendingRefunds,
+      helper: 'Refund thủ công đang chờ',
+      path: '/admin/withdrawals',
+      icon: <CreditCardOutlined />,
+      tone: 'warning'
+    },
+    {
+      label: 'Gói chờ xác nhận',
+      value: data.queues.pendingPackagePurchases,
+      helper: 'Theo dõi thanh toán gói',
+      path: '/admin/package-support',
+      icon: <CheckCircleOutlined />,
+      tone: 'warning'
+    }
+  ];
+
+  return (
+    <PageShell size="wide" density="relaxed">
+      <PageHeader
+        icon={<DashboardOutlined />}
+        eyebrow={content.label}
+        title="Tổng quan vận hành"
+        description="Theo dõi nhanh người dùng, dự án, giao dịch và các hàng đợi cần xử lý."
+        extra={<Button type="primary" onClick={() => onNavigate('/admin/verifications')}>Duyệt xác thực</Button>}
+      />
+
+      <section className="overflow-hidden rounded-panel border border-d4u-border bg-white shadow-soft">
+        <div className="relative p-5 sm:p-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-d4u-soft via-white to-sky-50" />
+          <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <div className="grid gap-3">
+              <Tag color="cyan" className="w-fit !rounded-full !px-3 !py-1 !text-xs !font-semibold">{content.label}</Tag>
+              <div className="grid gap-2">
+                <h2 className="font-display text-[26px] font-semibold tracking-tight text-d4u-teal-deep sm:text-[30px]">
+                  Điều phối các tác vụ vận hành quan trọng: xác thực, rút tiền, refund và mua gói.
+                </h2>
+                <p className="max-w-3xl text-sm leading-6 text-d4u-text-2">
+                  Giữ bố cục gọn, ưu tiên các hàng đợi cần thao tác ngay và tách rõ nhóm báo cáo gói, thanh toán.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-card border border-d4u-cyan/20 bg-d4u-soft/80 p-4">
+              <div className="flex items-start gap-3">
+                <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15">
+                  <ExclamationCircleFilled />
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-sm font-semibold text-d4u-teal-deep">Ưu tiên hôm nay</span>
+                  <p className="text-sm leading-6 text-d4u-text-2">
+                    Kiểm tra các yêu cầu tài chính và xác thực đang chờ xử lý.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3">
+        <div className="grid gap-1">
+          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Tổng quan hệ thống</span>
+          <strong className="font-display text-xl font-semibold text-d4u-text-1">Nhìn nhanh các chỉ số chính và phần việc cần ưu tiên</strong>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryMetrics.map((metric) => (
+            <AdminSummaryCard key={metric.label} metric={metric} onNavigate={onNavigate} />
+          ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="rounded-panel border border-d4u-border/80 bg-white/95 p-5 shadow-soft">
+            <div className="flex items-start gap-4">
+              <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-d4u-soft text-[22px] text-d4u-cyan">
+                <WalletOutlined />
+              </div>
+              <div className="grid gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Doanh thu D4U đã ghi nhận</span>
+                <strong className="font-display text-[30px] font-bold tracking-tight text-d4u-teal-deep">
+                  {formatCurrency(data.summary.totalRevenue, 'VND')}
+                </strong>
+                <p className="text-sm leading-6 text-d4u-text-2">
+                  Gồm phí nền tảng đã giải ngân và giao dịch mua gói thanh toán thành công.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-panel border border-d4u-border/80 bg-gradient-to-br from-d4u-soft via-white to-white p-5 shadow-soft">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Nhịp vận hành</span>
+            <div className="mt-3 grid gap-3">
+              <div className="flex items-center justify-between gap-3 rounded-card border border-d4u-border/70 bg-white/90 px-4 py-3">
+                <span className="text-sm text-d4u-text-2">Xác thực + tài chính đang chờ</span>
+                <strong className="text-lg font-semibold text-d4u-text-1">{formatCount(data.actions.needsAttentionCount)}</strong>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-card border border-d4u-border/70 bg-white/90 px-4 py-3">
+                <span className="text-sm text-d4u-text-2">Dự án đã hoàn thành</span>
+                <strong className="text-lg font-semibold text-d4u-text-1">{formatCount(data.summary.completedProjects)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <DataPanel title="Hàng đợi vận hành" description="Mở thẳng các màn cần xử lý khi số lượng đang tăng.">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          {queueCards.map((card) => (
+            <AdminQueueCard key={card.label} card={card} onNavigate={onNavigate} />
+          ))}
+        </div>
+      </DataPanel>
+
+      <DataPanel title="Tổng quan gói & thanh toán" description="Theo dõi trạng thái mua gói và thanh toán của SME.">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,220px)_1fr] lg:items-start">
+          <div className="rounded-panel border border-d4u-cyan/20 bg-gradient-to-br from-d4u-soft via-white to-white p-5">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Báo cáo nhanh</span>
+            <p className="mt-3 text-sm leading-6 text-d4u-text-2">
+              Theo dõi trạng thái mua gói và các giao dịch cần xác nhận.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <AdminSnapshotMetric
+              label="Tổng lượt mua gói"
+              value={data.packages.totalPurchases}
+              helper="Toàn bộ giao dịch mua gói đã phát sinh"
+              tone="info"
+            />
+            <AdminSnapshotMetric
+              label="Gói đang hoạt động"
+              value={data.packages.activePurchases}
+              helper="Gói đang có hiệu lực"
+              tone="success"
+            />
+            <AdminSnapshotMetric
+              label="Chờ xác nhận"
+              value={data.packages.pendingPurchases}
+              helper="Giao dịch đang chờ xác nhận"
+              tone={data.packages.pendingPurchases > 0 ? 'warning' : 'neutral'}
+            />
+            <AdminSnapshotMetric
+              label="Thanh toán thất bại"
+              value={data.packages.failedPurchases}
+              helper="Lượt mua chưa hoàn tất"
+              tone={data.packages.failedPurchases > 0 ? 'warning' : 'success'}
+            />
+          </div>
+        </div>
+      </DataPanel>
     </PageShell>
   );
 }
