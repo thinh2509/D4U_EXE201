@@ -11,30 +11,30 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
 
     public async Task<AdminDashboardStatsResponse> GetStatsAsync(CancellationToken cancellationToken = default)
     {
-        var totalUsersTask = dbContext.Users.CountAsync(cancellationToken);
-        var totalStudentsTask = dbContext.Users.CountAsync(value => value.Role == UserRole.STUDENT, cancellationToken);
-        var totalSmesTask = dbContext.Users.CountAsync(value => value.Role == UserRole.SME, cancellationToken);
-        var totalProjectsTask = dbContext.Projects.CountAsync(cancellationToken);
-        var openProjectsTask = dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.OPEN, cancellationToken);
-        var completedProjectsTask = dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.COMPLETED, cancellationToken);
+        var totalUsers = await dbContext.Users.CountAsync(cancellationToken);
+        var totalStudents = await dbContext.Users.CountAsync(value => value.Role == UserRole.STUDENT, cancellationToken);
+        var totalSmes = await dbContext.Users.CountAsync(value => value.Role == UserRole.SME, cancellationToken);
+        var totalProjects = await dbContext.Projects.CountAsync(cancellationToken);
+        var openProjects = await dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.OPEN, cancellationToken);
+        var completedProjects = await dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.COMPLETED, cancellationToken);
 
-        var pendingVerificationsTask = dbContext.StudentVerifications.CountAsync(value => value.Status == "PENDING", cancellationToken);
-        var pendingWithdrawalsTask = dbContext.WithdrawalRequests.CountAsync(value => value.Status == "PENDING", cancellationToken);
-        var processingWithdrawalsTask = dbContext.WithdrawalRequests.CountAsync(value => value.Status == "PROCESSING", cancellationToken);
-        var pendingRefundsTask = dbContext.Refunds.CountAsync(value => value.Status == "PENDING", cancellationToken);
-        var pendingPackagePurchasesTask = dbContext.FeaturePackagePurchases.CountAsync(
+        var pendingVerifications = await dbContext.StudentVerifications.CountAsync(value => value.Status == "PENDING", cancellationToken);
+        var pendingWithdrawals = await dbContext.WithdrawalRequests.CountAsync(value => value.Status == "PENDING", cancellationToken);
+        var processingWithdrawals = await dbContext.WithdrawalRequests.CountAsync(value => value.Status == "PROCESSING", cancellationToken);
+        var pendingRefunds = await dbContext.Refunds.CountAsync(value => value.Status == "PENDING", cancellationToken);
+        var pendingPackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(
             value => value.Status == FeaturePackagePurchaseStatus.PENDING,
             cancellationToken);
 
-        var totalPackagePurchasesTask = dbContext.FeaturePackagePurchases.CountAsync(cancellationToken);
-        var activePackagePurchasesTask = dbContext.FeaturePackagePurchases.CountAsync(
+        var totalPackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(cancellationToken);
+        var activePackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(
             value => value.Status == FeaturePackagePurchaseStatus.ACTIVE,
             cancellationToken);
-        var failedPackagePurchasesTask = dbContext.FeaturePackagePurchases.CountAsync(
+        var failedPackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(
             value => value.Status == FeaturePackagePurchaseStatus.FAILED,
             cancellationToken);
 
-        var latestVerificationsTask = (
+        var latestVerifications = await (
             from verification in dbContext.StudentVerifications
             join profile in dbContext.StudentProfiles on verification.StudentProfileId equals profile.Id
             join user in dbContext.Users on profile.UserId equals user.Id
@@ -48,7 +48,7 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
             .Take(RecentItemsLimit)
             .ToListAsync(cancellationToken);
 
-        var latestWithdrawalsTask = (
+        var latestWithdrawals = await (
             from withdrawal in dbContext.WithdrawalRequests
             join user in dbContext.Users on withdrawal.RequestedByUserId equals user.Id
             orderby withdrawal.RequestedAt descending
@@ -61,7 +61,7 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
             .Take(RecentItemsLimit)
             .ToListAsync(cancellationToken);
 
-        var latestPackagePurchasesTask = (
+        var latestPackagePurchases = await (
             from purchase in dbContext.FeaturePackagePurchases
             join user in dbContext.Users on purchase.BuyerUserId equals user.Id
             join package in dbContext.FeaturePackages on purchase.FeaturePackageId equals package.Id
@@ -81,50 +81,31 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
             .Take(RecentItemsLimit)
             .ToListAsync(cancellationToken);
 
-        await Task.WhenAll(
-            totalUsersTask,
-            totalStudentsTask,
-            totalSmesTask,
-            totalProjectsTask,
-            openProjectsTask,
-            completedProjectsTask,
-            pendingVerificationsTask,
-            pendingWithdrawalsTask,
-            processingWithdrawalsTask,
-            pendingRefundsTask,
-            pendingPackagePurchasesTask,
-            totalPackagePurchasesTask,
-            activePackagePurchasesTask,
-            failedPackagePurchasesTask,
-            latestVerificationsTask,
-            latestWithdrawalsTask,
-            latestPackagePurchasesTask);
-
         var queues = new AdminDashboardQueuesDto(
-            pendingVerificationsTask.Result,
-            pendingWithdrawalsTask.Result,
-            processingWithdrawalsTask.Result,
-            pendingRefundsTask.Result,
-            pendingPackagePurchasesTask.Result);
+            pendingVerifications,
+            pendingWithdrawals,
+            processingWithdrawals,
+            pendingRefunds,
+            pendingPackagePurchases);
 
         return new AdminDashboardStatsResponse(
             new AdminDashboardSummaryDto(
-                totalUsersTask.Result,
-                totalStudentsTask.Result,
-                totalSmesTask.Result,
-                totalProjectsTask.Result,
-                openProjectsTask.Result,
-                completedProjectsTask.Result),
+                totalUsers,
+                totalStudents,
+                totalSmes,
+                totalProjects,
+                openProjects,
+                completedProjects),
             queues,
             new AdminDashboardPackageSnapshotDto(
-                totalPackagePurchasesTask.Result,
-                activePackagePurchasesTask.Result,
-                pendingPackagePurchasesTask.Result,
-                failedPackagePurchasesTask.Result),
+                totalPackagePurchases,
+                activePackagePurchases,
+                pendingPackagePurchases,
+                failedPackagePurchases),
             new AdminDashboardRecentItemsDto(
-                latestVerificationsTask.Result,
-                latestWithdrawalsTask.Result,
-                latestPackagePurchasesTask.Result),
+                latestVerifications,
+                latestWithdrawals,
+                latestPackagePurchases),
             new AdminDashboardActionsDto(
                 queues.PendingVerifications +
                 queues.PendingWithdrawals +
