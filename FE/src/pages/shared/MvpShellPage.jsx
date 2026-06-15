@@ -24,7 +24,6 @@ import { adminApi } from '../../services/adminApi.js';
 import { profileApi } from '../../services/profileApi.js';
 import { projectApi } from '../../services/projectApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
-import { formatCurrency, formatDate } from '../../utils/format.js';
 
 const approvedStatuses = new Set(['APPROVED', 'VERIFIED']);
 
@@ -561,7 +560,7 @@ function AdminDashboard({ content, data, onNavigate }) {
         </div>
       </DataPanel>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      {false ? <div className="grid gap-4 xl:grid-cols-3">
         <AdminRecentList
           title="Xác thực mới nhất"
           description="Ưu tiên hồ sơ sinh viên vừa gửi để không làm chậm luồng marketplace."
@@ -621,7 +620,7 @@ function AdminDashboard({ content, data, onNavigate }) {
             </div>
           )}
         />
-      </div>
+      </div> : null}
     </PageShell>
   );
 }
