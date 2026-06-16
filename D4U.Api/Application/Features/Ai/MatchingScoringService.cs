@@ -44,7 +44,7 @@ internal sealed class MatchingScoringService : IMatchingScoringService
         if (candidate.HasAppliedToProject)
         {
             applicationScore += 18;
-            applicationReasons.Add("Da chu dong ung tuyen vao du an nay.");
+            applicationReasons.Add("Đã chủ động ứng tuyển vào dự án này.");
         }
 
         if (candidate.ProposedPrice.HasValue && project.BudgetAmount > 0)
@@ -55,16 +55,16 @@ internal sealed class MatchingScoringService : IMatchingScoringService
             if (ratio <= 0.1m)
             {
                 applicationScore += 6;
-                applicationReasons.Add("Muc gia de xuat gan voi budget cua du an.");
+                applicationReasons.Add("Mức giá đề xuất gần với ngân sách của dự án.");
             }
             else if (ratio <= 0.25m)
             {
                 applicationScore += 3;
-                applicationReasons.Add("Muc gia de xuat nam trong vung co the xem xet.");
+                applicationReasons.Add("Mức giá đề xuất nằm trong khoảng có thể xem xét.");
             }
             else
             {
-                fitWarnings.Add("Muc gia de xuat hien tai lech kha xa so voi budget du an.");
+                fitWarnings.Add("Mức giá đề xuất hiện tại lệch khá xa so với ngân sách dự án.");
             }
         }
 
@@ -73,36 +73,36 @@ internal sealed class MatchingScoringService : IMatchingScoringService
             string.Equals(candidate.VerificationStatus, "VERIFIED", StringComparison.OrdinalIgnoreCase))
         {
             trustScore += 10;
-            trustReasons.Add("Ho so student da duoc xac thuc.");
+            trustReasons.Add("Hồ sơ sinh viên đã được xác thực.");
         }
 
         if (candidate.AverageRating > 0)
         {
             var ratingScore = (int)Math.Min(12m, Math.Round(candidate.AverageRating * 2.4m, MidpointRounding.AwayFromZero));
             trustScore += ratingScore;
-            trustReasons.Add($"Diem danh gia trung binh {candidate.AverageRating:0.0}.");
+            trustReasons.Add($"Điểm đánh giá trung bình {candidate.AverageRating:0.0}.");
         }
 
         if (candidate.CompletedProjectsCount > 0)
         {
             trustScore += Math.Min(10, candidate.CompletedProjectsCount * 2);
-            trustReasons.Add($"Da hoan thanh {candidate.CompletedProjectsCount} du an.");
+            trustReasons.Add($"Đã hoàn thành {candidate.CompletedProjectsCount} dự án.");
         }
 
         var capabilityScore = 0;
         if (matchedSkillNames.Count > 0)
         {
             capabilityScore += Math.Min(18, matchedSkillNames.Count * 5);
-            skillReasons.Add($"Co ky nang lien quan: {string.Join(", ", matchedSkillNames.Take(4))}.");
+            skillReasons.Add($"Có kỹ năng liên quan: {string.Join(", ", matchedSkillNames.Take(4))}.");
         }
         else if (capability.PublicSkills.Count > 0)
         {
-            skillReasons.Add("Da khai bao ky nang, nhung chua co nhieu ky nang gan voi category cua du an.");
-            fitWarnings.Add($"Ky nang hien co chua the hien ro do khop voi {designCategoryName ?? "category"}.");
+            skillReasons.Add("Đã khai báo kỹ năng, nhưng chưa có nhiều kỹ năng gần với nhóm thiết kế của dự án.");
+            fitWarnings.Add($"Kỹ năng hiện có chưa thể hiện rõ độ khớp với {designCategoryName ?? "nhóm thiết kế"}.");
         }
         else
         {
-            missingDataWarnings.Add("Student chua khai bao ky nang.");
+            missingDataWarnings.Add("Sinh viên chưa khai báo kỹ năng.");
         }
 
         var highlightedSkillCount = capability.HighlightedSkills
@@ -113,29 +113,29 @@ internal sealed class MatchingScoringService : IMatchingScoringService
         if (highlightedSkillCount > 0)
         {
             capabilityScore += Math.Min(6, highlightedSkillCount * 3);
-            skillReasons.Add("Co ky nang noi bat trung voi nhu cau du an.");
+            skillReasons.Add("Có kỹ năng nổi bật trùng với nhu cầu của dự án.");
         }
 
         var categoryPortfolioCount = capability.PublicPortfolio.Count(item => item.DesignCategoryId == project.DesignCategoryId);
         if (categoryPortfolioCount > 0)
         {
             capabilityScore += Math.Min(16, categoryPortfolioCount * 6);
-            portfolioReasons.Add($"Co {categoryPortfolioCount} portfolio cong khai cung nhom category.");
+            portfolioReasons.Add($"Có {categoryPortfolioCount} portfolio công khai cùng nhóm thiết kế.");
         }
         else if (capability.PublicPortfolio.Count > 0)
         {
-            portfolioReasons.Add("Co portfolio cong khai de tham khao them.");
+            portfolioReasons.Add("Có portfolio công khai để tham khảo thêm.");
         }
         else
         {
-            missingDataWarnings.Add("Student chua co portfolio cong khai.");
+            missingDataWarnings.Add("Sinh viên chưa có portfolio công khai.");
         }
 
         var featuredPortfolioCount = capability.FeaturedPortfolio.Count(item => item.DesignCategoryId == project.DesignCategoryId || item.IsFeatured);
         if (featuredPortfolioCount > 0)
         {
             capabilityScore += Math.Min(8, featuredPortfolioCount * 4);
-            portfolioReasons.Add("Portfolio noi bat cung cap them bang chung nang luc.");
+            portfolioReasons.Add("Portfolio nổi bật cung cấp thêm bằng chứng về năng lực.");
         }
 
         var completenessSignals = 0;
@@ -145,7 +145,7 @@ internal sealed class MatchingScoringService : IMatchingScoringService
         }
         else
         {
-            missingDataWarnings.Add("Student chua co phan gioi thieu ca nhan.");
+            missingDataWarnings.Add("Sinh viên chưa có phần giới thiệu cá nhân.");
         }
 
         if (capability.PublicSkills.Count > 0)
@@ -189,7 +189,7 @@ internal sealed class MatchingScoringService : IMatchingScoringService
 
         if (reasons.Count == 0)
         {
-            reasons.Add("Ho so co du lieu co ban de SME xem xet them.");
+            reasons.Add("Hồ sơ hiện có dữ liệu cơ bản để SME xem xét thêm.");
         }
 
         return new MatchingCandidateEvaluation(

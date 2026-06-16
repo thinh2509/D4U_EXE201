@@ -24,7 +24,7 @@ public sealed class MockAiMatchingService : IAiMatchingReranker
 
         return Task.FromResult(new AiMatchingRerankerResponse(
             "Deterministic",
-            ["Dang dung che do goi y du phong dua tren du lieu ho so va lich su ung tuyen hien co."],
+            ["Đang dùng chế độ gợi ý dự phòng dựa trên dữ liệu hồ sơ và lịch sử ứng tuyển hiện có."],
             recommendations));
     }
 }

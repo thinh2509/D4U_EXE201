@@ -26,7 +26,7 @@ public sealed class OpenAiMatchingService(
         {
             return await HandleFallbackAsync(
                 request,
-                "Dang dung che do goi y du phong vi OpenAI chua duoc cau hinh.",
+                "Đang dùng chế độ gợi ý dự phòng vì OpenAI chưa được cấu hình.",
                 cancellationToken);
         }
 
@@ -48,7 +48,7 @@ public sealed class OpenAiMatchingService(
 
                 return await HandleFallbackAsync(
                     request,
-                    "Dang tam thoi dung che do goi y du phong do AI rerank khong phan hoi on dinh.",
+                    "Đang tạm thời dùng chế độ gợi ý dự phòng do AI rerank phản hồi chưa ổn định.",
                     cancellationToken);
             }
 
@@ -80,7 +80,7 @@ public sealed class OpenAiMatchingService(
             logger.LogWarning(exception, "OpenAI AI matching rerank failed for project {ProjectId}.", request.Project.ProjectId);
             return await HandleFallbackAsync(
                 request,
-                "Dang tam thoi dung che do goi y du phong de tranh gian doan.",
+                "Đang tạm thời dùng chế độ gợi ý dự phòng để tránh gián đoạn trải nghiệm.",
                 cancellationToken);
         }
     }
