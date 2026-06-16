@@ -285,7 +285,7 @@ function renderBillingRule(profile, activePackage) {
 
 function getSmeBillingPackageDisplayName(pkg) {
   if (!pkg) return 'Gói SME 30 ngày';
-  if (pkg.code === 'SME_GROWTH_30D') return 'SME Growth 30 ngày';
+  if (pkg.code === 'SME_GROWTH_30D') return 'SME AI Boost 30 ngày';
   return pkg.name;
 }
 
