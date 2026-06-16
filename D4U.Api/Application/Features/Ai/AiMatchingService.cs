@@ -44,7 +44,7 @@ public sealed class AiMatchingService(
                 project.Id,
                 project.Title,
                 "Deterministic",
-                ["Chua tim thay student phu hop de goi y cho du an nay."],
+                ["Chưa tìm thấy sinh viên phù hợp để gợi ý cho dự án này."],
                 []);
         }
 

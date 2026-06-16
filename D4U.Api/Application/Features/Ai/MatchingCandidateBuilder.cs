@@ -11,6 +11,7 @@ internal sealed class MatchingCandidateBuilder(
     IStudentCapabilityService studentCapabilityService) : IMatchingCandidateBuilder
 {
     private const int DiscoverPoolLimit = 80;
+    private const string ApprovedVerificationStatus = "APPROVED";
 
     public async Task<IReadOnlyList<MatchingCandidateInput>> BuildCandidatesAsync(
         Project project,
@@ -30,7 +31,7 @@ internal sealed class MatchingCandidateBuilder(
             join user in unitOfWork.Repository<User>().Query() on profile.UserId equals user.Id
             where user.Role == UserRole.STUDENT &&
                   user.Status == UserStatus.ACTIVE &&
-                  string.Equals(profile.VerificationStatus, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                  profile.VerificationStatus == ApprovedVerificationStatus
             orderby profile.CompletedProjectsCount descending, profile.AverageRating descending, profile.UpdatedAt descending
             select new
             {
@@ -60,7 +61,7 @@ internal sealed class MatchingCandidateBuilder(
                 where missingProfileIds.Contains(profile.Id) &&
                       user.Role == UserRole.STUDENT &&
                       user.Status == UserStatus.ACTIVE &&
-                      string.Equals(profile.VerificationStatus, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                      profile.VerificationStatus == ApprovedVerificationStatus
                 select new
                 {
                     Profile = profile,
