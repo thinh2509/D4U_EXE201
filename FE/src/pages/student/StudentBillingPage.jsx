@@ -7,11 +7,12 @@ import {
 } from '@ant-design/icons';
 import { Alert, App, Button, Card, Table, Tag, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { packageApi } from '../../services/packageApi.js';
+import { profileApi } from '../../services/profileApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 
@@ -82,10 +83,53 @@ function SummaryStat({ label, value }) {
   );
 }
 
+function StudentBillingEligibilityAlert({ profile, onGoToProfile, onGoToVerification }) {
+  if (!profile) {
+    return (
+      <Alert
+        type="warning"
+        showIcon
+        className="form-alert"
+        message="Bạn cần tạo hồ sơ sinh viên trước khi mua gói AI."
+        description={(
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>Hoàn thiện hồ sơ trước để hệ thống khởi tạo đầy đủ dữ liệu Student cho gói AI.</span>
+            <Button type="primary" className="!rounded-btn" onClick={onGoToProfile}>
+              Tạo hồ sơ sinh viên
+            </Button>
+          </div>
+        )}
+      />
+    );
+  }
+
+  if (profile.verificationStatus !== 'APPROVED') {
+    return (
+      <Alert
+        type="warning"
+        showIcon
+        className="form-alert"
+        message="Bạn cần được xác thực sinh viên trước khi mua gói AI."
+        description={(
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>Chỉ Student đã được duyệt xác thực mới có thể kích hoạt gói AI và AI Proposal Writer.</span>
+            <Button type="primary" className="!rounded-btn" onClick={onGoToVerification}>
+              Đi tới xác thực sinh viên
+            </Button>
+          </div>
+        )}
+      />
+    );
+  }
+
+  return null;
+}
+
 function StudentAiPlanSummaryCard({
   aiPackage,
   activeEntitlement,
   latestPurchase,
+  canPurchase,
   actingPackageId,
   actingPurchaseId,
   onStartPurchase,
@@ -122,7 +166,7 @@ function StudentAiPlanSummaryCard({
                   type="primary"
                   className="!h-11 !rounded-btn !px-5 !font-semibold"
                   loading={actingPackageId === aiPackage?.id}
-                  disabled={!aiPackage}
+                  disabled={!aiPackage || !canPurchase}
                   onClick={onStartPurchase}
                 >
                   Mua gói AI
@@ -157,6 +201,7 @@ function StudentAiPlanDetailsCard({
   aiPackage,
   activeEntitlement,
   latestPurchase,
+  canPurchase,
   actingPackageId,
   actingPurchaseId,
   onStartPurchase,
@@ -217,7 +262,7 @@ function StudentAiPlanDetailsCard({
                 type="primary"
                 className="!h-11 !rounded-btn !font-semibold"
                 loading={actingPackageId === aiPackage?.id}
-                disabled={!aiPackage}
+                disabled={!aiPackage || !canPurchase}
                 onClick={onStartPurchase}
               >
                 Mua gói AI
@@ -329,7 +374,9 @@ function StudentAiPurchaseHistorySection({ purchases, loading, actingPurchaseId,
 
 export function StudentBillingPage() {
   const { message } = App.useApp();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [profile, setProfile] = useState(null);
   const [packages, setPackages] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [entitlements, setEntitlements] = useState([]);
@@ -342,11 +389,21 @@ export function StudentBillingPage() {
     setLoading(true);
     setError(null);
     try {
-      const [packageRows, purchaseRows, entitlementRows] = await Promise.all([
+      const [profileResponse, packageRows, purchaseRows, entitlementRows] = await Promise.all([
+        profileApi.getStudentProfile().catch((requestError) => {
+          const messageText = getApiErrorMessage(requestError, '');
+
+          if (/student profile/i.test(messageText) || requestError?.response?.status === 404) {
+            return null;
+          }
+
+          throw requestError;
+        }),
         packageApi.listPackages('STUDENT'),
         packageApi.listMyPurchases(),
         packageApi.listMyEntitlements()
       ]);
+      setProfile(profileResponse);
       setPackages(packageRows.filter((pkg) => pkg.role === 'STUDENT'));
       setPurchases(
         purchaseRows
@@ -381,6 +438,7 @@ export function StudentBillingPage() {
   );
 
   const latestPurchase = purchases[0] || null;
+  const canPurchase = Boolean(profile && profile.verificationStatus === 'APPROVED');
 
   const openCheckout = (checkoutUrl) => {
     if (checkoutUrl) {
@@ -389,7 +447,7 @@ export function StudentBillingPage() {
   };
 
   const startPurchase = async () => {
-    if (!aiPackage) return;
+    if (!aiPackage || !canPurchase) return;
 
     setActingPackageId(aiPackage.id);
     setError(null);
@@ -453,10 +511,19 @@ export function StudentBillingPage() {
 
       {error ? <Alert type="error" showIcon className="form-alert" message={error} /> : null}
 
+      {!canPurchase ? (
+        <StudentBillingEligibilityAlert
+          profile={profile}
+          onGoToProfile={() => navigate('/student/profile')}
+          onGoToVerification={() => navigate('/student/verification')}
+        />
+      ) : null}
+
       <StudentAiPlanSummaryCard
         aiPackage={aiPackage}
         activeEntitlement={activeEntitlement}
         latestPurchase={latestPurchase}
+        canPurchase={canPurchase}
         actingPackageId={actingPackageId}
         actingPurchaseId={actingPurchaseId}
         onStartPurchase={startPurchase}
@@ -467,6 +534,7 @@ export function StudentBillingPage() {
         aiPackage={aiPackage}
         activeEntitlement={activeEntitlement}
         latestPurchase={latestPurchase}
+        canPurchase={canPurchase}
         actingPackageId={actingPackageId}
         actingPurchaseId={actingPurchaseId}
         onStartPurchase={startPurchase}

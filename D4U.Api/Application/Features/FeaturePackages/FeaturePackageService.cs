@@ -55,6 +55,8 @@ public sealed class FeaturePackageService(D4UDbContext dbContext) : IFeaturePack
             throw new UnauthorizedAccessException("User cannot purchase a package for another role.");
         }
 
+        await EnsurePurchaseEligibilityAsync(user, cancellationToken);
+
         var now = DateTimeOffset.UtcNow;
         var hasActiveEntitlement = await dbContext.UserFeatureEntitlements.AnyAsync(
             value => value.UserId == userId &&
@@ -192,6 +194,44 @@ public sealed class FeaturePackageService(D4UDbContext dbContext) : IFeaturePack
     {
         return await dbContext.Users.FirstOrDefaultAsync(value => value.Id == userId, cancellationToken)
             ?? throw new UnauthorizedAccessException("User was not found.");
+    }
+
+    private async Task EnsurePurchaseEligibilityAsync(User user, CancellationToken cancellationToken)
+    {
+        switch (user.Role)
+        {
+            case UserRole.STUDENT:
+            {
+                var profile = await dbContext.StudentProfiles.FirstOrDefaultAsync(
+                    value => value.UserId == user.Id,
+                    cancellationToken);
+
+                if (profile is null)
+                {
+                    throw new ForbiddenException("Student profile must be created before purchasing feature packages.");
+                }
+
+                if (!string.Equals(profile.VerificationStatus, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ForbiddenException("Student verification must be approved before purchasing feature packages.");
+                }
+
+                break;
+            }
+            case UserRole.SME:
+            {
+                var profile = await dbContext.SmeProfiles.FirstOrDefaultAsync(
+                    value => value.UserId == user.Id,
+                    cancellationToken);
+
+                if (profile is null)
+                {
+                    throw new ForbiddenException("SME profile must be created before purchasing feature packages.");
+                }
+
+                break;
+            }
+        }
     }
 
     private static FeaturePackageRole MapRole(UserRole role)
