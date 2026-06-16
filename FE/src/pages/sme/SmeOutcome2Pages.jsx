@@ -41,9 +41,9 @@ const { Paragraph, Title } = Typography;
 const ACTIVE_OFFER_STATUSES = ['WAITING_ACCEPTANCE', 'ACCEPTED', 'PENDING_PAYMENT', 'PAYMENT_FAILED', 'ACTIVE'];
 const AI_MATCHING_ELIGIBLE_PROJECT_STATUSES = ['DRAFT', 'OPEN', 'PRIVATE_INVITED'];
 const MATCHING_VIEW_OPTIONS = [
-  { key: 'ALL', label: 'Tat ca' },
-  { key: 'APPLIED', label: 'Da ung tuyen' },
-  { key: 'DISCOVER', label: 'Chua ung tuyen' }
+  { key: 'ALL', label: 'Tất cả' },
+  { key: 'APPLIED', label: 'Đã ứng tuyển' },
+  { key: 'DISCOVER', label: 'Chưa ứng tuyển' }
 ];
 
 function renderPrimaryCell(title, subtitle) {
@@ -522,26 +522,39 @@ function buildMatchingProviderCopy(provider) {
 }
 
 function MatchingFilterBar({ viewMode, onChange, result }) {
+  const totalCandidates = result?.recommendations?.length ?? 0;
+  const appliedCandidates = result?.recommendations?.filter((item) => item.hasAppliedToProject).length ?? 0;
+  const suggestedCandidates = Math.max(totalCandidates - appliedCandidates, 0);
+
   return (
-    <div className="flex flex-col gap-3 border-b border-d4u-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-sm font-semibold text-d4u-text-1">Danh sách gợi ý</p>
-        <p className="mt-1 text-sm text-d4u-text-3">{buildMatchingProviderCopy(result?.provider)}</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {MATCHING_VIEW_OPTIONS.map((option) => (
-          <Button
-            key={option.key}
-            size="small"
-            type={viewMode === option.key ? 'primary' : 'default'}
-            className={viewMode === option.key
-              ? '!rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover'
-              : '!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep'}
-            onClick={() => onChange(option.key)}
-          >
-            {option.label}
-          </Button>
-        ))}
+    <div className="rounded-card border border-d4u-border/80 bg-gradient-to-r from-d4u-soft/80 via-white to-white p-4 sm:p-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="grid gap-3">
+          <div>
+            <p className="text-sm font-semibold text-d4u-text-1">Danh sách gợi ý</p>
+            <p className="mt-1 text-sm leading-6 text-d4u-text-3">{buildMatchingProviderCopy(result?.provider)}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <PillBadge tone="info">{`${totalCandidates} ứng viên trong kết quả hiện tại`}</PillBadge>
+            <PillBadge tone="neutral">{`${appliedCandidates} đã ứng tuyển`}</PillBadge>
+            <PillBadge tone="neutral">{`${suggestedCandidates} gợi ý mở rộng`}</PillBadge>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MATCHING_VIEW_OPTIONS.map((option) => (
+            <Button
+              key={option.key}
+              size="small"
+              type={viewMode === option.key ? 'primary' : 'default'}
+              className={viewMode === option.key
+                ? '!h-10 !rounded-chip !bg-d4u-cyan !px-4 !font-semibold hover:!bg-d4u-cyan-hover'
+                : '!h-10 !rounded-chip !border-d4u-border !bg-white !px-4 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep'}
+              onClick={() => onChange(option.key)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -551,10 +564,10 @@ function MatchingResultSection({ title, description, items, renderItem }) {
   if (!items?.length) return null;
 
   return (
-    <section className="grid gap-4">
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold text-d4u-text-1">{title}</p>
-        {description ? <p className="text-sm text-d4u-text-3">{description}</p> : null}
+    <section className="grid gap-4 rounded-card border border-d4u-border/70 bg-white/80 p-4 sm:p-5">
+      <div className="flex flex-col gap-1 border-b border-d4u-border/70 pb-4">
+        <p className="font-display text-lg font-semibold text-d4u-text-1">{title}</p>
+        {description ? <p className="text-sm leading-6 text-d4u-text-2">{description}</p> : null}
       </div>
       <List
         className="[&_.ant-list-item]:!border-0 [&_.ant-list-item]:!px-0 [&_.ant-list-item]:!pt-0 [&_.ant-list-item]:!pb-5 last:[&_.ant-list-item]:!pb-0"
@@ -670,21 +683,24 @@ function RecommendationCard({
                     {activeOffer.offerStatus === 'WAITING_ACCEPTANCE' ? 'Đang chờ phản hồi' : 'Đã có đề nghị'}
                   </PillBadge>
                 ) : null}
-                {isTopMatch ? <PillBadge tone="warning">Phù hợp nhất</PillBadge> : null}
+                {isTopMatch ? <PillBadge tone="warning">Ưu tiên cao nhất</PillBadge> : null}
               </div>
 
               <Title level={4} className="!mb-1 truncate !font-display !text-d4u-text-1">
                 {item.studentFullName}
               </Title>
               <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                {[item.school || 'Chưa có trường', item.major || 'Chưa có chuyên ngành'].join(' · ')}
+                {[item.school || 'Chưa cập nhật trường', item.major || 'Chưa cập nhật chuyên ngành'].join(' · ')}
               </Paragraph>
             </div>
 
-            <div className="rounded-2xl border border-d4u-border bg-d4u-soft/70 px-4 py-3 text-left lg:min-w-[180px] lg:text-right">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-d4u-text-3">Giá đề xuất</p>
-              <p className="mt-1 text-base font-semibold text-d4u-teal-deep">
-                {item.proposedPrice ? formatCurrency(item.proposedPrice) : 'Chưa có'}
+            <div className="rounded-2xl border border-d4u-border bg-d4u-soft/70 px-4 py-3 text-left lg:min-w-[210px] lg:text-right">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-d4u-text-3">Mức đề xuất AI</p>
+              <p className="mt-1 text-lg font-semibold text-d4u-teal-deep">
+                {item.proposedPrice ? formatCurrency(item.proposedPrice) : 'Chưa có đề xuất'}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-d4u-text-3">
+                Dùng làm mốc tham khảo khi tạo đề nghị hợp tác.
               </p>
             </div>
           </div>
@@ -698,12 +714,12 @@ function RecommendationCard({
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Do day du ho so</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Độ đầy đủ hồ sơ</p>
               <p className="mt-2 text-2xl font-semibold text-d4u-teal-deep">{item.profileCompleteness ?? 0}%</p>
-              <p className="mt-1 text-sm text-d4u-text-3">Tong hop tu bio, skills va portfolio cong khai.</p>
+              <p className="mt-1 text-sm text-d4u-text-3">Tổng hợp từ bio, kỹ năng và portfolio công khai.</p>
             </div>
             <div className="rounded-2xl border border-d4u-border bg-white/90 p-4 lg:col-span-2">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tin hieu nang luc</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tín hiệu năng lực</p>
               {item.matchedSkillNames?.length ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {item.matchedSkillNames.slice(0, 6).map((skill) => (
@@ -712,7 +728,7 @@ function RecommendationCard({
                 </div>
               ) : (
                 <p className="mt-2 text-sm leading-6 text-d4u-text-2">
-                  He thong uu tien danh gia tu portfolio cong khai, muc do day du ho so va tin hieu ung tuyen hien co.
+                  Hệ thống đang ưu tiên đánh giá dựa trên portfolio công khai, mức độ đầy đủ hồ sơ và tín hiệu ứng tuyển hiện có.
                 </p>
               )}
             </div>
@@ -727,7 +743,7 @@ function RecommendationCard({
 
           {item.matchedPortfolioHighlights?.length ? (
             <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tin hieu portfolio</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tín hiệu portfolio</p>
               <ul className="mt-3 grid gap-2">
                 {item.matchedPortfolioHighlights.slice(0, 3).map((portfolio) => (
                   <li key={portfolio} className="text-sm leading-6 text-d4u-text-2">{portfolio}</li>
@@ -743,7 +759,7 @@ function RecommendationCard({
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Lý do gợi ý</p>
-                <p className="text-sm font-semibold text-d4u-teal-deep">Điểm mạnh nổi bật cho dự án này</p>
+                <p className="text-sm font-semibold text-d4u-teal-deep">Những điểm nổi bật phù hợp với dự án này</p>
               </div>
             </div>
             <ul className="grid gap-3">
@@ -776,7 +792,7 @@ function RecommendationCard({
                 className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
                 onClick={() => onOpenProfile(item.studentProfileId)}
               >
-                Xem ho so
+                Xem hồ sơ
               </Button>
               <Button
                 type="primary"
@@ -1219,8 +1235,8 @@ export function SmeAiMatchingLivePage() {
     if (viewMode === 'APPLIED') {
       return [{
         key: 'applied',
-        title: 'Da ung tuyen va dang duoc uu tien review',
-        description: 'Nhom candidate da chu dong nop application vao du an nay.',
+        title: 'Đã ứng tuyển và đang được ưu tiên xem xét',
+        description: 'Nhóm ứng viên đã chủ động nộp đơn cho dự án này.',
         items: filteredRecommendations
       }];
     }
@@ -1228,8 +1244,8 @@ export function SmeAiMatchingLivePage() {
     if (viewMode === 'DISCOVER') {
       return [{
         key: 'discover',
-        title: 'Phu hop nhung chua ung tuyen',
-        description: 'Nhom candidate duoc mo rong tu marketplace de SME can nhac gui de nghi truc tiep.',
+        title: 'Phù hợp nhưng chưa ứng tuyển',
+        description: 'Nhóm ứng viên được mở rộng từ marketplace để SME cân nhắc gửi đề nghị trực tiếp.',
         items: filteredRecommendations
       }];
     }
@@ -1241,20 +1257,20 @@ export function SmeAiMatchingLivePage() {
     return [
       {
         key: 'top',
-        title: 'Top matches',
-        description: 'Danh sach uu tien cao nhat sau khi ket hop base scoring va AI rerank.',
+        title: 'Nhóm phù hợp nhất',
+        description: 'Danh sách ưu tiên cao nhất sau khi kết hợp điểm nền và AI rerank.',
         items: topMatches
       },
       {
         key: 'applied',
-        title: 'Da ung tuyen va phu hop',
-        description: 'Nhung student da nop ung tuyen va van duoc score tot.',
+        title: 'Đã ứng tuyển và phù hợp',
+        description: 'Những sinh viên đã nộp ứng tuyển và vẫn được chấm điểm tốt.',
         items: remaining.filter((item) => item.hasAppliedToProject)
       },
       {
         key: 'discover',
-        title: 'Phu hop nhung chua ung tuyen',
-        description: 'SME co the mo rong candidate pool va gui de nghi truc tiep neu can.',
+        title: 'Phù hợp nhưng chưa ứng tuyển',
+        description: 'SME có thể mở rộng danh sách ứng viên và gửi đề nghị trực tiếp khi cần.',
         items: remaining.filter((item) => !item.hasAppliedToProject)
       }
     ].filter((section) => section.items.length > 0);
@@ -1360,7 +1376,7 @@ export function SmeAiMatchingLivePage() {
       <PageHeader
         icon={<TeamOutlined />}
         title="Gợi ý AI"
-        description="Đánh giá nhanh các gợi ý sinh viên theo điểm, lý do gợi ý và mức độ sẵn sàng trước khi quay lại luồng đề nghị."
+        description="Xem nhanh danh sách sinh viên phù hợp theo điểm số, lý do gợi ý và mức độ sẵn sàng để ra quyết định gửi đề nghị chính xác hơn."
         extra={(
           <Space>
             <Button
@@ -1489,22 +1505,25 @@ export function SmeAiMatchingLivePage() {
         title={<span className="font-display text-lg font-semibold text-d4u-text-1">Kết quả gợi ý sinh viên</span>}
       >
         {!result ? (
-          <Empty
-            description={
-              !activePackage
-                ? 'Tính năng đang bị khóa vì chưa có gói.'
+          <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-d4u-border bg-white/80 px-6 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-d4u-soft text-d4u-teal-deep">
+              <TeamOutlined className="text-xl" />
+            </div>
+            <p className="mt-4 text-base font-semibold text-d4u-text-1">Chưa có kết quả gợi ý</p>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-d4u-text-2">
+              {!activePackage
+                ? 'Tính năng hiện đang bị khóa vì tài khoản chưa có gói AI Matching đang hoạt động.'
                 : !canUseAiMatching
-                  ? 'Dự án này đã qua giai đoạn tuyển chọn nên không còn dùng AI Matching.'
-                  : 'Chưa có kết quả. Hãy chạy gợi ý AI để lấy danh sách gợi ý.'
-            }
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+                  ? 'Dự án này đã qua giai đoạn tuyển chọn nên hiện không thể tiếp tục dùng AI Matching.'
+                  : 'Hãy chạy gợi ý AI để lấy danh sách sinh viên phù hợp cho dự án này.'}
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6">
             <MatchingFilterBar viewMode={viewMode} onChange={setViewMode} result={result} />
 
             {result.warnings?.length ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="rounded-card border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50/70 px-4 py-4">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Lưu ý hệ thống</p>
                 <ul className="mt-2 grid gap-2">
                   {result.warnings.slice(0, 3).map((warning) => (
@@ -1537,7 +1556,15 @@ export function SmeAiMatchingLivePage() {
                 )}
               />
             )) : (
-              <Empty description="Không có ứng viên nào phù hợp với bộ lọc hiện tại." image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-d4u-border bg-white/80 px-6 py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-d4u-soft text-d4u-teal-deep">
+                  <TeamOutlined className="text-xl" />
+                </div>
+                <p className="mt-4 text-base font-semibold text-d4u-text-1">Chưa có ứng viên phù hợp</p>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-d4u-text-2">
+                  Thử chuyển bộ lọc hoặc chạy lại gợi ý khi dữ liệu hồ sơ, ứng tuyển hay trạng thái dự án đã được cập nhật.
+                </p>
+              </div>
             )}
           </div>
         )}
