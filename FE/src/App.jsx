@@ -6,7 +6,9 @@ import { useAuth } from './contexts/AuthContext.jsx';
 import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { RegisterPage } from './pages/auth/RegisterPage.jsx';
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage.jsx';
-import { AdminAuditLogsPage, AdminPortfolioPage, AdminUsersPage, AdminWithdrawalsPage } from './pages/admin/AdminShellPages.jsx';
+import { AdminAuditLogsPage, AdminPortfolioPage, AdminWithdrawalsPage } from './pages/admin/AdminShellPages.jsx';
+import { AdminProjectModerationPage } from './pages/admin/AdminProjectModerationPage.jsx';
+import { AdminUsersManagementPage } from './pages/admin/AdminUsersManagementPage.jsx';
 import { VerificationDetailPage } from './pages/admin/VerificationDetailPage.jsx';
 import { VerificationListPage } from './pages/admin/VerificationListPage.jsx';
 import { AdminPackageSupportPage } from './pages/admin/AdminPackageSupportPage.jsx';
@@ -89,7 +91,8 @@ export default function App() {
         <Route path="/admin/portfolio" element={<AdminPortfolioPage />} />
         <Route path="/admin/package-support" element={<AdminPackageSupportPage />} />
         <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
-        <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/users" element={<AdminUsersManagementPage />} />
+        <Route path="/admin/projects" element={<AdminProjectModerationPage />} />
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
       </Route>
 
