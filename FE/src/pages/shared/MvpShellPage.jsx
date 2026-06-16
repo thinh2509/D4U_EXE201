@@ -217,7 +217,7 @@ const dashboardContent = {
   ADMIN: {
     label: 'Admin console',
     title: 'Điều phối các bước vận hành quan trọng',
-    description: 'Duyệt xác thực, xử lý rút tiền, theo dõi audit logs và moderation phục vụ demo Outcome 1.',
+    description: 'Duyệt xác thực, xử lý rút tiền, moderation user/project và theo dõi các hàng đợi vận hành chính.',
     primaryPath: '/admin/verifications',
     primaryLabel: 'Duyệt xác thực',
     insight: 'Các thao tác tài chính và xác thực cần rõ trạng thái, người xử lý và thời điểm cập nhật.',
@@ -242,6 +242,13 @@ const dashboardContent = {
         path: '/admin/users',
         icon: <TeamOutlined />,
         badge: 'Quản trị'
+      },
+      {
+        title: 'Dự án moderation',
+        description: 'Xem case ADMIN_REVIEW và can thiệp tối thiểu khi flow bình thường bị kẹt.',
+        path: '/admin/projects',
+        icon: <FolderOpenOutlined />,
+        badge: 'Moderation'
       },
       {
         title: 'Audit logs',

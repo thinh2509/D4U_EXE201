@@ -14,6 +14,14 @@ export const verificationStatusLabels = {
   EXPIRED: 'Hết hạn'
 };
 
+export const userStatusLabels = {
+  PENDING: 'Chờ kích hoạt',
+  ACTIVE: 'Đang hoạt động',
+  SUSPENDED: 'Tạm khóa',
+  BANNED: 'Cấm truy cập',
+  DELETED: 'Đã xóa'
+};
+
 export const projectStatusLabels = {
   DRAFT: 'Bản nháp',
   OPEN: 'Đang mở',
@@ -63,6 +71,14 @@ export const paymentStatusLabels = {
   RELEASE_PENDING: 'Chờ giải ngân',
   RELEASED: 'Đã giải ngân',
   REFUNDED: 'Đã hoàn tiền'
+};
+
+export const featurePackageStatusLabels = {
+  PENDING: 'Chờ xử lý',
+  ACTIVE: 'Đang hoạt động',
+  FAILED: 'Thanh toán lỗi',
+  CANCELLED: 'Đã hủy',
+  EXPIRED: 'Hết hiệu lực'
 };
 
 export const portfolioStatusLabels = {

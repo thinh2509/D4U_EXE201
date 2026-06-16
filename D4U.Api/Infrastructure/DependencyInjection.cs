@@ -148,6 +148,7 @@ public static class DependencyInjection
         });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+        services.AddScoped<IAdminOperationsService, AdminOperationsService>();
         services.AddScoped<IFeaturePackageService, FeaturePackageService>();
         services.AddScoped<IFeatureEntitlementService, FeatureEntitlementService>();
         services.AddScoped<IProfileService, ProfileService>();
