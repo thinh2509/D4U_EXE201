@@ -73,12 +73,6 @@ function canUseAiMatchingForProject(projectStatus) {
   return AI_MATCHING_ELIGIBLE_PROJECT_STATUSES.includes(projectStatus);
 }
 
-function buildPurchaseActionLabel(purchase) {
-  if (!purchase) return 'Mua gói & thanh toán';
-  if (purchase.paymentStatus === 'PENDING' && purchase.checkoutUrl) return 'Mở lại PayOS';
-  return 'Thanh toán lại';
-}
-
 function getScoreTone(score) {
   if (score >= 85) return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
   if (score >= 70) return 'bg-sky-50 text-sky-700 ring-sky-200';
@@ -217,16 +211,16 @@ function buildBillingSummaryStatus(profile, activePackage, latestPurchase) {
     return { label: 'Đang hoạt động', tone: 'success' };
   }
 
+  if (profile?.isFreePlan) {
+    return { label: 'Đang hoạt động', tone: 'success' };
+  }
+
   if (latestPurchase?.paymentStatus === 'PENDING') {
     return { label: 'Chờ xác nhận', tone: 'warning' };
   }
 
   if (latestPurchase?.entitlementStatus === 'EXPIRED' || latestPurchase?.status === 'EXPIRED') {
     return { label: 'Hết hiệu lực', tone: 'neutral' };
-  }
-
-  if (profile?.isFreePlan) {
-    return { label: 'Đang sử dụng', tone: 'info' };
   }
 
   return { label: 'Chưa kích hoạt', tone: 'neutral' };
@@ -301,10 +295,6 @@ function getSmeBillingPackageDescription(pkg) {
   return pkg.description || 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
 }
 
-function shouldShowBillingRetryPurchase(purchase) {
-  return Boolean(purchase && ['PENDING', 'FAILED'].includes(purchase.paymentStatus));
-}
-
 function SmeBillingEligibilityAlert({ onGoToProfile }) {
   return (
     <Alert
@@ -377,9 +367,7 @@ function SmePlanPackageCard({
   latestPurchase,
   canPurchasePackage,
   actingPackageId,
-  actingPurchaseId,
-  onStartPurchase,
-  onReopenPurchasePayment
+  onStartPurchase
 }) {
   if (!pkg) return null;
 
@@ -435,36 +423,24 @@ function SmePlanPackageCard({
             <p className="text-[15px] font-semibold text-d4u-text-1">{packageStatus.label}</p>
           </div>
 
-          <div className="flex flex-col gap-3">
-            {!activePackage || activePackage.packageId !== pkg.id ? (
-              <Button
-                type="primary"
-                className="!h-11 !rounded-btn !font-semibold"
-                loading={actingPackageId === pkg.id}
-                disabled={!canPurchasePackage}
-                onClick={() => onStartPurchase(pkg)}
-              >
-                Mua gói
-              </Button>
-            ) : null}
-
-            {shouldShowBillingRetryPurchase(latestPurchase) ? (
-              <Button
-                className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                loading={actingPurchaseId === latestPurchase.id}
-                onClick={() => onReopenPurchasePayment(latestPurchase)}
-              >
-                Mở lại thanh toán
-              </Button>
-            ) : null}
-          </div>
+          {!activePackage || activePackage.packageId !== pkg.id ? (
+            <Button
+              type="primary"
+              className="!h-11 !rounded-btn !font-semibold"
+              loading={actingPackageId === pkg.id}
+              disabled={!canPurchasePackage}
+              onClick={() => onStartPurchase(pkg)}
+            >
+              Mua gói
+            </Button>
+          ) : null}
         </div>
       </div>
     </Card>
   );
 }
 
-function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReopenPurchasePayment }) {
+function SmePurchaseHistorySection({ purchases, loading }) {
   return (
     <Card
       className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
@@ -513,23 +489,6 @@ function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReo
             dataIndex: 'expiresAt',
             width: 180,
             render: (value) => renderBillingDateCell(value, 'Chưa kích hoạt')
-          },
-          {
-            title: <span className="text-[12px] font-semibold text-d4u-text-3">Thao tác</span>,
-            width: 170,
-            render: (_, row) => (
-              shouldShowBillingRetryPurchase(row)
-                ? (
-                  <Button
-                    className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                    loading={actingPurchaseId === row.id}
-                    onClick={() => onReopenPurchasePayment(row)}
-                  >
-                    Mở lại thanh toán
-                  </Button>
-                )
-                : null
-            )
           }
         ]}
       />
@@ -850,9 +809,7 @@ function PackageShowcaseCard({
   isActivePackage,
   loading,
   actingPackageId,
-  actingPurchaseId,
-  onStartPurchase,
-  onReopenPurchasePayment
+  onStartPurchase
 }) {
   return (
     <Card
@@ -932,25 +889,16 @@ function PackageShowcaseCard({
             </div>
           )}
 
-          <div className="mt-auto flex flex-col gap-3 sm:flex-row">
+          <div className="mt-auto">
             <Button
               type="primary"
-              className="!h-12 flex-1 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
+              className="!h-12 w-full !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
               disabled={isActivePackage}
               loading={actingPackageId === pkg.id}
               onClick={() => onStartPurchase(pkg)}
             >
               {isActivePackage ? 'Gói đang hoạt động' : 'Mua gói & thanh toán'}
             </Button>
-            {latestPurchase && !isActivePackage ? (
-              <Button
-                className="!h-12 flex-1 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                loading={actingPurchaseId === latestPurchase.id}
-                onClick={() => onReopenPurchasePayment(latestPurchase)}
-              >
-                {buildPurchaseActionLabel(latestPurchase)}
-              </Button>
-            ) : null}
           </div>
         </div>
       </div>
@@ -967,7 +915,6 @@ export function SmeBillingLivePage() {
   const [entitlements, setEntitlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actingPackageId, setActingPackageId] = useState(null);
-  const [actingPurchaseId, setActingPurchaseId] = useState(null);
   const [error, setError] = useState(null);
   const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
   const featuredPackage = useMemo(
@@ -1033,20 +980,6 @@ export function SmeBillingLivePage() {
       setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói.'));
     } finally {
       setActingPackageId(null);
-    }
-  };
-
-  const reopenPurchasePayment = async (purchase) => {
-    setActingPurchaseId(purchase.id);
-    setError(null);
-    try {
-      const payment = await packageApi.createPurchasePayment(purchase.id);
-      openCheckout(payment.checkoutUrl || purchase.checkoutUrl);
-      await loadData();
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể mở lại thanh toán PayOS cho gói.'));
-    } finally {
-      setActingPurchaseId(null);
     }
   };
 
@@ -1135,16 +1068,12 @@ export function SmeBillingLivePage() {
           latestPurchase={latestPurchase}
           canPurchasePackage={canPurchasePackage}
           actingPackageId={actingPackageId}
-          actingPurchaseId={actingPurchaseId}
           onStartPurchase={startPurchase}
-          onReopenPurchasePayment={reopenPurchasePayment}
         />
 
         <SmePurchaseHistorySection
           purchases={purchases}
           loading={loading}
-          actingPurchaseId={actingPurchaseId}
-          onReopenPurchasePayment={reopenPurchasePayment}
         />
       </div>
 
@@ -1162,9 +1091,7 @@ export function SmeBillingLivePage() {
                 isActivePackage={isActivePackage}
                 loading={loading}
                 actingPackageId={actingPackageId}
-                actingPurchaseId={actingPurchaseId}
                 onStartPurchase={startPurchase}
-                onReopenPurchasePayment={reopenPurchasePayment}
               />
             );
           })}
@@ -1237,20 +1164,6 @@ export function SmeBillingLivePage() {
               width: 170,
               render: renderDateCell
             },
-            {
-              title: 'Hành động',
-              width: 180,
-              render: (_, row) => (
-                <Button
-                  className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                  disabled={row.status === 'ACTIVE'}
-                  loading={actingPurchaseId === row.id}
-                  onClick={() => reopenPurchasePayment(row)}
-                >
-                  {buildPurchaseActionLabel(row)}
-                </Button>
-              )
-            }
           ]}
         />
       </Card>

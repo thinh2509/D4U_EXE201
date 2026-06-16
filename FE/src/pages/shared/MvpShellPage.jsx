@@ -769,9 +769,9 @@ function AdminDashboard({ content, data, onNavigate }) {
       badge: 'Ưu tiên'
     },
     {
-      label: 'Gói trả phí',
-      value: formatCount(data.packages.totalPurchases),
-      helper: `${formatCount(data.packages.pendingPurchases)} chờ • ${formatCount(data.packages.activePurchases)} đang hoạt động`,
+      label: 'Gói đang sử dụng',
+      value: formatCount(data.packages.activePurchases),
+      helper: 'Các gói hiện đang còn hiệu lực',
       path: '/admin/package-support',
       icon: <CreditCardOutlined />
     }
@@ -805,14 +805,6 @@ function AdminDashboard({ content, data, onNavigate }) {
       helper: 'Refund thủ công đang chờ',
       path: '/admin/withdrawals',
       icon: <CreditCardOutlined />,
-      tone: 'warning'
-    },
-    {
-      label: 'Gói chờ xác nhận',
-      value: data.queues.pendingPackagePurchases,
-      helper: 'Theo dõi thanh toán gói',
-      path: '/admin/package-support',
-      icon: <CheckCircleOutlined />,
       tone: 'warning'
     }
   ];
@@ -913,12 +905,12 @@ function AdminDashboard({ content, data, onNavigate }) {
         </div>
       </DataPanel>
 
-      <DataPanel title="Tổng quan gói & thanh toán" description="Theo dõi trạng thái mua gói và thanh toán của SME.">
+      <DataPanel title="Tổng quan gói & thanh toán" description="Theo dõi các gói đang sử dụng và các giao dịch cần lưu ý.">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,220px)_1fr] lg:items-start">
           <div className="rounded-panel border border-d4u-cyan/20 bg-gradient-to-br from-d4u-soft via-white to-white p-5">
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Báo cáo nhanh</span>
             <p className="mt-3 text-sm leading-6 text-d4u-text-2">
-              Theo dõi trạng thái mua gói và các giao dịch cần xác nhận.
+              Tập trung vào số gói đang hoạt động và những giao dịch chưa hoàn tất.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -933,12 +925,6 @@ function AdminDashboard({ content, data, onNavigate }) {
               value={data.packages.activePurchases}
               helper="Gói đang có hiệu lực"
               tone="success"
-            />
-            <AdminSnapshotMetric
-              label="Chờ xác nhận"
-              value={data.packages.pendingPurchases}
-              helper="Giao dịch đang chờ xác nhận"
-              tone={data.packages.pendingPurchases > 0 ? 'warning' : 'neutral'}
             />
             <AdminSnapshotMetric
               label="Thanh toán thất bại"
