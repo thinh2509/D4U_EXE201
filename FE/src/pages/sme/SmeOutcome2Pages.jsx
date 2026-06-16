@@ -305,6 +305,25 @@ function shouldShowBillingRetryPurchase(purchase) {
   return Boolean(purchase && ['PENDING', 'FAILED'].includes(purchase.paymentStatus));
 }
 
+function SmeBillingEligibilityAlert({ onGoToProfile }) {
+  return (
+    <Alert
+      type="warning"
+      showIcon
+      className="form-alert"
+      message="Bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói."
+      description={(
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span>Hoàn thiện hồ sơ SME trước để hệ thống gắn gói AI đúng với doanh nghiệp của bạn.</span>
+          <Button type="primary" className="!rounded-btn" onClick={onGoToProfile}>
+            Tạo hồ sơ SME
+          </Button>
+        </div>
+      )}
+    />
+  );
+}
+
 function SmePlanSummaryCard({ profile, activePackage, featuredPackage, latestPurchase }) {
   const summaryStatus = buildBillingSummaryStatus(profile, activePackage, latestPurchase);
   const packageName = profile?.isFreePlan && !activePackage
@@ -356,6 +375,7 @@ function SmePlanPackageCard({
   pkg,
   activePackage,
   latestPurchase,
+  canPurchasePackage,
   actingPackageId,
   actingPurchaseId,
   onStartPurchase,
@@ -421,6 +441,7 @@ function SmePlanPackageCard({
                 type="primary"
                 className="!h-11 !rounded-btn !font-semibold"
                 loading={actingPackageId === pkg.id}
+                disabled={!canPurchasePackage}
                 onClick={() => onStartPurchase(pkg)}
               >
                 Mua gói
@@ -953,6 +974,7 @@ export function SmeBillingLivePage() {
     () => packages.find((pkg) => pkg.maxActiveOpenProjectsOverride) || packages[0] || null,
     [packages]
   );
+  const canPurchasePackage = Boolean(profile);
 
   const loadData = async () => {
     setLoading(true);
@@ -997,6 +1019,8 @@ export function SmeBillingLivePage() {
   };
 
   const startPurchase = async (pkg) => {
+    if (!pkg || !canPurchasePackage) return;
+
     setActingPackageId(pkg.id);
     setError(null);
     try {
@@ -1100,11 +1124,16 @@ export function SmeBillingLivePage() {
 
       {error ? <Alert type="error" showIcon className="form-alert" message={error} /> : null}
 
+      {!canPurchasePackage ? (
+        <SmeBillingEligibilityAlert onGoToProfile={() => navigate('/sme/profile')} />
+      ) : null}
+
       <div className="grid gap-6">
         <SmePlanPackageCard
           pkg={featuredPackage}
           activePackage={activePackage}
           latestPurchase={latestPurchase}
+          canPurchasePackage={canPurchasePackage}
           actingPackageId={actingPackageId}
           actingPurchaseId={actingPurchaseId}
           onStartPurchase={startPurchase}

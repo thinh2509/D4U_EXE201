@@ -26,10 +26,11 @@ public sealed class PayOsPaymentProvider(
         EnsureConfigured(options);
 
         var amount = decimal.ToInt64(decimal.Truncate(request.Amount));
+        var safeDescription = BuildSafeDescription(request.Description, request.OrderCode);
         var signature = PayOsSignature.CreatePaymentRequestSignature(
             amount,
             request.CancelUrl,
-            request.Description,
+            safeDescription,
             request.OrderCode,
             request.ReturnUrl,
             options.ChecksumKey);
@@ -37,14 +38,14 @@ public sealed class PayOsPaymentProvider(
         var payload = new PayOsCreatePaymentRequest(
             request.OrderCode,
             amount,
-            request.Description,
+            safeDescription,
             request.CancelUrl,
             request.ReturnUrl,
             signature,
             request.ExpiresAt.ToUnixTimeSeconds(),
             [
                 new PayOsPaymentItem(
-                    request.Description,
+                    safeDescription,
                     1,
                     amount)
             ]);
@@ -129,6 +130,16 @@ public sealed class PayOsPaymentProvider(
         {
             throw new InvalidOperationException("PayOS payment settings are not configured.");
         }
+    }
+
+    private static string BuildSafeDescription(string? description, long orderCode)
+    {
+        var normalized = (description ?? string.Empty).Trim();
+        var prefix = normalized.Contains("escrow", StringComparison.OrdinalIgnoreCase)
+            ? "D4U ESCROW"
+            : "D4U PACKAGE";
+
+        return $"{prefix} {orderCode}";
     }
 }
 
