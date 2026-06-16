@@ -1,10 +1,9 @@
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { apiBaseUrl } from './apiClient.js';
 
 function getNotificationHubUrl() {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
-
-  if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
-    return baseUrl.replace(/\/api\/v1$/i, '') + '/hubs/notifications';
+  if (apiBaseUrl.startsWith('http://') || apiBaseUrl.startsWith('https://')) {
+    return apiBaseUrl.replace(/\/api\/v1$/i, '') + '/hubs/notifications';
   }
 
   return '/hubs/notifications';

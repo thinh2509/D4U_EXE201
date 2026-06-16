@@ -219,12 +219,14 @@ AZURE_WEBAPP_PUBLISH_PROFILE=<noi dung file publish profile>
 ```
 
 5. Tao hoac cap nhat workflow GitHub Actions de publish `D4U.Api/D4U.Api.csproj`.
-6. Trigger workflow bang cach push code len branch deploy hoac chay manual workflow.
+6. Cau hinh workflow backend production trigger tu `main` de dong bo voi Vercel Production Branch.
+7. Trigger workflow bang cach push code len `main` hoac chay manual workflow.
 
 Expected result:
 - Workflow build .NET 8 thanh cong.
 - Azure App Service nhan ban publish moi.
 - Health endpoint van tra `ok`.
+- Backend production va frontend production cung phat hanh tu `main`, khong bi lech branch deploy.
 
 ### Cach thay the: Service Principal
 
@@ -458,12 +460,17 @@ Ket qua mong doi:
 
 Redeploy sau khi doi code:
 1. Push code len GitHub.
-2. Chay lai GitHub Actions cho backend neu co thay doi API/backend.
+2. Merge thay doi vao `main` hoac chay manual workflow backend neu dang deploy production.
 3. Trigger redeploy Vercel neu co thay doi frontend.
 4. Chay lai smoke test ngan:
    - `/health`
    - login admin
    - 1 request API tu frontend
+
+Checklist cau hinh production quan trong:
+- `VITE_API_BASE_URL=https://<web-app-name>.azurewebsites.net/api/v1`
+- `Cors__AllowedOrigins__0=https://<vercel-domain>`
+- Backend Azure workflow production nghe `main`
 
 Reset demo database co kiem soat:
 1. Xac nhan voi team rang du lieu hien tai duoc phep xoa.

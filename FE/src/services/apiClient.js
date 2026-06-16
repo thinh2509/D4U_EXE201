@@ -1,7 +1,30 @@
 import axios from 'axios';
 import { getApiErrorMessage } from '../utils/apiError';
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+function normalizeApiBaseUrl(rawBaseUrl) {
+  const fallbackBaseUrl = '/api/v1';
+  const trimmedBaseUrl = (rawBaseUrl || fallbackBaseUrl).trim().replace(/\/+$/, '');
+
+  if (!trimmedBaseUrl) {
+    return fallbackBaseUrl;
+  }
+
+  if (/\/api\/v1$/i.test(trimmedBaseUrl)) {
+    return trimmedBaseUrl;
+  }
+
+  if (/\/api$/i.test(trimmedBaseUrl)) {
+    return `${trimmedBaseUrl}/v1`;
+  }
+
+  if (/^https?:\/\//i.test(trimmedBaseUrl)) {
+    return `${trimmedBaseUrl}/api/v1`;
+  }
+
+  return trimmedBaseUrl === '/api' ? '/api/v1' : trimmedBaseUrl;
+}
+
+export const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 export const apiClient = axios.create({
   baseURL: apiBaseUrl,
