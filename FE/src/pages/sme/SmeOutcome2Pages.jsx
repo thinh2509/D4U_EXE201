@@ -508,24 +508,24 @@ function RecommendationReason({ reason }) {
 }
 
 function getMatchTierCopy(tier) {
-  if (tier === 'STRONG') return { label: 'Rat phu hop', tone: 'success' };
-  if (tier === 'GOOD') return { label: 'Phu hop tot', tone: 'info' };
-  return { label: 'Can review', tone: 'warning' };
+  if (tier === 'STRONG') return { label: 'Rất phù hợp', tone: 'success' };
+  if (tier === 'GOOD') return { label: 'Phù hợp tốt', tone: 'info' };
+  return { label: 'Cần xem lại', tone: 'warning' };
 }
 
 function buildMatchingProviderCopy(provider) {
   if (provider === 'OpenAI') {
-    return 'Dang dung AI rerank de giai thich top candidate.';
+    return 'Đang dùng AI rerank để giải thích nhóm ứng viên phù hợp nhất.';
   }
 
-  return 'Dang dung che do goi y du phong tu du lieu ho so hien co.';
+  return 'Đang dùng chế độ gợi ý dự phòng từ dữ liệu hồ sơ hiện có.';
 }
 
 function MatchingFilterBar({ viewMode, onChange, result }) {
   return (
     <div className="flex flex-col gap-3 border-b border-d4u-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-semibold text-d4u-text-1">Danh sach goi y</p>
+        <p className="text-sm font-semibold text-d4u-text-1">Danh sách gợi ý</p>
         <p className="mt-1 text-sm text-d4u-text-3">{buildMatchingProviderCopy(result?.provider)}</p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -1505,7 +1505,7 @@ export function SmeAiMatchingLivePage() {
 
             {result.warnings?.length ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Luu y he thong</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Lưu ý hệ thống</p>
                 <ul className="mt-2 grid gap-2">
                   {result.warnings.slice(0, 3).map((warning) => (
                     <li key={warning} className="text-sm leading-6 text-amber-800">{warning}</li>
@@ -1537,7 +1537,7 @@ export function SmeAiMatchingLivePage() {
                 )}
               />
             )) : (
-              <Empty description="Khong co candidate nao phu hop voi bo loc hien tai." image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <Empty description="Không có ứng viên nào phù hợp với bộ lọc hiện tại." image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
           </div>
         )}
