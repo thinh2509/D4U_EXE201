@@ -12,6 +12,7 @@ import { PageHeader } from '../../components/PageHeader.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { packageApi } from '../../services/packageApi.js';
+import { paymentApi } from '../../services/paymentApi.js';
 import { profileApi } from '../../services/profileApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
@@ -376,6 +377,8 @@ export function StudentBillingPage() {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isPaymentReturn = searchParams.get('paymentReturn') === '1';
+  const paymentReturnPaymentId = searchParams.get('paymentId');
   const [profile, setProfile] = useState(null);
   const [packages, setPackages] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -426,6 +429,107 @@ export function StudentBillingPage() {
     if (!searchParams.get('paymentReturn') && !searchParams.get('paymentId')) return;
     loadData();
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!isPaymentReturn) return;
+
+    if (!paymentReturnPaymentId) {
+      message.warning('Không tìm thấy mã thanh toán để kiểm tra trạng thái giao dịch.');
+      navigate('/student/billing', { replace: true });
+      return;
+    }
+
+    let stopped = false;
+    let attempts = 0;
+    let pollingId = null;
+    const toastKey = 'student-billing-payment-return';
+    const failedStatuses = ['FAILED', 'CANCELLED', 'EXPIRED'];
+
+    message.loading({
+      key: toastKey,
+      content: 'Đang xác nhận thanh toán PayOS cho gói AI...',
+      duration: 0
+    });
+
+    const stopPolling = () => {
+      stopped = true;
+      if (pollingId) {
+        window.clearInterval(pollingId);
+      }
+    };
+
+    const finishAndReset = (handler) => {
+      stopPolling();
+      handler();
+      navigate('/student/billing', { replace: true });
+    };
+
+    const pollReturnStatus = async () => {
+      attempts += 1;
+
+      try {
+        const status = await paymentApi.getReturnStatus(paymentReturnPaymentId);
+        await loadData();
+        if (stopped) return;
+
+        const succeeded =
+          status.status === 'SUCCESS' ||
+          status.featurePackagePurchaseStatus === 'ACTIVE' ||
+          status.entitlementStatus === 'ACTIVE';
+        const failed = failedStatuses.includes(status.status);
+
+        if (succeeded) {
+          finishAndReset(() => {
+            message.success({
+              key: toastKey,
+              content: 'Thanh toán thành công. Gói AI Student đã được kích hoạt.',
+              duration: 4
+            });
+          });
+          return;
+        }
+
+        if (failed) {
+          finishAndReset(() => {
+            message.warning({
+              key: toastKey,
+              content: status.canRetryPayment
+                ? 'Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS để thanh toán tiếp.'
+                : 'Thanh toán chưa thành công. Vui lòng kiểm tra lại trạng thái giao dịch.',
+              duration: 5
+            });
+          });
+          return;
+        }
+      } catch (requestError) {
+        if (attempts >= 15 && !stopped) {
+          finishAndReset(() => {
+            message.warning({
+              key: toastKey,
+              content: getApiErrorMessage(requestError, 'PayOS chưa xác nhận giao dịch của gói AI.'),
+              duration: 5
+            });
+          });
+        }
+        return;
+      }
+
+      if (attempts >= 15 && !stopped) {
+        finishAndReset(() => {
+          message.info({
+            key: toastKey,
+            content: 'Đã ghi nhận giao dịch, nhưng PayOS vẫn đang xử lý xác nhận. Bạn có thể bấm Làm mới sau ít giây để cập nhật trạng thái mới nhất.',
+            duration: 6
+          });
+        });
+      }
+    };
+
+    pollReturnStatus();
+    pollingId = window.setInterval(pollReturnStatus, 2000);
+
+    return stopPolling;
+  }, [isPaymentReturn, message, navigate, paymentReturnPaymentId]);
 
   const aiPackage = useMemo(
     () => packages.find((pkg) => pkg.code === STUDENT_PACKAGE_CODE) || packages[0] || null,
