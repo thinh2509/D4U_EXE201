@@ -101,26 +101,86 @@ function resolveWorkspaceMeta(workspace) {
   ];
 }
 
+function resolveWorkspaceHeroSummary(workspace) {
+  if (workspace.projectStatus === 'COMPLETED') {
+    return 'Workspace đã chuyển sang giai đoạn chốt dự án, theo dõi đánh giá và tổng kết các mốc đã hoàn thành.';
+  }
+
+  if (workspace.viewerRole === 'STUDENT') {
+    if (workspace.nextActionRole === 'STUDENT') {
+      return 'Bạn đang là người hành động chính trong milestone này. Hãy hoàn thiện bài nộp, kiểm tra deadline và gửi đúng định dạng để SME review nhanh hơn.';
+    }
+
+    return 'Bạn đang ở trạng thái theo dõi. Workspace sẽ tự cập nhật khi SME phản hồi, yêu cầu chỉnh sửa hoặc milestone kế tiếp được mở.';
+  }
+
+  if (workspace.nextAction === 'PAY_ESCROW') {
+    return 'Escrow là điều kiện mở đầu cho toàn bộ execution. Hãy xác nhận trạng thái PayOS để Student có thể bắt đầu nộp bài an toàn.';
+  }
+
+  if (workspace.nextActionRole === 'SME') {
+    return 'Bạn đang là người quyết định ở bước hiện tại. Kiểm tra bài nộp, phản hồi rõ ràng và giữ tiến độ review đúng deadline.';
+  }
+
+  return 'Workspace đang ở chế độ theo dõi. Bạn có thể xem tiến trình, các bài nộp đã nhận và các mốc quan trọng của dự án tại cùng một nơi.';
+}
+
+function resolveWorkspaceHeroHighlights(workspace) {
+  return [
+    {
+      label: 'Vai trò hiện tại',
+      value: workspace.viewerRole === 'STUDENT' ? 'Student thực hiện' : 'SME theo dõi và duyệt'
+    },
+    {
+      label: 'Hành động kế tiếp',
+      value: workspace.nextAction ? workspace.nextAction.replaceAll('_', ' ') : 'Đang cập nhật'
+    }
+  ];
+}
+
 function WorkspaceHero({ workspace, onRefresh }) {
   const meta = resolveWorkspaceMeta(workspace);
+  const highlights = resolveWorkspaceHeroHighlights(workspace);
 
   return (
     <section className="workspace-v2-hero">
       <div className="workspace-v2-hero-main">
         <div className="workspace-v2-hero-copy">
           <span className="workspace-v2-hero-eyebrow">
-            {workspace.viewerRole === 'STUDENT' ? 'Student workspace' : 'SME workspace'}
+            {workspace.viewerRole === 'STUDENT' ? 'Workspace Student' : 'Workspace SME'}
           </span>
           <div className="workspace-v2-hero-title-row">
             <h1>{workspace.projectTitle}</h1>
             <StatusBadge status={workspace.projectStatus} />
           </div>
           <p>{resolveWorkspaceHeadline(workspace)}</p>
+          <div className="workspace-v2-hero-summary">
+            <strong>Tóm tắt vận hành</strong>
+            <p>{resolveWorkspaceHeroSummary(workspace)}</p>
+          </div>
         </div>
 
-        <Button className="workspace-v2-refresh-button" icon={<ReloadOutlined />} onClick={onRefresh}>
-          Làm mới
-        </Button>
+        <div className="workspace-v2-hero-side">
+          <div className="workspace-v2-hero-action-card">
+            <div className="workspace-v2-hero-action-copy">
+              <span>Bảng điều phối</span>
+              <strong>Luôn đồng bộ với tiến độ thật</strong>
+              <p>Làm mới khi bạn muốn kiểm tra nhanh trạng thái mới nhất ngoài nhịp polling 5 giây.</p>
+            </div>
+            <Button className="workspace-v2-refresh-button" icon={<ReloadOutlined />} onClick={onRefresh}>
+              Làm mới
+            </Button>
+          </div>
+
+          <div className="workspace-v2-hero-highlights">
+            {highlights.map((item) => (
+              <div className="workspace-v2-highlight-card" key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="workspace-v2-stats">
@@ -544,60 +604,92 @@ export function ProjectExecutionPage() {
 
       <div className="workspace-v2-shell">
         <div className="workspace-v2-primary-column">
-          <section className="workspace-v2-control-layer">
-            <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
+          <section className="workspace-v2-band workspace-v2-band-primary">
+            <div className="workspace-v2-band-head">
+              <div>
+                <span className="workspace-v2-band-eyebrow">Luồng chính</span>
+                <h2>Luồng công việc chính</h2>
+              </div>
+              <p>Tiến trình, hành động tiếp theo và vùng xử lý chính được gom vào một lớp để đọc nhanh theo đúng thứ tự vận hành.</p>
+            </div>
 
-            {workspace.projectStatus === 'COMPLETED' ? (
-              <CompletedWorkspaceRatingPanel
-                workspace={workspace}
-                onOpenRating={() => navigate(`/projects/${projectId}/rating`)}
-              />
-            ) : workspace.viewerRole === 'STUDENT' ? (
-              <StudentSubmissionWorkspace
-                workspace={workspace}
-                canSubmit={canSubmit}
-                milestoneType={milestoneType}
-                latestSubmission={latestSubmission}
-                latestReviewAction={latestReviewAction}
-                now={now}
-                form={submissionForm}
-                draftFiles={draftFiles}
-                acting={acting}
-                canAbandon={canAbandon}
-                onAddFile={addDraftFile}
-                onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
-                onSubmit={openSubmitConfirmation}
-                onAbandon={abandonProject}
-              />
-            ) : (
-              <SmeReviewWorkspace
-                workspace={workspace}
-                canReview={canReview}
-                latestSubmission={latestSubmission}
-                now={now}
-                acting={acting}
-                paymentReturnTimedOut={paymentReturnTimedOut}
-                checkingPayment={checkingPaymentReturn}
-                onPayment={openPayment}
-                onCheckPayment={checkPaymentReturnNow}
-                onDownload={downloadSubmissionFile}
-                onApprove={approveSubmission}
-                onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
-                onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
-              />
-            )}
+            <div className="workspace-v2-control-layer">
+              <WorkspaceProgressTimeline workspace={workspace} submissions={submissions} />
+
+              {workspace.projectStatus === 'COMPLETED' ? (
+                <CompletedWorkspaceRatingPanel
+                  workspace={workspace}
+                  onOpenRating={() => navigate(`/projects/${projectId}/rating`)}
+                />
+              ) : workspace.viewerRole === 'STUDENT' ? (
+                <StudentSubmissionWorkspace
+                  workspace={workspace}
+                  canSubmit={canSubmit}
+                  milestoneType={milestoneType}
+                  latestSubmission={latestSubmission}
+                  latestReviewAction={latestReviewAction}
+                  now={now}
+                  form={submissionForm}
+                  draftFiles={draftFiles}
+                  acting={acting}
+                  canAbandon={canAbandon}
+                  onAddFile={addDraftFile}
+                  onRemoveFile={(uid) => setDraftFiles((current) => current.filter((item) => item.uid !== uid))}
+                  onSubmit={openSubmitConfirmation}
+                  onAbandon={abandonProject}
+                />
+              ) : (
+                <SmeReviewWorkspace
+                  workspace={workspace}
+                  canReview={canReview}
+                  latestSubmission={latestSubmission}
+                  now={now}
+                  acting={acting}
+                  paymentReturnTimedOut={paymentReturnTimedOut}
+                  checkingPayment={checkingPaymentReturn}
+                  onPayment={openPayment}
+                  onCheckPayment={checkPaymentReturnNow}
+                  onDownload={downloadSubmissionFile}
+                  onApprove={approveSubmission}
+                  onRevision={() => { reviewForm.resetFields(); setReviewMode('revision'); }}
+                  onInvalid={() => { reviewForm.resetFields(); setReviewMode('invalid'); }}
+                />
+              )}
+            </div>
           </section>
 
-          <SubmissionMilestoneBoard
-            submissions={submissions}
-            reviewActions={reviewActions}
-            onDownload={downloadSubmissionFile}
-          />
+          <section className="workspace-v2-band workspace-v2-band-secondary">
+            <div className="workspace-v2-band-head">
+              <div>
+                <span className="workspace-v2-band-eyebrow">Bảng bài nộp</span>
+                <h2>Lịch sử bài nộp và phản hồi</h2>
+              </div>
+              <p>Mỗi milestone được tách thành một cột riêng để dễ đối chiếu trạng thái chờ duyệt, cần chỉnh sửa và đã hoàn tất.</p>
+            </div>
+
+            <SubmissionMilestoneBoard
+              submissions={submissions}
+              reviewActions={reviewActions}
+              onDownload={downloadSubmissionFile}
+            />
+          </section>
         </div>
 
         <aside className="workspace-v2-sidebar">
-          <WorkspaceDeadlinePanel workspace={workspace} now={now} />
-          <WorkspaceSummaryPanel workspace={workspace} />
+          <section className="workspace-v2-band workspace-v2-band-support">
+            <div className="workspace-v2-band-head">
+              <div>
+                <span className="workspace-v2-band-eyebrow">Cột hỗ trợ</span>
+                <h2>Mốc và tổng quan hỗ trợ</h2>
+              </div>
+              <p>Cột phụ này giữ các dữ liệu hỗ trợ quyết định để không cạnh tranh vai trò với vùng xử lý chính.</p>
+            </div>
+
+            <div className="workspace-v2-support-stack">
+              <WorkspaceDeadlinePanel workspace={workspace} now={now} />
+              <WorkspaceSummaryPanel workspace={workspace} />
+            </div>
+          </section>
         </aside>
       </div>
 

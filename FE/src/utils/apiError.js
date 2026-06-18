@@ -30,7 +30,7 @@ export function extractApiFieldErrors(error, fieldMap = {}) {
     if (nextMessages.length > 0) {
       result.push({
         name: fieldName,
-        errors: nextMessages
+        errors: nextMessages,
       });
     }
   });

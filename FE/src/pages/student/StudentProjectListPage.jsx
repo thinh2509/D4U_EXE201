@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { MarketplaceToolbar } from "../../components/MarketplaceToolbar.jsx";
 import { PageHeader } from "../../components/PageHeader.jsx";
 import { PageShell } from "../../components/PageShell.jsx";
-import { ProjectCard } from "../../components/ProjectCard.jsx";
 import {
   StudentReadinessNotice,
   useStudentReadiness,
@@ -17,6 +16,7 @@ import {
 } from "../../components/StateViews.jsx";
 import { projectApi } from "../../services/projectApi.js";
 import { getApiErrorMessage } from "../../utils/apiError.js";
+import { StudentOpenProjectCard } from "./StudentOpenProjectCard.jsx";
 
 export function StudentProjectListPage() {
   const navigate = useNavigate();
@@ -68,10 +68,11 @@ export function StudentProjectListPage() {
 
   if (loading || readiness.loading) return <LoadingState />;
   if (error) return <ErrorState description={error} onRetry={loadProjects} />;
-  if (readiness.error)
+  if (readiness.error) {
     return (
       <ErrorState description={readiness.error} onRetry={readiness.reload} />
     );
+  }
 
   const readinessNotice = readiness.needsProfile ? (
     <StudentReadinessNotice
@@ -98,7 +99,7 @@ export function StudentProjectListPage() {
       <PageHeader
         icon={<FolderOpenOutlined />}
         title="Dự án đang mở"
-        description="Tìm brief phù hợp, xem ngân sách và gửi ứng tuyển cho dự án thiết kế."
+        description="Tìm brief phù hợp, theo dõi ngân sách và shortlist các dự án bạn muốn ứng tuyển trong một giao diện gọn gàng hơn."
         extra={<Button onClick={loadProjects}>Làm mới</Button>}
       />
 
@@ -117,9 +118,9 @@ export function StudentProjectListPage() {
       {filtered.length === 0 ? (
         <EmptyState description="Chưa tìm thấy dự án phù hợp." />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((project) => (
-            <ProjectCard
+            <StudentOpenProjectCard
               key={project.id}
               project={project}
               onOpen={() => navigate(`/student/projects/${project.id}`)}

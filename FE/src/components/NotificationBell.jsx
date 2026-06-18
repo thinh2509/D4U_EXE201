@@ -26,7 +26,7 @@ function resolveNotificationPath(notification, role) {
         'OFFER_REJECTED',
         'ESCROW_FUNDED',
         'PAYMENT_FAILED',
-        'PAYMENT_WINDOW_EXPIRED'
+        'PAYMENT_WINDOW_EXPIRED',
       ].includes(notification.type) ||
       notification.referenceType === 'ProjectOffer' ||
       notification.referenceType === 'Payment'
@@ -83,10 +83,11 @@ export function NotificationBell() {
 
   const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
+
     try {
       const [list, count] = await Promise.all([
         notificationApi.list(),
-        notificationApi.getUnreadCount()
+        notificationApi.getUnreadCount(),
       ]);
       setItems(list);
       setUnreadCount(count.unreadCount ?? 0);
@@ -129,7 +130,7 @@ export function NotificationBell() {
       setItems((current) => current.map((item) => ({
         ...item,
         status: 'READ',
-        readAt: item.readAt ?? payload?.readAt ?? new Date().toISOString()
+        readAt: item.readAt ?? payload?.readAt ?? new Date().toISOString(),
       })));
       setUnreadCount(0);
     };
@@ -173,7 +174,7 @@ export function NotificationBell() {
       setItems((current) => current.map((item) => ({
         ...item,
         status: 'READ',
-        readAt: item.readAt ?? new Date().toISOString()
+        readAt: item.readAt ?? new Date().toISOString(),
       })));
       setUnreadCount(0);
     } catch (requestError) {
@@ -184,6 +185,7 @@ export function NotificationBell() {
   const openNotification = async (notification) => {
     await markRead(notification);
     const destination = resolveNotificationPath(notification, user?.role);
+
     if (destination) {
       navigate(destination);
       setOpen(false);
@@ -239,11 +241,11 @@ export function NotificationBell() {
       }}
     >
       <Button
-        className="group inline-flex h-11 w-11 items-center justify-center rounded-full border border-d4u-border/80 bg-white/95 p-0 text-d4u-teal-deep shadow-sm backdrop-blur transition-all duration-150 hover:!border-d4u-cyan hover:!bg-d4u-soft-2 hover:shadow-soft focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus"
+        className="group inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-d4u-border/90 bg-white p-0 text-d4u-teal-deep shadow-none transition-all duration-150 hover:!border-d4u-cyan/45 hover:!bg-white hover:shadow-sm focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus"
         aria-label="Mở thông báo"
         icon={(
-          <Badge count={unreadLabel} size="small" offset={[2, -1]} className="grid place-items-center [&_.ant-badge-count]:!px-1.5 [&_.ant-badge-count]:!py-0 [&_.ant-badge-count]:!text-[10px] [&_.ant-badge-count]:!font-black [&_.ant-badge-count]:!leading-[18px] [&_.ant-badge-count]:shadow-sm">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-d4u-soft text-d4u-teal-deep transition-all duration-150 group-hover:bg-white group-hover:text-d4u-cyan">
+          <Badge count={unreadLabel} size="small" offset={[-2, 4]} className="grid place-items-center [&_.ant-badge-count]:!min-w-[18px] [&_.ant-badge-count]:!h-[18px] [&_.ant-badge-count]:!border-2 [&_.ant-badge-count]:!border-white [&_.ant-badge-count]:!bg-red-500 [&_.ant-badge-count]:!px-0 [&_.ant-badge-count]:!text-[10px] [&_.ant-badge-count]:!font-black [&_.ant-badge-count]:!leading-[14px] [&_.ant-badge-count]:shadow-sm">
+            <span className="inline-flex h-7 w-7 items-center justify-center text-d4u-teal-deep transition-all duration-150 group-hover:text-d4u-cyan">
               <BellOutlined className="text-[18px] font-black text-current" />
             </span>
           </Badge>

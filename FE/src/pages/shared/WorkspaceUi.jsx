@@ -210,7 +210,9 @@ function NextActionFrame({ tag, title, description, deadlineLabel, deadlineValue
           </div>
         ) : null}
       </div>
-      <div className="workspace-v3-next-action-body">{children}</div>
+      <div className="workspace-v3-next-action-body">
+        <div className="workspace-v3-next-action-surface">{children}</div>
+      </div>
     </section>
   );
 }
@@ -296,6 +298,7 @@ function SubmissionRecord({ submission, reviewActions, onDownload, isLatestWaiti
 
   return (
     <article className={`workspace-v3-submission-card ${isLatestWaiting ? 'is-waiting' : ''}`}>
+      <div className="workspace-v3-submission-accent" />
       <div className="workspace-v3-submission-head">
         <div className="workspace-v3-submission-head-main">
           <div className="workspace-v3-submission-title-row">
@@ -690,18 +693,20 @@ export function CompletedWorkspaceRatingPanel({ workspace, onOpenRating }) {
     : 'Xem trạng thái đánh giá';
 
   return (
-    <StatusBlock
-      tone={tone}
-      icon={<CheckCircleOutlined />}
-      eyebrow="Đánh giá sau hoàn thành"
-      title={ratingState.label}
-      description={ratingState.helper}
-      actions={(
-        <Button type="primary" onClick={onOpenRating}>
-          {actionLabel}
-        </Button>
-      )}
-    />
+    <section className="workspace-v3-rating-panel">
+      <StatusBlock
+        tone={tone}
+        icon={<CheckCircleOutlined />}
+        eyebrow="Đánh giá sau hoàn thành"
+        title={ratingState.label}
+        description={ratingState.helper}
+        actions={(
+          <Button type="primary" onClick={onOpenRating}>
+            {actionLabel}
+          </Button>
+        )}
+      />
+    </section>
   );
 }
 
