@@ -19,7 +19,8 @@ import { ProjectExecutionPage, ProjectSubmissionsPage } from './pages/shared/Exe
 import { ProjectRatingPage } from './pages/shared/RatingPages.jsx';
 import { PaymentCancelPage, PaymentSuccessPage } from './pages/shared/PaymentResultPages.jsx';
 import { SmeAiBriefPage, SmeApplicationsPage, SmeOffersPage, SmeRatingsPage } from './pages/sme/SmeShellPages.jsx';
-import { SmeAiMatchingLivePage, SmeBillingLivePage } from './pages/sme/SmeOutcome2Pages.jsx';
+import { SmeAiMatchingLivePage } from './pages/sme/SmeOutcome2Pages.jsx';
+import { SmeBillingPage } from './pages/sme/SmeBillingPage.jsx';
 import { SmeProfilePage } from './pages/sme/SmeProfilePage.jsx';
 import { SmeProjectApplicationsPage } from './pages/sme/SmeProjectApplicationsPage.jsx';
 import { SmeProjectDetailPage } from './pages/sme/SmeProjectDetailPage.jsx';
@@ -78,7 +79,7 @@ export default function App() {
         <Route path="/sme/offers" element={<SmeOffersPage />} />
         <Route path="/sme/ai-brief" element={<SmeAiBriefPage />} />
         <Route path="/sme/ai-matching" element={<SmeAiMatchingLivePage />} />
-        <Route path="/sme/billing" element={<SmeBillingLivePage />} />
+        <Route path="/sme/billing" element={<SmeBillingPage />} />
         <Route path="/sme/ratings" element={<SmeRatingsPage />} />
       </Route>
 

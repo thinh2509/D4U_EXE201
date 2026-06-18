@@ -16,29 +16,29 @@ export function UserMenu({ user, onLogout }) {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Đăng xuất khỏi D4U',
-      onClick: onLogout
-    }
+      onClick: onLogout,
+    },
   ];
 
   return (
     <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
-      <Button className="group inline-flex min-h-[44px] max-w-[220px] items-center gap-2 rounded-full border border-d4u-border/80 bg-white/95 py-1.5 pl-1.5 pr-3 text-d4u-text-1 shadow-sm backdrop-blur transition-all duration-150 hover:!border-d4u-cyan hover:!bg-d4u-soft-2 hover:shadow-soft focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus sm:max-w-[260px]">
+      <Button className="group inline-flex min-h-[40px] max-w-[230px] items-center gap-2.5 rounded-[10px] border border-d4u-border/90 bg-white px-2.5 py-1.5 text-d4u-text-1 shadow-none transition-all duration-150 hover:!border-d4u-cyan/45 hover:!bg-white hover:shadow-sm focus-visible:!border-d4u-cyan focus-visible:!outline-none focus-visible:shadow-focus sm:max-w-[260px]">
         <Avatar
-          className="shrink-0 border border-white/70 !bg-d4u-cyan font-black !text-d4u-surface shadow-sm transition-transform duration-150 group-hover:scale-[1.02]"
-          size={36}
+          className="shrink-0 !bg-d4u-cyan font-black !text-d4u-surface shadow-none transition-transform duration-150 group-hover:scale-[1.02]"
+          size={34}
           icon={!user?.fullName && <UserOutlined />}
         >
           {user?.fullName ? getInitials(user.fullName) : null}
         </Avatar>
-        <span className="hidden min-w-0 flex-1 text-left sm:grid sm:gap-0.5">
-          <Text strong className="truncate text-sm font-semibold leading-[1.15] text-d4u-text-1">
+        <span className="hidden min-w-0 flex-1 text-left sm:grid sm:gap-[1px]">
+          <Text strong className="truncate text-[13px] font-semibold leading-[1.15] text-d4u-text-1">
             {user?.fullName || 'D4U User'}
           </Text>
-          <Text className="truncate text-[11px] font-medium uppercase tracking-[0.04em] leading-[1.15] !text-d4u-text-2">
+          <Text className="truncate text-[10px] font-semibold uppercase tracking-[0.06em] leading-[1.15] !text-d4u-text-3">
             {roleLabels[user?.role] || user?.role}
           </Text>
         </span>
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-d4u-soft text-d4u-text-3 transition-all duration-150 group-hover:bg-white group-hover:text-d4u-teal-deep">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full text-d4u-teal-deep transition-all duration-150 group-hover:text-d4u-cyan">
           <DownOutlined className="text-[11px]" />
         </span>
       </Button>

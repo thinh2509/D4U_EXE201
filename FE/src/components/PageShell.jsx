@@ -43,14 +43,14 @@ export function DataPanel({
   return (
     <section
       className={joinClasses(
-        'overflow-hidden rounded-panel border border-d4u-border/80 bg-white/92 shadow-soft backdrop-blur',
+        'overflow-hidden rounded-panel border border-d4u-border/80 bg-white/88 shadow-soft backdrop-blur',
         className
       )}
     >
       {(header || title || description || extra) ? (
         <div
           className={joinClasses(
-            'flex flex-col gap-3 border-b border-d4u-border/70 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
+            'flex flex-col gap-3 border-b border-d4u-border/70 bg-gradient-to-r from-white/90 via-d4u-soft/45 to-white/90 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
             headerClassName
           )}
         >

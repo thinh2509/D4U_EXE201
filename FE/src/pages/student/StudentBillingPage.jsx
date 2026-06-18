@@ -1,385 +1,267 @@
 import {
-  CheckCircleFilled,
   CreditCardOutlined,
-  ReloadOutlined,
+  EditOutlined,
+  HistoryOutlined,
   RocketOutlined,
-  ThunderboltOutlined
+  SafetyCertificateOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Alert, App, Button, Card, Table, Tag, Typography } from 'antd';
+import { App, Button } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.jsx';
-import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState } from '../../components/StateViews.jsx';
 import { packageApi } from '../../services/packageApi.js';
-import { paymentApi } from '../../services/paymentApi.js';
-import { profileApi } from '../../services/profileApi.js';
 import { getApiErrorMessage } from '../../utils/apiError.js';
 import { formatCurrency, formatDate } from '../../utils/format.js';
+import {
+  BILLING_UNLIMITED_USAGE_THRESHOLD,
+  BillingErrorAlert,
+  BillingHistorySection,
+  BillingInfoAlert,
+  BillingPlanCard,
+  BillingRefreshButton,
+  BillingSuccessAlert,
+  BillingSummaryHero,
+  BillingUsagePanel,
+  buildBillingPurchaseActionLabel,
+  buildBillingStatusMap,
+  buildGenericBillingStatus,
+  billingIcons,
+  renderBillingDateCell,
+  renderBillingPrimaryCell,
+  renderBillingStatusOrFallback,
+  shouldShowBillingRetryPurchase,
+} from '../shared/BillingUi.jsx';
 
-const { Paragraph, Title } = Typography;
 const STUDENT_PACKAGE_CODE = 'STUDENT_AI_MATCHING_30D';
 const STUDENT_ENTITLEMENT_CODE = 'STUDENT_AI_MATCHING';
-const AI_UNLIMITED_USAGE_THRESHOLD = 2147483647;
 
-function renderDateCell(value) {
-  return value
-    ? <span className="text-sm font-medium text-d4u-text-2">{formatDate(value)}</span>
-    : <span className="text-sm text-d4u-text-3">Chưa có</span>;
-}
-
-function renderStatusOrFallback(value) {
-  return value ? <StatusBadge status={value} /> : <span className="text-sm text-d4u-text-3">Chưa có</span>;
-}
-
-function buildPurchaseActionLabel(purchase) {
-  if (!purchase) return 'Mua gói AI';
-  if (purchase.paymentStatus === 'PENDING' && purchase.checkoutUrl) return 'Mở lại thanh toán';
-  return 'Thanh toán lại';
-}
-
-function shouldShowRetryPurchase(purchase) {
-  if (!purchase) return false;
-  return purchase.paymentStatus === 'PENDING' || purchase.paymentStatus === 'FAILED';
-}
-
-function formatRemainingUsage(entitlement) {
+function formatStudentUsageSummary(entitlement) {
   if (!entitlement) return 'Chưa kích hoạt';
-  if (entitlement.usageLimit == null || entitlement.usageLimit >= AI_UNLIMITED_USAGE_THRESHOLD) return 'AI Pro';
+  if (entitlement.usageLimit == null || entitlement.usageLimit >= BILLING_UNLIMITED_USAGE_THRESHOLD) {
+    return 'AI Pro';
+  }
 
   const remaining = Math.max(0, entitlement.usageLimit - entitlement.usageConsumed);
   return `Còn ${remaining} lượt`;
 }
 
-function formatUsageDetail(entitlement) {
-  if (!entitlement) return '30 lượt / 30 ngày sau khi kích hoạt';
-  if (entitlement.usageLimit == null || entitlement.usageLimit >= AI_UNLIMITED_USAGE_THRESHOLD) return 'Không giới hạn';
+function formatStudentUsageDetail(entitlement) {
+  if (!entitlement) return '30 lượt trong 30 ngày sau khi gói được kích hoạt.';
+  if (entitlement.usageLimit == null || entitlement.usageLimit >= BILLING_UNLIMITED_USAGE_THRESHOLD) {
+    return 'Bạn đang ở trạng thái AI Pro, không áp dụng giới hạn lượt dùng hiển thị trên màn này.';
+  }
 
   const remaining = Math.max(0, entitlement.usageLimit - entitlement.usageConsumed);
-  return `${entitlement.usageConsumed}/${entitlement.usageLimit} lượt đã dùng · còn ${remaining} lượt`;
+  return `Đã dùng ${entitlement.usageConsumed}/${entitlement.usageLimit} lượt. Bạn còn ${remaining} lượt để tạo proposal nháp bằng AI.`;
 }
 
-function getPlanDisplayName(aiPackage) {
+function getStudentUsageProgress(entitlement) {
+  if (!entitlement || entitlement.usageLimit == null || entitlement.usageLimit >= BILLING_UNLIMITED_USAGE_THRESHOLD) {
+    return null;
+  }
+
+  if (entitlement.usageLimit <= 0) return 0;
+  return Math.min(100, Math.round((entitlement.usageConsumed / entitlement.usageLimit) * 100));
+}
+
+function getStudentPackageName(aiPackage) {
   return aiPackage?.name || 'Gói AI Student 30 ngày';
 }
 
-function StudentAiStatusBadge({ activeEntitlement, latestPurchase }) {
+function getStudentSummaryDescription(activeEntitlement, latestPurchase) {
   if (activeEntitlement) {
-    return <Tag color="success" className="m-0 rounded-full px-3 py-1 text-xs font-semibold">Đang hoạt động</Tag>;
+    return `Gói hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}. Bạn có thể tiếp tục dùng AI Proposal Writer để tạo proposal nháp ngay trong luồng ứng tuyển.`;
   }
 
   if (latestPurchase?.paymentStatus === 'PENDING') {
-    return <Tag color="processing" className="m-0 rounded-full px-3 py-1 text-xs font-semibold">Chờ xác nhận</Tag>;
+    return 'Giao dịch của bạn đang chờ xác nhận thanh toán. Quyền dùng AI sẽ được cập nhật tự động ngay sau khi hệ thống ghi nhận thanh toán thành công.';
   }
 
-  return <Tag color="default" className="m-0 rounded-full px-3 py-1 text-xs font-semibold">Chưa kích hoạt</Tag>;
+  return 'Mở khóa AI Proposal Writer trong 30 ngày để lên proposal nháp nhanh hơn, bám sát brief dự án và tận dụng dữ liệu hồ sơ năng lực của bạn.';
 }
 
-function SummaryStat({ label, value }) {
+function StudentBillingSummary({ aiPackage, activeEntitlement, latestPurchase }) {
+  const status = buildGenericBillingStatus(Boolean(activeEntitlement), latestPurchase);
+
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-d4u-border/70 py-3 last:border-b-0 last:pb-0 first:pt-0">
-      <span className="text-sm text-d4u-text-2">{label}</span>
-      <span className="text-right text-sm font-semibold text-d4u-text-1">{value}</span>
-    </div>
+    <BillingSummaryHero
+      badges={[
+        { tone: status.tone, label: status.label },
+        { tone: 'info', label: 'AI Proposal Writer', icon: <ThunderboltOutlined /> },
+        { tone: 'neutral', label: `${aiPackage?.durationDays ?? 30} ngày`, icon: <RocketOutlined /> },
+      ]}
+      title={getStudentPackageName(aiPackage)}
+      description={getStudentSummaryDescription(activeEntitlement, latestPurchase)}
+      stats={[
+        { label: 'Trạng thái', value: status.label },
+        { label: 'Giá gói', value: aiPackage ? `${formatCurrency(aiPackage.price, aiPackage.currency)}/30 ngày` : 'Chưa có' },
+        { label: 'Hiệu lực đến', value: activeEntitlement ? formatDate(activeEntitlement.expiresAt) : 'Hiện chưa có gói hoạt động' },
+        { label: 'Lượt AI còn lại', value: formatStudentUsageSummary(activeEntitlement) },
+      ]}
+    />
   );
 }
 
-function StudentBillingEligibilityAlert({ profile, onGoToProfile, onGoToVerification }) {
-  if (!profile) {
-    return (
-      <Alert
-        type="warning"
-        showIcon
-        className="form-alert"
-        message="Bạn cần tạo hồ sơ sinh viên trước khi mua gói AI."
-        description={(
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>Hoàn thiện hồ sơ trước để hệ thống khởi tạo đầy đủ dữ liệu Student cho gói AI.</span>
-            <Button type="primary" className="!rounded-btn" onClick={onGoToProfile}>
-              Tạo hồ sơ sinh viên
-            </Button>
-          </div>
-        )}
-      />
-    );
-  }
-
-  if (profile.verificationStatus !== 'APPROVED') {
-    return (
-      <Alert
-        type="warning"
-        showIcon
-        className="form-alert"
-        message="Bạn cần được xác thực sinh viên trước khi mua gói AI."
-        description={(
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>Chỉ Student đã được duyệt xác thực mới có thể kích hoạt gói AI và AI Proposal Writer.</span>
-            <Button type="primary" className="!rounded-btn" onClick={onGoToVerification}>
-              Đi tới xác thực sinh viên
-            </Button>
-          </div>
-        )}
-      />
-    );
-  }
-
-  return null;
-}
-
-function StudentAiPlanSummaryCard({
+function StudentBillingPlanCard({
   aiPackage,
   activeEntitlement,
   latestPurchase,
-  canPurchase,
   actingPackageId,
   actingPurchaseId,
   onStartPurchase,
-  onReopenPurchasePayment
+  onReopenPurchasePayment,
 }) {
-  const isPendingPurchase = latestPurchase?.paymentStatus === 'PENDING';
+  const status = buildGenericBillingStatus(Boolean(activeEntitlement), latestPurchase);
 
   return (
-    <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft">
-      <div className="relative p-6 sm:p-7">
-        <div className="absolute inset-0 bg-gradient-to-br from-d4u-soft via-white to-sky-50" />
-        <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <StudentAiStatusBadge activeEntitlement={activeEntitlement} latestPurchase={latestPurchase} />
-              <Tag color="processing" className="m-0 rounded-full px-3 py-1 text-xs font-semibold">AI Proposal Writer</Tag>
-            </div>
-
-            <Title level={3} className="!mb-2 !font-display !text-d4u-teal-deep">
-              {getPlanDisplayName(aiPackage)}
-            </Title>
-
-            <Paragraph className="!mb-4 max-w-2xl !text-sm !leading-6 !text-d4u-text-2">
-              {activeEntitlement
-                ? `Gói hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}. Bạn có thể tiếp tục dùng AI Proposal Writer để tạo bản nháp proposal trực tiếp trong luồng ứng tuyển.`
-                : isPendingPurchase
-                  ? 'Thanh toán đã được tạo và đang chờ PayOS xác nhận. Sau khi webhook cập nhật thành công, gói AI sẽ tự động mở khóa cho Student.'
-                  : 'Mở khóa AI Proposal Writer trong 30 ngày để tạo proposal nháp nhanh hơn, bám sát brief dự án và dữ liệu hồ sơ năng lực của bạn.'}
-            </Paragraph>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {!activeEntitlement ? (
-                <Button
-                  type="primary"
-                  className="!h-11 !rounded-btn !px-5 !font-semibold"
-                  loading={actingPackageId === aiPackage?.id}
-                  disabled={!aiPackage || !canPurchase}
-                  onClick={onStartPurchase}
-                >
-                  Mua gói AI
-                </Button>
-              ) : null}
-
-              {shouldShowRetryPurchase(latestPurchase) ? (
-                <Button
-                  className="!h-11 !rounded-btn !border-d4u-border !px-5 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                  loading={actingPurchaseId === latestPurchase.id}
-                  onClick={() => onReopenPurchasePayment(latestPurchase)}
-                >
-                  {buildPurchaseActionLabel(latestPurchase)}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="rounded-card border border-white/80 bg-white/90 p-5 shadow-sm">
-            <SummaryStat label="Trạng thái" value={activeEntitlement ? 'Đang hoạt động' : isPendingPurchase ? 'Chờ xác nhận' : 'Chưa kích hoạt'} />
-            <SummaryStat label="Hiệu lực đến" value={activeEntitlement ? formatDate(activeEntitlement.expiresAt) : 'Hiện chưa có gói hoạt động'} />
-            <SummaryStat label="AI usage" value={formatRemainingUsage(activeEntitlement)} />
-            <SummaryStat label="Chi tiết usage" value={formatUsageDetail(activeEntitlement)} />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function StudentAiPlanDetailsCard({
-  aiPackage,
-  activeEntitlement,
-  latestPurchase,
-  canPurchase,
-  actingPackageId,
-  actingPurchaseId,
-  onStartPurchase,
-  onReopenPurchasePayment
-}) {
-  return (
-    <Card className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft" bodyStyle={{ padding: 0 }}>
-      <div className="border-b border-d4u-border/60 px-5 py-5 sm:px-6">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-d4u-text-3">Gói dành cho Student</p>
-        <Title level={4} className="!mb-1 !mt-2 !font-display !text-d4u-teal-deep">
-          {getPlanDisplayName(aiPackage)}
-        </Title>
-        <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-          {aiPackage
-            ? `${formatCurrency(aiPackage.price, aiPackage.currency)}/30 ngày · ${aiPackage.usageLimit ?? 30} lượt tạo proposal bằng AI`
-            : 'Gói AI 30 ngày dành cho Student'}
-        </Paragraph>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_220px]">
-        <div className="min-w-0">
-          <Paragraph className="!mb-4 !text-sm !leading-6 !text-d4u-text-2">
-            Mở khóa AI Proposal Writer để tạo proposal nháp sát brief hơn, tận dụng dữ liệu kỹ năng, portfolio và hồ sơ học tập của bạn mà không thay đổi luồng ứng tuyển hiện tại.
-          </Paragraph>
-
-          <div className="rounded-2xl bg-d4u-soft/70 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Quyền lợi chính</p>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-d4u-text-2">
-              <li>Tạo proposal nháp bằng AI ngay trong modal ứng tuyển.</li>
-              <li>Dựa trên brief dự án, kỹ năng và portfolio để viết nội dung sát hơn.</li>
-              <li>Bạn vẫn chủ động chỉnh sửa proposal trước khi gửi cho SME.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-between gap-4 rounded-2xl bg-white/90 p-4 ring-1 ring-d4u-border/70">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 text-sm text-d4u-text-2">
-              <CreditCardOutlined className="text-d4u-teal-deep" />
-              <span>Giá gói</span>
-            </div>
-            <p className="text-lg font-semibold text-d4u-text-1">
-              {aiPackage ? formatCurrency(aiPackage.price, aiPackage.currency) : 'Chưa có'}
-            </p>
-
-            <div className="flex items-center gap-3 pt-2 text-sm text-d4u-text-2">
-              <ThunderboltOutlined className="text-d4u-teal-deep" />
-              <span>Trạng thái hiện tại</span>
-            </div>
-            <p className="text-sm font-semibold text-d4u-text-1">
-              {activeEntitlement ? 'Đang hoạt động' : latestPurchase?.paymentStatus === 'PENDING' ? 'Chờ xác nhận thanh toán' : 'Chưa kích hoạt'}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {!activeEntitlement ? (
-              <Button
-                type="primary"
-                className="!h-11 !rounded-btn !font-semibold"
-                loading={actingPackageId === aiPackage?.id}
-                disabled={!aiPackage || !canPurchase}
-                onClick={onStartPurchase}
-              >
-                Mua gói AI
-              </Button>
-            ) : null}
-
-            {shouldShowRetryPurchase(latestPurchase) ? (
-              <Button
-                className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                loading={actingPurchaseId === latestPurchase.id}
-                onClick={() => onReopenPurchasePayment(latestPurchase)}
-              >
-                {buildPurchaseActionLabel(latestPurchase)}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function StudentAiPurchaseHistorySection({ purchases, loading, actingPurchaseId, onReopenPurchasePayment }) {
-  const latestRetryablePurchaseId = purchases.find((purchase) => shouldShowRetryPurchase(purchase))?.id;
-
-  return (
-    <Card
-      className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
-      bodyStyle={{ padding: 0 }}
-    >
-      <div className="border-b border-d4u-border/60 px-5 py-5 sm:px-6">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-d4u-text-3">Lịch sử thanh toán</p>
-        <Title level={4} className="!mb-1 !mt-2 !font-display !text-d4u-teal-deep">
-          Lịch sử mua gói
-        </Title>
-        <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-          Giữ lại những trạng thái quan trọng nhất để bạn biết lần thanh toán nào đã kích hoạt gói và lần nào cần mở lại PayOS.
-        </Paragraph>
-      </div>
-
-      <div className="px-2 py-2 sm:px-3 sm:py-3">
-        <Table
-          rowKey="id"
-          loading={loading}
-          dataSource={purchases}
-          scroll={{ x: 760 }}
-          pagination={{ pageSize: 6 }}
-          locale={{ emptyText: 'Bạn chưa có giao dịch mua gói AI nào.' }}
-          columns={[
-            {
-              title: 'Gói',
-              dataIndex: 'packageName',
-              width: 260,
-              render: (value, row) => (
-                <div className="min-w-0">
-                  <strong className="block truncate text-sm font-semibold text-d4u-text-1">{value}</strong>
-                  <div className="mt-1 text-xs text-d4u-text-3">
-                    {formatDate(row.createdAt)}
-                  </div>
-                </div>
-              )
-            },
-            {
-              title: 'Trạng thái',
-              dataIndex: 'status',
-              width: 140,
-              render: (value) => <StatusBadge status={value} />
-            },
-            {
-              title: 'Thanh toán',
-              dataIndex: 'paymentStatus',
-              width: 140,
-              render: (value) => renderStatusOrFallback(value)
-            },
-            {
-              title: 'Hiệu lực đến',
-              dataIndex: 'expiresAt',
-              width: 170,
-              render: renderDateCell
-            },
-            {
-              title: 'Số tiền',
-              dataIndex: 'price',
-              width: 150,
-              render: (value, row) => <span className="text-sm font-semibold text-d4u-text-1">{formatCurrency(value, row.currency)}</span>
-            },
-            {
-              title: '',
-              width: 180,
-              align: 'right',
-              render: (_, row) => (
-                row.id === latestRetryablePurchaseId ? (
-                  <Button
-                    className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-                    loading={actingPurchaseId === row.id}
-                    onClick={() => onReopenPurchasePayment(row)}
-                  >
-                    {buildPurchaseActionLabel(row)}
-                  </Button>
-                ) : null
-              )
-            }
-          ]}
+    <BillingPlanCard
+      status={status}
+      audienceLabel="Student AI"
+      title={getStudentPackageName(aiPackage)}
+      description="Gói này dành cho Student muốn chuẩn bị proposal nhanh hơn nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME."
+      features={[
+        {
+          icon: <ThunderboltOutlined />,
+          label: 'Tạo proposal nháp trong luồng ứng tuyển',
+          description: 'Bạn có thể gọi AI ngay khi ứng tuyển để lấy bản nháp đầu tiên, không cần rời khỏi flow hiện tại.',
+        },
+        {
+          icon: <EditOutlined />,
+          label: 'Nội dung vẫn do bạn quyết định',
+          description: 'AI chỉ hỗ trợ bản nháp. Bạn luôn là người chỉnh sửa, chọn giọng điệu và gửi phiên bản cuối cùng.',
+        },
+        {
+          icon: <SafetyCertificateOutlined />,
+          label: 'Kích hoạt sau khi thanh toán được xác nhận',
+          description: 'Quyền dùng AI chỉ mở khi hệ thống xác nhận thanh toán thành công, không kích hoạt sớm.',
+        },
+      ]}
+      metrics={[
+        { icon: billingIcons.duration, label: 'Hiệu lực', value: `${aiPackage?.durationDays ?? 30} ngày` },
+        { icon: billingIcons.ai, label: 'Usage', value: formatStudentUsageSummary(activeEntitlement) },
+        { icon: billingIcons.payment, label: 'Thanh toán', value: latestPurchase?.paymentStatus || 'Chưa có' },
+      ]}
+      sideLabel="Giá gói"
+      sideValue={aiPackage ? formatCurrency(aiPackage.price, aiPackage.currency) : 'Chưa có'}
+      sideStatusLabel="Trạng thái hiện tại"
+      sideStatusValue={status.label}
+      extraContent={(
+        <BillingUsagePanel
+          title="Mức sử dụng AI"
+          summary={formatStudentUsageSummary(activeEntitlement)}
+          description={formatStudentUsageDetail(activeEntitlement)}
+          percent={getStudentUsageProgress(activeEntitlement)}
+          premiumLabel={
+            activeEntitlement?.usageLimit == null || activeEntitlement?.usageLimit >= BILLING_UNLIMITED_USAGE_THRESHOLD
+              ? activeEntitlement
+                ? 'AI Pro'
+                : null
+              : null
+          }
         />
-      </div>
-    </Card>
+      )}
+    >
+      {!activeEntitlement ? (
+        <Button
+          type="primary"
+          className="!h-11 !rounded-btn !font-semibold"
+          loading={actingPackageId === aiPackage?.id}
+          disabled={!aiPackage}
+          onClick={onStartPurchase}
+        >
+          Mua gói AI
+        </Button>
+      ) : null}
+
+      {shouldShowBillingRetryPurchase(latestPurchase) ? (
+        <Button
+          className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+          loading={actingPurchaseId === latestPurchase.id}
+          onClick={() => onReopenPurchasePayment(latestPurchase)}
+        >
+          {buildBillingPurchaseActionLabel(latestPurchase, {
+            defaultLabel: 'Mua gói AI',
+            reopenLabel: 'Mở lại PayOS',
+            retryLabel: 'Thanh toán lại',
+          })}
+        </Button>
+      ) : null}
+    </BillingPlanCard>
+  );
+}
+
+function StudentBillingHistory({ purchases, loading, actingPurchaseId, onReopenPurchasePayment }) {
+  const latestRetryablePurchaseId = purchases.find((purchase) => shouldShowBillingRetryPurchase(purchase))?.id;
+
+  return (
+    <BillingHistorySection
+      eyebrow="Lịch sử thanh toán"
+      title="Lịch sử mua gói"
+      description="Theo dõi các giao dịch gần nhất để biết gói nào đã được kích hoạt và giao dịch nào cần mở lại thanh toán."
+      purchases={purchases}
+      loading={loading}
+      emptyText="Bạn chưa có giao dịch mua gói AI nào."
+      columns={[
+        {
+          title: 'Gói',
+          dataIndex: 'packageName',
+          width: 260,
+          render: (value, row) => renderBillingPrimaryCell(value, formatDate(row.createdAt)),
+        },
+        {
+          title: 'Trạng thái gói',
+          dataIndex: 'status',
+          width: 150,
+          render: (value) => renderBillingStatusOrFallback(value),
+        },
+        {
+          title: 'Thanh toán',
+          dataIndex: 'paymentStatus',
+          width: 150,
+          render: (value) => renderBillingStatusOrFallback(value),
+        },
+        {
+          title: 'Hiệu lực đến',
+          dataIndex: 'expiresAt',
+          width: 170,
+          render: (value) => renderBillingDateCell(value, 'Chưa kích hoạt'),
+        },
+        {
+          title: 'Số tiền',
+          dataIndex: 'price',
+          width: 150,
+          render: (value, row) => <span className="text-sm font-semibold text-d4u-text-1">{formatCurrency(value, row.currency)}</span>,
+        },
+        {
+          title: '',
+          width: 180,
+          align: 'right',
+          render: (_, row) => (
+            row.id === latestRetryablePurchaseId ? (
+              <Button
+                className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                loading={actingPurchaseId === row.id}
+                onClick={() => onReopenPurchasePayment(row)}
+              >
+                {buildBillingPurchaseActionLabel(row, {
+                  defaultLabel: 'Mua gói AI',
+                  reopenLabel: 'Mở lại PayOS',
+                  retryLabel: 'Thanh toán lại',
+                })}
+              </Button>
+            ) : null
+          ),
+        },
+      ]}
+    />
   );
 }
 
 export function StudentBillingPage() {
   const { message } = App.useApp();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const isPaymentReturn = searchParams.get('paymentReturn') === '1';
-  const paymentReturnPaymentId = searchParams.get('paymentId');
-  const [profile, setProfile] = useState(null);
   const [packages, setPackages] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [entitlements, setEntitlements] = useState([]);
@@ -392,21 +274,11 @@ export function StudentBillingPage() {
     setLoading(true);
     setError(null);
     try {
-      const [profileResponse, packageRows, purchaseRows, entitlementRows] = await Promise.all([
-        profileApi.getStudentProfile().catch((requestError) => {
-          const messageText = getApiErrorMessage(requestError, '');
-
-          if (/student profile/i.test(messageText) || requestError?.response?.status === 404) {
-            return null;
-          }
-
-          throw requestError;
-        }),
+      const [packageRows, purchaseRows, entitlementRows] = await Promise.all([
         packageApi.listPackages('STUDENT'),
         packageApi.listMyPurchases(),
-        packageApi.listMyEntitlements()
+        packageApi.listMyEntitlements(),
       ]);
-      setProfile(profileResponse);
       setPackages(packageRows.filter((pkg) => pkg.role === 'STUDENT'));
       setPurchases(
         purchaseRows
@@ -430,107 +302,6 @@ export function StudentBillingPage() {
     loadData();
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!isPaymentReturn) return;
-
-    if (!paymentReturnPaymentId) {
-      message.warning('Không tìm thấy mã thanh toán để kiểm tra trạng thái giao dịch.');
-      navigate('/student/billing', { replace: true });
-      return;
-    }
-
-    let stopped = false;
-    let attempts = 0;
-    let pollingId = null;
-    const toastKey = 'student-billing-payment-return';
-    const failedStatuses = ['FAILED', 'CANCELLED', 'EXPIRED'];
-
-    message.loading({
-      key: toastKey,
-      content: 'Đang xác nhận thanh toán PayOS cho gói AI...',
-      duration: 0
-    });
-
-    const stopPolling = () => {
-      stopped = true;
-      if (pollingId) {
-        window.clearInterval(pollingId);
-      }
-    };
-
-    const finishAndReset = (handler) => {
-      stopPolling();
-      handler();
-      navigate('/student/billing', { replace: true });
-    };
-
-    const pollReturnStatus = async () => {
-      attempts += 1;
-
-      try {
-        const status = await paymentApi.getReturnStatus(paymentReturnPaymentId);
-        await loadData();
-        if (stopped) return;
-
-        const succeeded =
-          status.status === 'SUCCESS' ||
-          status.featurePackagePurchaseStatus === 'ACTIVE' ||
-          status.entitlementStatus === 'ACTIVE';
-        const failed = failedStatuses.includes(status.status);
-
-        if (succeeded) {
-          finishAndReset(() => {
-            message.success({
-              key: toastKey,
-              content: 'Thanh toán thành công. Gói AI Student đã được kích hoạt.',
-              duration: 4
-            });
-          });
-          return;
-        }
-
-        if (failed) {
-          finishAndReset(() => {
-            message.warning({
-              key: toastKey,
-              content: status.canRetryPayment
-                ? 'Thanh toán chưa hoàn tất. Bạn có thể mở lại PayOS để thanh toán tiếp.'
-                : 'Thanh toán chưa thành công. Vui lòng kiểm tra lại trạng thái giao dịch.',
-              duration: 5
-            });
-          });
-          return;
-        }
-      } catch (requestError) {
-        if (attempts >= 15 && !stopped) {
-          finishAndReset(() => {
-            message.warning({
-              key: toastKey,
-              content: getApiErrorMessage(requestError, 'PayOS chưa xác nhận giao dịch của gói AI.'),
-              duration: 5
-            });
-          });
-        }
-        return;
-      }
-
-      if (attempts >= 15 && !stopped) {
-        finishAndReset(() => {
-          message.info({
-            key: toastKey,
-            content: 'Đã ghi nhận giao dịch, nhưng PayOS vẫn đang xử lý xác nhận. Bạn có thể bấm Làm mới sau ít giây để cập nhật trạng thái mới nhất.',
-            duration: 6
-          });
-        });
-      }
-    };
-
-    pollReturnStatus();
-    pollingId = window.setInterval(pollReturnStatus, 2000);
-
-    return stopPolling;
-  }, [isPaymentReturn, message, navigate, paymentReturnPaymentId]);
-
   const aiPackage = useMemo(
     () => packages.find((pkg) => pkg.code === STUDENT_PACKAGE_CODE) || packages[0] || null,
     [packages]
@@ -542,7 +313,6 @@ export function StudentBillingPage() {
   );
 
   const latestPurchase = purchases[0] || null;
-  const canPurchase = Boolean(profile && profile.verificationStatus === 'APPROVED');
 
   const openCheckout = (checkoutUrl) => {
     if (checkoutUrl) {
@@ -551,7 +321,7 @@ export function StudentBillingPage() {
   };
 
   const startPurchase = async () => {
-    if (!aiPackage || !canPurchase) return;
+    if (!aiPackage) return;
 
     setActingPackageId(aiPackage.id);
     setError(null);
@@ -559,7 +329,7 @@ export function StudentBillingPage() {
       const purchase = await packageApi.purchasePackage(aiPackage.id);
       const payment = await packageApi.createPurchasePayment(purchase.id);
       openCheckout(payment.checkoutUrl);
-      message.success('Đã tạo giao dịch PayOS cho gói AI Student 30 ngày.');
+      message.success('Đã tạo giao dịch thanh toán cho gói AI Student 30 ngày.');
       await loadData();
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói AI.'));
@@ -576,7 +346,7 @@ export function StudentBillingPage() {
       openCheckout(payment.checkoutUrl || purchase.checkoutUrl);
       await loadData();
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể mở lại thanh toán PayOS cho gói AI.'));
+      setError(getApiErrorMessage(requestError, 'Không thể mở lại thanh toán cho gói AI.'));
     } finally {
       setActingPurchaseId(null);
     }
@@ -591,61 +361,51 @@ export function StudentBillingPage() {
       <PageHeader
         icon={<CreditCardOutlined />}
         title="Gói AI"
-        description="Quản lý một gói AI duy nhất dành cho Student để mở AI Proposal Writer và theo dõi usage hiện tại."
-        extra={(
-          <Button
-            className="!h-11 !rounded-btn !border-d4u-border !px-5 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
-            icon={<ReloadOutlined />}
-            onClick={loadData}
-          >
-            Làm mới
-          </Button>
-        )}
+        description="Quản lý gói AI của Student để mở AI Proposal Writer, theo dõi mức sử dụng và xem lại các giao dịch thanh toán gần nhất."
+        extra={<BillingRefreshButton onClick={loadData} />}
       />
+
+      {activeEntitlement ? (
+        <BillingSuccessAlert
+          message="Gói AI của bạn đang hoạt động."
+          description={`Quyền dùng AI hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}. Bạn có thể dùng AI Proposal Writer ngay trong luồng ứng tuyển.`}
+        />
+      ) : null}
+
+      {!activeEntitlement && latestPurchase?.paymentStatus === 'PENDING' ? (
+        <BillingInfoAlert
+          message="Thanh toán của bạn đang chờ xác nhận."
+          description="Quyền dùng AI sẽ cập nhật tự động sau khi hệ thống ghi nhận thanh toán thành công. Nếu cần, bạn có thể mở lại phiên thanh toán hiện tại."
+        />
+      ) : null}
 
       {!activeEntitlement && latestPurchase?.paymentStatus !== 'PENDING' ? (
-        <Alert
-          type="info"
-          showIcon
-          className="form-alert"
-          message={latestPurchase ? 'Gói AI đã hết hạn hoặc chưa được kích hoạt.' : 'Hiện chưa có gói AI hoạt động.'}
-          description="Khi cần dùng lại AI Proposal Writer, bạn có thể mua gói AI mới. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái entitlement mới nhất."
+        <BillingInfoAlert
+          message={latestPurchase ? 'Gói AI chưa hoạt động hoặc đã hết hiệu lực.' : 'Hiện chưa có gói AI hoạt động.'}
+          description="Khi cần dùng lại AI Proposal Writer, bạn có thể mua gói mới. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái mới nhất."
+          icon={<HistoryOutlined />}
         />
       ) : null}
 
-      {error ? <Alert type="error" showIcon className="form-alert" message={error} /> : null}
+      <BillingErrorAlert message={error} />
 
-      {!canPurchase ? (
-        <StudentBillingEligibilityAlert
-          profile={profile}
-          onGoToProfile={() => navigate('/student/profile')}
-          onGoToVerification={() => navigate('/student/verification')}
-        />
-      ) : null}
-
-      <StudentAiPlanSummaryCard
+      <StudentBillingSummary
         aiPackage={aiPackage}
         activeEntitlement={activeEntitlement}
         latestPurchase={latestPurchase}
-        canPurchase={canPurchase}
+      />
+
+      <StudentBillingPlanCard
+        aiPackage={aiPackage}
+        activeEntitlement={activeEntitlement}
+        latestPurchase={latestPurchase}
         actingPackageId={actingPackageId}
         actingPurchaseId={actingPurchaseId}
         onStartPurchase={startPurchase}
         onReopenPurchasePayment={reopenPurchasePayment}
       />
 
-      <StudentAiPlanDetailsCard
-        aiPackage={aiPackage}
-        activeEntitlement={activeEntitlement}
-        latestPurchase={latestPurchase}
-        canPurchase={canPurchase}
-        actingPackageId={actingPackageId}
-        actingPurchaseId={actingPurchaseId}
-        onStartPurchase={startPurchase}
-        onReopenPurchasePayment={reopenPurchasePayment}
-      />
-
-      <StudentAiPurchaseHistorySection
+      <StudentBillingHistory
         purchases={purchases}
         loading={loading}
         actingPurchaseId={actingPurchaseId}

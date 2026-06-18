@@ -15,6 +15,41 @@ import { AuthBrandPanel } from './AuthBrandPanel.jsx';
 
 const { Title, Text } = Typography;
 
+const roleLabels = {
+  STUDENT: 'Student',
+  SME: 'SME',
+  ADMIN: 'Admin',
+};
+
+function getFriendlyAuthError(messageText) {
+  const normalized = String(messageText || '').trim();
+
+  if (!normalized) {
+    return 'Đăng nhập thất bại.';
+  }
+
+  if (normalized === 'Email is not verified.') {
+    return normalized;
+  }
+
+  if (
+    normalized.includes('Google login role does not match') ||
+    normalized.includes('role does not match the existing D4U account role')
+  ) {
+    return 'Tài khoản này đã được đăng ký với vai trò khác. Vui lòng chọn đúng vai trò để đăng nhập.';
+  }
+
+  if (normalized.includes('Google login is not available for this account')) {
+    return 'Tài khoản này hiện không hỗ trợ đăng nhập bằng Google. Vui lòng dùng email và mật khẩu.';
+  }
+
+  if (normalized.includes('Google login only supports STUDENT and SME')) {
+    return 'Đăng nhập Google hiện chỉ hỗ trợ tài khoản Student và SME.';
+  }
+
+  return normalized;
+}
+
 export function LoginPage() {
   const { message } = App.useApp();
   const { login } = useAuth();
@@ -27,18 +62,23 @@ export function LoginPage() {
   const handleLogin = async (values) => {
     setFormError('');
     setSubmitting(true);
+
     try {
       const response = await authApi.login(values);
       login(response);
       message.success('Đăng nhập thành công.');
       navigate(roleHome(response.user.role), { replace: true });
     } catch (error) {
-      const errorMessage = getApiErrorMessage(error, 'Đăng nhập thất bại.');
+      const errorMessage = getFriendlyAuthError(
+        getApiErrorMessage(error, 'Đăng nhập thất bại.')
+      );
+
       if (errorMessage === 'Email is not verified.') {
         message.warning('Email chưa được xác minh. Vui lòng nhập mã OTP trước khi đăng nhập.');
         navigate(`/verify-email?email=${encodeURIComponent(values.email)}`);
         return;
       }
+
       setFormError(errorMessage);
       message.error(errorMessage);
     } finally {
@@ -47,25 +87,38 @@ export function LoginPage() {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    const role = form.getFieldValue('googleRole');
-    if (!role) {
-      setFormError('Vui lòng chọn vai trò trước khi dùng Google.');
-      message.error('Vui lòng chọn vai trò khi dùng Google.');
+    const selectedRole = form.getFieldValue('googleRole');
+
+    if (!selectedRole) {
+      const roleRequiredMessage = 'Vui lòng chọn vai trò trước khi dùng Google.';
+      setFormError(roleRequiredMessage);
+      message.error(roleRequiredMessage);
       return;
     }
 
     setFormError('');
     setSubmitting(true);
+
     try {
       const response = await authApi.googleLogin({
         idToken: credentialResponse.credential,
-        role,
+        role: selectedRole,
       });
+
+      if (response?.user?.role && response.user.role !== selectedRole) {
+        const mismatchMessage = `Bạn đã chọn vai trò ${roleLabels[selectedRole] || selectedRole}, nhưng tài khoản này thuộc vai trò ${roleLabels[response.user.role] || response.user.role}. Vui lòng chọn đúng vai trò để đăng nhập.`;
+        setFormError(mismatchMessage);
+        message.error(mismatchMessage);
+        return;
+      }
+
       login(response);
       message.success('Đăng nhập Google thành công.');
       navigate(roleHome(response.user.role), { replace: true });
     } catch (error) {
-      const errorMessage = getApiErrorMessage(error, 'Không thể đăng nhập bằng Google.');
+      const errorMessage = getFriendlyAuthError(
+        getApiErrorMessage(error, 'Không thể đăng nhập bằng Google.')
+      );
       setFormError(errorMessage);
       message.error(errorMessage);
     } finally {
@@ -103,6 +156,7 @@ export function LoginPage() {
               >
                 <Input size="large" prefix={<MailOutlined />} placeholder="Nhập email" autoComplete="email" />
               </Form.Item>
+
               <Form.Item
                 name="password"
                 label="Mật khẩu"
@@ -115,6 +169,7 @@ export function LoginPage() {
                   autoComplete="current-password"
                 />
               </Form.Item>
+
               <Button type="primary" size="large" htmlType="submit" block loading={submitting}>
                 Đăng nhập
               </Button>
@@ -138,7 +193,7 @@ export function LoginPage() {
                     <div className="google-login-frame">
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
-                        onError={() => message.error('Google login bị hủy hoặc thất bại.')}
+                        onError={() => message.error('Đăng nhập Google bị hủy hoặc thất bại.')}
                         locale="vi"
                         shape="rectangular"
                         text="continue_with"
@@ -149,7 +204,7 @@ export function LoginPage() {
                     <>
                       <div className="google-login-frame">
                         <Button size="large" disabled icon={<GoogleOutlined />}>
-                          Tiếp tục sử dụng dịch vụ bằng Google
+                          Tiếp tục bằng Google
                         </Button>
                       </div>
                       <Text type="secondary" className="google-hint">

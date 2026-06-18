@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { MarketplaceToolbar } from "../../components/MarketplaceToolbar.jsx";
 import { PageHeader } from "../../components/PageHeader.jsx";
 import { PageShell } from "../../components/PageShell.jsx";
-import { ProjectCard } from "../../components/ProjectCard.jsx";
 import {
   EmptyState,
   ErrorState,
@@ -14,6 +13,7 @@ import {
 import { projectApi } from "../../services/projectApi.js";
 import { getApiErrorMessage } from "../../utils/apiError.js";
 import { getRatingStateMeta } from "../../utils/ratingState.js";
+import { SmeProjectCard } from "./SmeProjectCard.jsx";
 
 function getProjectRatingAction(project) {
   const ratingState = getRatingStateMeta({
@@ -98,7 +98,7 @@ export function SmeProjectListPage() {
       <PageHeader
         icon={<FolderOpenOutlined />}
         title="Dự án của tôi"
-        description="Quản lý draft, publish và theo dõi các dự án đã tạo trong MVP."
+        description="Theo dõi các project draft, đang mở và đã chọn ứng viên trong cùng một khung quản lý gọn gàng."
         extra={
           <Button
             type="primary"
@@ -125,9 +125,9 @@ export function SmeProjectListPage() {
             placeholder="Tìm theo tiêu đề, brief, trạng thái..."
           />
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((project) => (
-              <ProjectCard
+              <SmeProjectCard
                 key={project.id}
                 project={project}
                 actionLabel="Quản lý"

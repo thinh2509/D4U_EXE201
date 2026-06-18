@@ -217,7 +217,7 @@ const dashboardContent = {
   ADMIN: {
     label: 'Admin console',
     title: 'Điều phối các bước vận hành quan trọng',
-    description: 'Duyệt xác thực, xử lý rút tiền, moderation user/project và theo dõi các hàng đợi vận hành chính.',
+    description: 'Duyệt xác thực, xử lý rút tiền, theo dõi audit logs và moderation phục vụ demo Outcome 1.',
     primaryPath: '/admin/verifications',
     primaryLabel: 'Duyệt xác thực',
     insight: 'Các thao tác tài chính và xác thực cần rõ trạng thái, người xử lý và thời điểm cập nhật.',
@@ -242,13 +242,6 @@ const dashboardContent = {
         path: '/admin/users',
         icon: <TeamOutlined />,
         badge: 'Quản trị'
-      },
-      {
-        title: 'Dự án moderation',
-        description: 'Xem case ADMIN_REVIEW và can thiệp tối thiểu khi flow bình thường bị kẹt.',
-        path: '/admin/projects',
-        icon: <FolderOpenOutlined />,
-        badge: 'Moderation'
       },
       {
         title: 'Audit logs',
@@ -320,17 +313,448 @@ async function loadAdminDashboard() {
 
 function DashboardSkeleton() {
   return (
-    <PageShell size="wide" density="relaxed">
-      <div className="rounded-panel border border-d4u-border/80 bg-white/92 p-6 shadow-soft">
+    <PageShell size="wide" density="relaxed" className="pb-2">
+      <section className="rounded-[28px] border border-d4u-border/80 bg-gradient-to-br from-d4u-soft via-white to-sky-50 p-6 shadow-soft">
         <Skeleton active paragraph={{ rows: 3 }} />
+      </section>
+      <section className="rounded-[28px] border border-d4u-cyan/15 bg-d4u-soft/45 p-4 shadow-soft sm:p-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="rounded-panel border border-white/80 bg-white/94 p-5 shadow-soft">
+              <Skeleton active paragraph={{ rows: 2 }} />
+            </div>
+          ))}
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+function DashboardBand({ eyebrow, title, description, tone = 'neutral', children, className = '' }) {
+  const toneClass = {
+    hero: 'border-d4u-border/70 bg-gradient-to-br from-d4u-soft via-white to-sky-50',
+    soft: 'border-d4u-cyan/15 bg-gradient-to-br from-d4u-soft/70 via-white to-d4u-soft/30',
+    neutral: 'border-d4u-border/75 bg-white/72',
+    accent: 'border-d4u-cyan/20 bg-gradient-to-br from-d4u-soft-2/90 via-white to-d4u-soft/35'
+  }[tone] || 'border-d4u-border/75 bg-white/72';
+
+  return (
+    <section className={`rounded-[28px] border p-5 shadow-soft sm:p-6 ${toneClass} ${className}`}>
+      {(eyebrow || title || description) ? (
+        <div className="mb-5 grid gap-1.5">
+          {eyebrow ? <span className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">{eyebrow}</span> : null}
+          {title ? <strong className="font-display text-[22px] font-semibold tracking-tight text-d4u-text-1 sm:text-[24px]">{title}</strong> : null}
+          {description ? <p className="max-w-3xl text-sm leading-6 text-d4u-text-2">{description}</p> : null}
+        </div>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
+function DashboardMetricCard({ metric, index = 0 }) {
+  const isPrimary = index === 0;
+
+  return (
+    <article
+      className={[
+        'grid gap-3 rounded-panel border bg-white/94 p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card',
+        isPrimary ? 'border-d4u-cyan/25 ring-1 ring-d4u-cyan/10' : 'border-white/80'
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">{metric.label}</span>
+        <span className="h-1.5 w-10 rounded-full bg-gradient-to-r from-d4u-cyan to-d4u-teal-deep/75" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="rounded-panel border border-d4u-border/80 bg-white/92 p-5 shadow-soft">
-            <Skeleton active paragraph={{ rows: 2 }} />
+      <strong className="text-[28px] font-semibold leading-none tracking-tight text-d4u-teal-deep">{metric.value}</strong>
+      <p className="text-sm leading-6 text-d4u-text-2">{metric.helper}</p>
+    </article>
+  );
+}
+
+function DashboardActionCard({ card, onNavigate, featured = false }) {
+  return (
+    <button
+      type="button"
+      className={[
+        'grid h-full gap-4 rounded-panel border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card',
+        featured
+          ? 'border-d4u-cyan/20 bg-gradient-to-br from-white via-d4u-soft/65 to-d4u-soft/35 shadow-card'
+          : 'border-white/80 bg-white/94 shadow-soft'
+      ].join(' ')}
+      onClick={() => onNavigate(card.path)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`inline-flex h-11 w-11 items-center justify-center rounded-card text-[20px] ${featured ? 'bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15' : 'bg-d4u-soft text-d4u-cyan'}`}>
+          {card.icon}
+        </div>
+        <Tag className={`!m-0 !rounded-full !px-3 !py-1 !font-semibold ${featured ? '!border-d4u-cyan/20 !bg-white !text-d4u-teal-deep' : ''}`}>{card.badge}</Tag>
+      </div>
+      <div className="grid gap-2">
+        <h2 className="text-lg font-semibold leading-tight text-d4u-text-1">{card.title}</h2>
+        <p className="text-sm leading-6 text-d4u-text-2">{card.description}</p>
+      </div>
+      <span className="inline-flex items-center gap-2 text-sm font-semibold text-d4u-cyan">
+        Má»Ÿ <ArrowRightOutlined />
+      </span>
+    </button>
+  );
+}
+
+function getSmePriorityAction(data) {
+  if (!data.profile) {
+    return {
+      label: 'Sẵn sàng vận hành',
+      title: 'Hoàn thiện hồ sơ SME để mở đầy đủ workflow',
+      description: 'Sau khi lưu hồ sơ doanh nghiệp, bạn có thể tạo brief, theo dõi offer và điều phối dự án trong một luồng rõ ràng hơn.',
+      actionLabel: 'Tạo hồ sơ SME',
+      actionPath: '/sme/profile',
+      accent: 'info'
+    };
+  }
+
+  if (data.offers.length > 0) {
+    return {
+      label: 'Việc cần làm tiếp theo',
+      title: 'Có offer đang cần bạn theo dõi',
+      description: 'Kiểm tra phản hồi của Student và tiếp tục các bước thanh toán hoặc điều phối execution trong cùng luồng làm việc.',
+      actionLabel: 'Mở trang đề nghị',
+      actionPath: '/sme/offers',
+      accent: 'active'
+    };
+  }
+
+  if (data.applications.length > 0) {
+    return {
+      label: 'Việc cần làm tiếp theo',
+      title: 'Bạn đã có proposal để bắt đầu tuyển chọn',
+      description: 'So sánh nhanh các ứng tuyển mới, chọn ứng viên phù hợp và đẩy luồng dự án tiến lên bước offer.',
+      actionLabel: 'Xem ứng tuyển',
+      actionPath: '/sme/applications',
+      accent: 'active'
+    };
+  }
+
+  if (data.projects.length > 0) {
+    return {
+      label: 'Việc cần làm tiếp theo',
+      title: 'Tiếp tục điều phối các dự án đang có',
+      description: 'Rà lại project draft hoặc project đã publish để bảo đảm brief, ngân sách và deadline vẫn đủ rõ cho Student.',
+      actionLabel: 'Mở dự án của tôi',
+      actionPath: '/sme/projects',
+      accent: 'neutral'
+    };
+  }
+
+  return {
+    label: 'Việc cần làm tiếp theo',
+    title: 'Tạo dự án đầu tiên để bắt đầu nhận ứng tuyển',
+    description: 'Viết brief rõ, khóa ngân sách và deadline ngay từ đầu để dashboard có dữ liệu vận hành thật cho bạn.',
+    actionLabel: 'Tạo dự án',
+    actionPath: '/sme/projects/new',
+    accent: 'neutral'
+  };
+}
+
+function getSmeWorkflowSteps(data) {
+  return [
+    {
+      key: 'create-project',
+      step: 'Bước 1',
+      title: 'Tạo dự án',
+      description: 'Viết brief, ngân sách và deadline đủ rõ để Student có thể gửi proposal sát nhu cầu.',
+      status: data.projects.length > 0 ? `${data.projects.length} dự án đang có` : 'Chưa có dự án nào',
+      path: '/sme/projects/new',
+      icon: <FolderOpenOutlined />
+    },
+    {
+      key: 'review-applications',
+      step: 'Bước 2',
+      title: 'Xem ứng tuyển',
+      description: 'Đọc proposal mới và so sánh phương án trước khi chọn người phù hợp cho project.',
+      status: data.applications.length > 0 ? `${data.applications.length} ứng tuyển cần đọc` : 'Chưa có ứng tuyển mới',
+      path: '/sme/applications',
+      icon: <TeamOutlined />
+    },
+    {
+      key: 'manage-offers',
+      step: 'Bước 3',
+      title: 'Gửi và theo dõi offer',
+      description: 'Chốt candidate, gửi đề nghị và theo dõi phản hồi trước khi mở thanh toán escrow.',
+      status: data.offers.length > 0 ? `${data.offers.length} offer đang theo dõi` : 'Chưa có offer đang mở',
+      path: '/sme/offers',
+      icon: <CreditCardOutlined />
+    },
+    {
+      key: 'execution',
+      step: 'Bước 4',
+      title: 'Theo dõi escrow và thực thi',
+      description: 'Quay lại danh sách project để kiểm tra dự án đã publish, execution và các bước review tiếp theo.',
+      status: data.projects.length > 0 ? 'Theo dõi luồng dự án đang chạy' : 'Luồng execution sẽ mở sau khi có project',
+      path: '/sme/projects',
+      icon: <CheckCircleOutlined />
+    }
+  ];
+}
+
+function getSmeFeaturedWorkflowIndex(data) {
+  if (!data.profile) return 0;
+  if (data.applications.length > 0) return 1;
+  if (data.offers.length > 0) return 2;
+  return 0;
+}
+
+function SmeReadinessBanner({ prompt, onNavigate }) {
+  if (!prompt) return null;
+
+  return (
+    <section className="overflow-hidden rounded-[28px] border border-d4u-cyan/20 bg-gradient-to-r from-d4u-soft via-white to-d4u-soft/55 shadow-soft">
+      <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="flex items-start gap-4">
+          <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-white text-[22px] text-d4u-cyan ring-1 ring-d4u-cyan/15">
+            <SafetyCertificateOutlined />
           </div>
-        ))}
+          <div className="grid gap-2">
+            <div className="grid gap-1">
+              <span className="text-[11px] font-black uppercase tracking-[0.14em] text-d4u-text-3">Sẵn sàng vận hành</span>
+              <h2 className="text-xl font-semibold leading-tight text-d4u-teal-deep sm:text-[22px]">{prompt.title}</h2>
+              <p className="max-w-3xl text-sm leading-6 text-d4u-text-2">{prompt.description}</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {prompt.notes?.map((note) => (
+                <div key={note} className="rounded-card border border-white/80 bg-white/80 px-4 py-3 text-sm leading-6 text-d4u-text-2 shadow-soft">
+                  {note}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+          <Button type="primary" onClick={() => onNavigate(prompt.actionPath)}>
+            {prompt.actionLabel}
+          </Button>
+        </div>
       </div>
+    </section>
+  );
+}
+
+function SmePriorityPanel({ priority, onNavigate }) {
+  const accentClass = {
+    info: 'border-d4u-cyan/20 bg-white/90 ring-1 ring-d4u-cyan/10',
+    active: 'border-d4u-cyan/25 bg-gradient-to-br from-white via-d4u-soft/60 to-d4u-soft/30 ring-1 ring-d4u-cyan/10',
+    neutral: 'border-white/80 bg-white/90'
+  }[priority.accent] || 'border-white/80 bg-white/90';
+
+  return (
+    <div className={`grid gap-4 rounded-panel border p-5 shadow-soft ${accentClass}`}>
+      <div className="grid gap-1.5">
+        <span className="text-[11px] font-black uppercase tracking-[0.12em] text-d4u-text-3">{priority.label}</span>
+        <h3 className="text-lg font-semibold leading-tight text-d4u-text-1">{priority.title}</h3>
+        <p className="text-sm leading-6 text-d4u-text-2">{priority.description}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="primary" onClick={() => onNavigate(priority.actionPath)}>
+          {priority.actionLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SmeMetricCard({ metric, emphasized = false, support = false }) {
+  const stateClass = metric.state === 'warning'
+    ? 'border-amber-200/90 bg-amber-50/80'
+    : metric.state === 'active'
+      ? 'border-d4u-cyan/25 bg-gradient-to-br from-white via-d4u-soft/55 to-d4u-soft/25 ring-1 ring-d4u-cyan/10'
+      : support
+        ? 'border-d4u-border/75 bg-white/88'
+        : 'border-white/80 bg-white/94';
+
+  return (
+    <article
+      className={[
+        'grid h-full gap-3 rounded-panel border p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card',
+        emphasized ? 'lg:min-h-[188px]' : '',
+        stateClass
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">{metric.label}</span>
+        <span className={`h-1.5 w-10 rounded-full ${metric.state === 'warning' ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-d4u-cyan to-d4u-teal-deep/75'}`} />
+      </div>
+      <strong className="text-[28px] font-semibold leading-none tracking-tight text-d4u-teal-deep">{metric.value}</strong>
+      <p className="text-sm leading-6 text-d4u-text-2">{metric.helper}</p>
+    </article>
+  );
+}
+
+function SmeMetricsGrid({ data }) {
+  const primaryMetrics = [
+    {
+      label: 'Dự án của bạn',
+      value: String(data.projects.length),
+      helper: data.projects.length > 0
+        ? 'Bao gồm draft, đang mở và các dự án đã đi vào execution.'
+        : 'Dự án đầu tiên sẽ xuất hiện tại đây ngay sau khi bạn lưu draft.',
+      state: data.projects.length > 0 ? 'active' : 'neutral'
+    },
+    {
+      label: 'Ứng tuyển nhận được',
+      value: String(data.applications.length),
+      helper: data.applications.length > 0
+        ? 'Bạn đã có proposal để bắt đầu so sánh và tuyển chọn.'
+        : 'Proposal của Student sẽ hiện ở đây khi dự án bắt đầu nhận ứng tuyển.',
+      state: data.applications.length > 0 ? 'active' : 'neutral'
+    },
+    {
+      label: 'Offer đang theo dõi',
+      value: String(data.offers.length),
+      helper: data.offers.length > 0
+        ? 'Theo dõi phản hồi offer và các bước thanh toán trong cùng một nơi.'
+        : 'Khi bạn gửi offer, luồng xác nhận và escrow sẽ hiện rõ ở đây.',
+      state: data.offers.length > 0 ? 'active' : 'neutral'
+    }
+  ];
+
+  const profileMetric = {
+    label: 'Hồ sơ doanh nghiệp',
+    value: data.profile ? 'Đã tạo' : 'Chưa tạo',
+    helper: data.profile
+      ? 'Thông tin doanh nghiệp đã sẵn sàng để bạn tiếp tục tạo brief và quản lý workflow.'
+      : 'Hoàn thiện hồ sơ để dashboard, project và luồng offer hiển thị đầy đủ hơn.',
+    state: data.profile ? 'neutral' : 'warning'
+  };
+
+  return (
+    <DashboardBand
+      tone="soft"
+      eyebrow="Điều hành nhanh"
+      title="Nhìn nhanh các chỉ số chính của workspace SME"
+      description="Các chỉ số quan trọng được gom lại theo đúng nhịp vận hành để bạn đọc nhanh trạng thái project, ứng tuyển, offer và readiness."
+    >
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)]">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {primaryMetrics.map((metric, index) => (
+            <SmeMetricCard key={metric.label} metric={metric} emphasized={index === 0} />
+          ))}
+        </div>
+        <SmeMetricCard metric={profileMetric} support />
+      </div>
+    </DashboardBand>
+  );
+}
+
+function SmeWorkflowSteps({ data, onNavigate, isEmptyState }) {
+  const steps = getSmeWorkflowSteps(data);
+  const featuredIndex = getSmeFeaturedWorkflowIndex(data);
+
+  return (
+    <DashboardBand
+      tone="neutral"
+      eyebrow={isEmptyState ? 'Lộ trình khởi tạo' : 'Luồng làm việc'}
+      title={isEmptyState ? 'Đi từng bước để workspace SME vào đúng nhịp ngay từ dự án đầu tiên' : 'Luồng dự án được chia thành 4 bước rõ ràng'}
+      description="Tạo brief, đọc ứng tuyển, theo dõi offer và quay lại project để điều phối execution mà không phải đoán bước tiếp theo."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {steps.map((step, index) => {
+          const isFeatured = index === featuredIndex;
+          const showConnector = index < steps.length - 1;
+
+          return (
+            <div key={step.key} className="relative">
+              {showConnector ? <span className="pointer-events-none absolute left-[calc(100%-8px)] top-11 hidden h-px w-4 bg-d4u-border xl:block" /> : null}
+              <button
+                type="button"
+                onClick={() => onNavigate(step.path)}
+                className={[
+                  'grid h-full min-h-[240px] gap-4 rounded-panel border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card',
+                  isFeatured
+                    ? 'border-d4u-cyan/25 bg-gradient-to-br from-white via-d4u-soft/65 to-d4u-soft/35 shadow-card ring-1 ring-d4u-cyan/10'
+                    : 'border-white/80 bg-white/94 shadow-soft'
+                ].join(' ')}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className={`inline-flex h-11 w-11 items-center justify-center rounded-card text-[20px] ${isFeatured ? 'bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15' : 'bg-d4u-soft text-d4u-cyan'}`}>
+                    {step.icon}
+                  </div>
+                  <Tag className={`!m-0 !rounded-full !px-3 !py-1 !font-semibold ${isFeatured ? '!border-d4u-cyan/20 !bg-white !text-d4u-teal-deep' : ''}`}>
+                    {step.step}
+                  </Tag>
+                </div>
+                <div className="grid gap-2">
+                  <h3 className="text-lg font-semibold leading-tight text-d4u-text-1">{step.title}</h3>
+                  <p className="text-sm leading-6 text-d4u-text-2">{step.description}</p>
+                </div>
+                <div className="rounded-card border border-d4u-border/70 bg-d4u-soft/55 px-4 py-3">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">Trạng thái hiện tại</span>
+                  <strong className="mt-1 block text-sm font-semibold leading-6 text-d4u-text-1">{step.status}</strong>
+                </div>
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-d4u-cyan">
+                  Mở bước này <ArrowRightOutlined />
+                </span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </DashboardBand>
+  );
+}
+
+function SmeDashboardView({ content, data, onNavigate, readinessPrompt }) {
+  const primaryAction = content.getPrimaryAction(data);
+  const isEmptyState = content.isEmptyState(data);
+  const priority = getSmePriorityAction(data);
+
+  return (
+    <PageShell size="wide" density="relaxed" className="pb-2">
+      <PageHeader
+        icon={<DashboardOutlined />}
+        eyebrow={content.label}
+        title="Tổng quan điều hành"
+        description="Theo dõi nhanh mức sẵn sàng của workspace, những đầu việc cần xử lý và luồng dự án hiện đang đi tới đâu."
+        extra={<Button type="primary" onClick={() => onNavigate(primaryAction.path)}>{primaryAction.label}</Button>}
+      />
+
+      <section className="overflow-hidden rounded-[28px] border border-d4u-border/75 bg-gradient-to-br from-d4u-soft via-white to-sky-50 shadow-soft">
+        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] lg:items-start">
+          <div className="grid gap-3">
+            <Tag color="cyan" className="w-fit !rounded-full !px-3 !py-1 !text-xs !font-semibold">{content.label}</Tag>
+            <div className="grid gap-2">
+              <h2 className="font-display text-[26px] font-semibold tracking-tight text-d4u-teal-deep sm:text-[30px]">
+                {isEmptyState ? 'Chuẩn bị workspace SME thật gọn để dự án đầu tiên đi đúng luồng.' : 'Kiểm soát project, tuyển chọn và offer trong một màn hình rõ ràng hơn.'}
+              </h2>
+              <p className="max-w-3xl text-sm leading-6 text-d4u-text-2 sm:text-[15px]">
+                {isEmptyState
+                  ? 'Khi dữ liệu còn ít, dashboard sẽ ưu tiên chỉ cho bạn bước cần làm đầu tiên thay vì dàn đều mọi tính năng.'
+                  : 'Dashboard dùng dữ liệu thật từ project, application và offer để làm rõ việc nào cần chú ý ngay trong hôm nay.'}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-card border border-white/80 bg-white/86 px-4 py-3 shadow-soft">
+                <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">Bạn đã sẵn sàng vận hành chưa?</span>
+                <strong className="mt-1 block text-sm font-semibold leading-6 text-d4u-text-1">{data.profile ? 'Đã sẵn sàng với hồ sơ doanh nghiệp hiện có.' : 'Cần hoàn thiện hồ sơ SME trước khi dùng dashboard đầy đủ.'}</strong>
+              </div>
+              <div className="rounded-card border border-white/80 bg-white/86 px-4 py-3 shadow-soft">
+                <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">Hôm nay cần xử lý gì?</span>
+                <strong className="mt-1 block text-sm font-semibold leading-6 text-d4u-text-1">{priority.title}</strong>
+              </div>
+              <div className="rounded-card border border-white/80 bg-white/86 px-4 py-3 shadow-soft">
+                <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">Luồng đang ở bước nào?</span>
+                <strong className="mt-1 block text-sm font-semibold leading-6 text-d4u-text-1">{data.offers.length > 0 ? 'Theo dõi offer và chuẩn bị execution.' : data.applications.length > 0 ? 'Đang ở bước tuyển chọn proposal.' : data.projects.length > 0 ? 'Đang quản lý project hiện có.' : 'Bắt đầu từ việc tạo project đầu tiên.'}</strong>
+              </div>
+            </div>
+          </div>
+
+          <SmePriorityPanel priority={priority} onNavigate={onNavigate} />
+        </div>
+      </section>
+
+      <SmeReadinessBanner prompt={readinessPrompt} onNavigate={onNavigate} />
+
+      <SmeMetricsGrid data={data} />
+      <SmeWorkflowSteps data={data} onNavigate={onNavigate} isEmptyState={isEmptyState} />
     </PageShell>
   );
 }
@@ -339,9 +763,10 @@ function OperationalDashboard({ content, data, onNavigate }) {
   const metrics = content.getMetrics(data);
   const primaryAction = content.getPrimaryAction(data);
   const isEmptyState = content.isEmptyState(data);
+  const activeCards = isEmptyState ? content.emptyActions : content.cards;
 
   return (
-    <PageShell size="wide" density="relaxed">
+    <PageShell size="wide" density="relaxed" className="pb-2">
       <PageHeader
         icon={<DashboardOutlined />}
         eyebrow={content.label}
@@ -350,7 +775,7 @@ function OperationalDashboard({ content, data, onNavigate }) {
         extra={<Button type="primary" onClick={() => onNavigate(primaryAction.path)}>{primaryAction.label}</Button>}
       />
 
-      <DataPanel>
+      <DataPanel className="bg-gradient-to-br from-d4u-soft via-white to-sky-50">
         <div className="dashboard-hero-copy">
           <Tag color="cyan">{content.label}</Tag>
           <h2>{isEmptyState ? content.emptyTitle : content.title}</h2>
@@ -362,32 +787,55 @@ function OperationalDashboard({ content, data, onNavigate }) {
         </div>
       </DataPanel>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <article key={metric.label} className="grid gap-3 rounded-card border border-d4u-border/80 bg-white/92 p-5 shadow-soft">
-            <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-d4u-text-3">{metric.label}</span>
-            <strong className="text-[26px] font-semibold leading-none text-d4u-text-1">{metric.value}</strong>
-            <p className="text-sm leading-6 text-d4u-text-2">{metric.helper}</p>
-          </article>
-        ))}
-      </section>
+      <DashboardBand
+        tone="soft"
+        eyebrow="Chỉ số chính"
+        title="Các trạng thái quan trọng được tách lớp rõ ràng"
+        description="Giữ số liệu dễ đọc trên desktop và không để card bị chìm trong nền trắng phẳng."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric, index) => (
+            <DashboardMetricCard key={metric.label} metric={metric} index={index} />
+          ))}
+        </div>
+        <div className="grid gap-3 rounded-panel border border-white/80 bg-white/86 p-4 shadow-soft">
+          <div className="grid gap-1">
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Nhìn nhanh</span>
+            <strong className="text-lg font-semibold text-d4u-text-1">{primaryAction.label}</strong>
+          </div>
+          {metrics.slice(0, 3).map((metric) => (
+            <div key={metric.label} className="rounded-card border border-d4u-border/70 bg-d4u-soft/55 px-4 py-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">{metric.label}</span>
+              <strong className="mt-1 block text-lg font-semibold text-d4u-text-1">{metric.value}</strong>
+            </div>
+          ))}
+        </div>
+      </DashboardBand>
 
-      <div className="grid gap-1">
-        <span>{isEmptyState ? 'Lộ trình gợi ý' : 'Workflow chính'}</span>
-        <strong>{isEmptyState ? 'Đi tiếp theo từng bước, không cần đoán phải bắt đầu từ đâu' : 'Chọn bước cần xử lý tiếp theo'}</strong>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {(isEmptyState ? content.emptyActions : content.cards).map((card) => (
+      <DashboardBand
+        tone="neutral"
+        eyebrow="Workflow"
+        title={isEmptyState ? 'Đi tiếp theo từng bước, không cần đoán phải bắt đầu từ đâu' : 'Chọn bước cần xử lý tiếp theo'}
+        description="Mỗi thẻ là một hành động rõ ràng, với card đầu tiên nổi bật hơn nhẹ để dẫn mắt tốt hơn."
+      >
+        <span className="hidden">{isEmptyState ? 'Lộ trình gợi ý' : 'Workflow chính'}</span>
+        <strong className="hidden">{isEmptyState ? 'Đi tiếp theo từng bước, không cần đoán phải bắt đầu từ đâu' : 'Chọn bước cần xử lý tiếp theo'}</strong>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {activeCards.map((card, index) => (
           <button
             key={card.path}
             type="button"
-            className="grid h-full gap-4 rounded-panel border border-d4u-border/80 bg-white/92 p-5 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card"
+            className={[
+              'grid h-full gap-4 rounded-panel border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-d4u-cyan/35 hover:shadow-card',
+              index === 0
+                ? 'border-d4u-cyan/20 bg-gradient-to-br from-white via-d4u-soft/65 to-d4u-soft/35 shadow-card'
+                : 'border-white/80 bg-white/94 shadow-soft'
+            ].join(' ')}
             onClick={() => onNavigate(card.path)}
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-card bg-d4u-soft text-[20px] text-d4u-cyan">{card.icon}</div>
-              <Tag className="!m-0 rounded-full font-semibold">{card.badge}</Tag>
+              <div className={`inline-flex h-11 w-11 items-center justify-center rounded-card text-[20px] ${index === 0 ? 'bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15' : 'bg-d4u-soft text-d4u-cyan'}`}>{card.icon}</div>
+              <Tag className={`!m-0 !rounded-full !px-3 !py-1 !font-semibold ${index === 0 ? '!border-d4u-cyan/20 !bg-white !text-d4u-teal-deep' : ''}`}>{card.badge}</Tag>
             </div>
             <div className="grid gap-2">
               <h2 className="text-lg font-semibold leading-tight text-d4u-text-1">{card.title}</h2>
@@ -398,7 +846,8 @@ function OperationalDashboard({ content, data, onNavigate }) {
             </span>
           </button>
         ))}
-      </div>
+        </div>
+      </DashboardBand>
     </PageShell>
   );
 }
@@ -614,7 +1063,7 @@ function LegacyAdminDashboard({ content, data, onNavigate }) {
   ];
 
   return (
-    <PageShell size="wide" density="relaxed">
+    <PageShell size="wide" density="relaxed" className="pb-2">
       <PageHeader
         icon={<DashboardOutlined />}
         eyebrow={content.label}
@@ -623,8 +1072,9 @@ function LegacyAdminDashboard({ content, data, onNavigate }) {
         extra={<Button type="primary" onClick={() => onNavigate('/admin/verifications')}>Duyệt xác thực</Button>}
       />
 
-      <DataPanel>
-        <div className="dashboard-hero-copy">
+      <DashboardBand tone="hero">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+          <div className="dashboard-hero-copy rounded-[22px] border border-white/80 bg-white/72 p-5 shadow-sm">
           <Tag color="cyan">{content.label}</Tag>
           <h2>{content.title}</h2>
           <p>{content.description}</p>
@@ -632,8 +1082,22 @@ function LegacyAdminDashboard({ content, data, onNavigate }) {
             <span>Ưu tiên hôm nay</span>
             <strong>{content.insight}</strong>
           </div>
+          </div>
+
+          <div className="grid gap-3 rounded-panel border border-white/80 bg-white/86 p-4 shadow-soft">
+            <div className="grid gap-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Nhìn nhanh</span>
+              <strong className="text-lg font-semibold text-d4u-text-1">{primaryAction.label}</strong>
+            </div>
+            {metrics.slice(0, 3).map((metric) => (
+              <div key={metric.label} className="rounded-card border border-d4u-border/70 bg-d4u-soft/55 px-4 py-3">
+                <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-d4u-text-3">{metric.label}</span>
+                <strong className="mt-1 block text-lg font-semibold text-d4u-text-1">{metric.value}</strong>
+              </div>
+            ))}
+          </div>
         </div>
-      </DataPanel>
+      </DashboardBand>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {summaryMetrics.map((metric) => (
@@ -645,7 +1109,11 @@ function LegacyAdminDashboard({ content, data, onNavigate }) {
         ))}
       </section>
 
-      <DataPanel title="Hàng đợi vận hành" description="Mở thẳng các màn cần xử lý khi số lượng đang tăng.">
+      <DataPanel
+        className="bg-gradient-to-br from-white via-d4u-soft/45 to-white"
+        title="Hàng đợi vận hành"
+        description="Mở thẳng các màn cần xử lý khi số lượng đang tăng."
+      >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {queueCards.map((card) => (
             <button
@@ -769,9 +1237,9 @@ function AdminDashboard({ content, data, onNavigate }) {
       badge: 'Ưu tiên'
     },
     {
-      label: 'Gói đang sử dụng',
-      value: formatCount(data.packages.activePurchases),
-      helper: 'Các gói hiện đang còn hiệu lực',
+      label: 'Gói trả phí',
+      value: formatCount(data.packages.totalPurchases),
+      helper: `${formatCount(data.packages.pendingPurchases)} chờ • ${formatCount(data.packages.activePurchases)} đang hoạt động`,
       path: '/admin/package-support',
       icon: <CreditCardOutlined />
     }
@@ -805,6 +1273,14 @@ function AdminDashboard({ content, data, onNavigate }) {
       helper: 'Refund thủ công đang chờ',
       path: '/admin/withdrawals',
       icon: <CreditCardOutlined />,
+      tone: 'warning'
+    },
+    {
+      label: 'Gói chờ xác nhận',
+      value: data.queues.pendingPackagePurchases,
+      helper: 'Theo dõi thanh toán gói',
+      path: '/admin/package-support',
+      icon: <CheckCircleOutlined />,
       tone: 'warning'
     }
   ];
@@ -851,11 +1327,12 @@ function AdminDashboard({ content, data, onNavigate }) {
         </div>
       </section>
 
-      <section className="grid gap-3">
-        <div className="grid gap-1">
-          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Tổng quan hệ thống</span>
-          <strong className="font-display text-xl font-semibold text-d4u-text-1">Nhìn nhanh các chỉ số chính và phần việc cần ưu tiên</strong>
-        </div>
+      <DashboardBand
+        tone="soft"
+        eyebrow="Tổng quan hệ thống"
+        title="Nhìn nhanh các chỉ số chính và phần việc cần ưu tiên"
+        description="Giữ các KPI vận hành trên một lớp nền riêng để dashboard admin bớt phẳng và đọc theo cụm rõ hơn."
+      >
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryMetrics.map((metric) => (
@@ -895,7 +1372,7 @@ function AdminDashboard({ content, data, onNavigate }) {
             </div>
           </div>
         </div>
-      </section>
+      </DashboardBand>
 
       <DataPanel title="Hàng đợi vận hành" description="Mở thẳng các màn cần xử lý khi số lượng đang tăng.">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -905,12 +1382,16 @@ function AdminDashboard({ content, data, onNavigate }) {
         </div>
       </DataPanel>
 
-      <DataPanel title="Tổng quan gói & thanh toán" description="Theo dõi các gói đang sử dụng và các giao dịch cần lưu ý.">
+      <DataPanel
+        className="bg-gradient-to-br from-d4u-soft/55 via-white to-white"
+        title="Tổng quan gói & thanh toán"
+        description="Theo dõi trạng thái mua gói và thanh toán của SME."
+      >
         <div className="grid gap-4 lg:grid-cols-[minmax(0,220px)_1fr] lg:items-start">
           <div className="rounded-panel border border-d4u-cyan/20 bg-gradient-to-br from-d4u-soft via-white to-white p-5">
             <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Báo cáo nhanh</span>
             <p className="mt-3 text-sm leading-6 text-d4u-text-2">
-              Tập trung vào số gói đang hoạt động và những giao dịch chưa hoàn tất.
+              Theo dõi trạng thái mua gói và các giao dịch cần xác nhận.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -927,6 +1408,12 @@ function AdminDashboard({ content, data, onNavigate }) {
               tone="success"
             />
             <AdminSnapshotMetric
+              label="Chờ xác nhận"
+              value={data.packages.pendingPurchases}
+              helper="Giao dịch đang chờ xác nhận"
+              tone={data.packages.pendingPurchases > 0 ? 'warning' : 'neutral'}
+            />
+            <AdminSnapshotMetric
               label="Thanh toán thất bại"
               value={data.packages.failedPurchases}
               helper="Lượt mua chưa hoàn tất"
@@ -939,10 +1426,11 @@ function AdminDashboard({ content, data, onNavigate }) {
   );
 }
 
-function buildOperationalReadinessModal(role, data) {
+function buildOperationalReadinessPrompt(role, data) {
   if (role === 'STUDENT') {
     if (!data.profile) {
       return {
+        mode: 'modal',
         key: 'student-profile',
         title: 'Bạn cần tạo hồ sơ sinh viên trước',
         description: 'Tạo hồ sơ để D4U mở ví, lưu trạng thái ứng tuyển và bật đầy đủ workflow Student cho bạn.',
@@ -957,6 +1445,7 @@ function buildOperationalReadinessModal(role, data) {
 
     if (!approvedStatuses.has(data.profile?.verificationStatus)) {
       return {
+        mode: 'modal',
         key: 'student-verification',
         title: 'Bạn cần hoàn tất xác thực sinh viên',
         description: 'Sau khi xác thực, D4U mới mở đầy đủ ứng tuyển, offer, ví và workspace dự án cho bạn.',
@@ -972,6 +1461,7 @@ function buildOperationalReadinessModal(role, data) {
 
   if (role === 'SME' && !data.profile) {
     return {
+      mode: 'banner',
       key: 'sme-profile',
       title: 'Bạn cần hoàn thiện hồ sơ SME trước',
       description: 'Hoàn thiện hồ sơ doanh nghiệp để tạo project, theo dõi offer và dùng dashboard SME đầy đủ hơn.',
@@ -1000,6 +1490,10 @@ export function DashboardPage() {
   const [reloadSeed, setReloadSeed] = useState(0);
   const [readinessModal, setReadinessModal] = useState(null);
   const readinessModalKeyRef = useRef(null);
+  const readinessPrompt = useMemo(
+    () => (isOperationalRole && data ? buildOperationalReadinessPrompt(role, data) : null),
+    [data, isOperationalRole, role]
+  );
 
   useEffect(() => {
     if (!isDataDrivenRole) return undefined;
@@ -1039,18 +1533,17 @@ export function DashboardPage() {
   useEffect(() => {
     if (!isOperationalRole || !data) return;
 
-    const nextModal = buildOperationalReadinessModal(role, data);
-    if (!nextModal) {
+    if (readinessPrompt?.mode !== 'modal') {
       readinessModalKeyRef.current = null;
       setReadinessModal(null);
       return;
     }
 
-    if (readinessModalKeyRef.current !== nextModal.key) {
-      readinessModalKeyRef.current = nextModal.key;
-      setReadinessModal(nextModal);
+    if (readinessModalKeyRef.current !== readinessPrompt.key) {
+      readinessModalKeyRef.current = readinessPrompt.key;
+      setReadinessModal(readinessPrompt);
     }
-  }, [data, isOperationalRole, role]);
+  }, [data, isOperationalRole, readinessPrompt]);
 
   if (isDataDrivenRole && loading) return <DashboardSkeleton />;
   if (isDataDrivenRole && error) {
@@ -1065,6 +1558,17 @@ export function DashboardPage() {
 
   if (role === 'ADMIN' && data) {
     return <AdminDashboard content={content} data={data} onNavigate={navigate} />;
+  }
+
+  if (role === 'SME' && data) {
+    return (
+      <SmeDashboardView
+        content={content}
+        data={data}
+        onNavigate={navigate}
+        readinessPrompt={readinessPrompt?.mode === 'banner' ? readinessPrompt : null}
+      />
+    );
   }
 
   if (isOperationalRole && data) {
