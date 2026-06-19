@@ -208,12 +208,12 @@ public sealed class FeaturePackageService(D4UDbContext dbContext) : IFeaturePack
 
                 if (profile is null)
                 {
-                    throw new ForbiddenException("Student profile must be created before purchasing feature packages.");
+                    throw new ForbiddenException("Bạn cần tạo hồ sơ sinh viên trước khi mua gói tính năng.");
                 }
 
                 if (!string.Equals(profile.VerificationStatus, "APPROVED", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ForbiddenException("Student verification must be approved before purchasing feature packages.");
+                    throw new ForbiddenException("Bạn cần hoàn tất xác thực sinh viên trước khi mua gói tính năng.");
                 }
 
                 break;
@@ -226,7 +226,7 @@ public sealed class FeaturePackageService(D4UDbContext dbContext) : IFeaturePack
 
                 if (profile is null)
                 {
-                    throw new ForbiddenException("SME profile must be created before purchasing feature packages.");
+                    throw new ForbiddenException("Bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói tính năng.");
                 }
 
                 break;

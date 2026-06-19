@@ -44,6 +44,27 @@ function mapProviderErrorMessage(message, fallback) {
   const normalized = String(message).trim();
   const lowered = normalized.toLowerCase();
 
+  if (
+    lowered.includes('sme profile must be created before purchasing feature packages') ||
+    lowered.includes('bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói tính năng')
+  ) {
+    return 'Bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói AI.';
+  }
+
+  if (
+    lowered.includes('student profile must be created before purchasing feature packages') ||
+    lowered.includes('bạn cần tạo hồ sơ sinh viên trước khi mua gói tính năng')
+  ) {
+    return 'Bạn cần tạo hồ sơ sinh viên trước khi mua gói AI.';
+  }
+
+  if (
+    lowered.includes('student verification must be approved before purchasing feature packages') ||
+    lowered.includes('bạn cần hoàn tất xác thực sinh viên trước khi mua gói tính năng')
+  ) {
+    return 'Bạn cần hoàn tất xác thực sinh viên trước khi mua gói AI.';
+  }
+
   if (lowered.includes('payos payment creation failed')) {
     if (lowered.includes('mô tả tối đa 25 ký tự') || lowered.includes('mo ta toi da 25 ky tu') || lowered.includes('description')) {
       return 'Không thể tạo thanh toán cho gói AI lúc này. Hệ thống đang điều chỉnh thông tin giao dịch để tương thích với cổng thanh toán.';
