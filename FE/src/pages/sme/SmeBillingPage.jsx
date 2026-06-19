@@ -93,6 +93,9 @@ function getSmeSummaryDescription(profile, activeEntitlement, latestPurchase) {
 }
 
 function getSmePlanDescription(featuredPackage) {
+  if (featuredPackage?.code === 'SME_AI_MATCHING_30D' || featuredPackage?.code === 'SME_GROWTH_30D') {
+    return 'Mở AI Matching và tăng giới hạn dự án đang mở để SME vận hành pipeline tuyển chọn rõ ràng hơn trong 30 ngày.';
+  }
   if (featuredPackage?.description) return featuredPackage.description;
   return 'Gói trả phí dành cho SME muốn mở AI Matching và vận hành nhiều dự án đang mở hơn trong cùng một giai đoạn.';
 }

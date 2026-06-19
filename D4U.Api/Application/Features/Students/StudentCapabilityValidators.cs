@@ -28,23 +28,23 @@ public sealed class UpsertStudentPortfolioItemRequestValidator : AbstractValidat
             .MaximumLength(255);
 
         RuleFor(request => request.Description)
-            .NotEmpty()
             .MaximumLength(4000);
+
+        RuleFor(request => request.ProjectUrl)
+            .NotEmpty()
+            .WithMessage("Project URL là bắt buộc.")
+            .Must(BeAbsoluteUrl)
+            .WithMessage("Project URL phải là một liên kết hợp lệ.");
 
         RuleFor(request => request.ThumbnailUrl)
             .Must(BeAbsoluteUrl)
             .When(request => !string.IsNullOrWhiteSpace(request.ThumbnailUrl))
-            .WithMessage("ThumbnailUrl must be an absolute URL.");
-
-        RuleFor(request => request.ProjectUrl)
-            .Must(BeAbsoluteUrl)
-            .When(request => !string.IsNullOrWhiteSpace(request.ProjectUrl))
-            .WithMessage("ProjectUrl must be an absolute URL.");
+            .WithMessage("Thumbnail URL phải là một liên kết hợp lệ.");
 
         RuleFor(request => request.FileUrl)
             .Must(BeAbsoluteUrl)
             .When(request => !string.IsNullOrWhiteSpace(request.FileUrl))
-            .WithMessage("FileUrl must be an absolute URL.");
+            .WithMessage("File URL phải là một liên kết hợp lệ.");
     }
 
     private static bool BeAbsoluteUrl(string? value)

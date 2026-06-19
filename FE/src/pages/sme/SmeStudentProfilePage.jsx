@@ -22,6 +22,134 @@ const skillLevelLabels = {
   ADVANCED: 'Advanced'
 };
 
+const portfolioDescriptionClampStyle = {
+  display: '-webkit-box',
+  WebkitLineClamp: 3,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden'
+};
+
+function PortfolioLinkButton({ url, label, variant = 'default' }) {
+  if (!url) return null;
+
+  return (
+    <Button
+      type={variant === 'primary' ? 'primary' : 'default'}
+      icon={<LinkOutlined />}
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className={variant === 'primary' ? 'shadow-soft' : ''}
+    >
+      {label}
+    </Button>
+  );
+}
+
+function PortfolioVisual({ item, size = 'card' }) {
+  const className =
+    size === 'compact'
+      ? 'h-14 w-14 rounded-2xl border border-d4u-border/60 object-cover shadow-soft'
+      : 'h-48 w-full rounded-none object-cover';
+
+  if (item.thumbnailUrl) {
+    return <img src={item.thumbnailUrl} alt={item.title} className={className} />;
+  }
+
+  if (size === 'compact') {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-d4u-border/60 bg-d4u-soft/50 text-lg text-d4u-primary shadow-soft">
+        <LinkOutlined />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-48 items-center justify-center bg-gradient-to-br from-d4u-soft via-white to-d4u-soft/60 text-4xl text-d4u-primary">
+      <LinkOutlined />
+    </div>
+  );
+}
+
+function PortfolioTagList({ skillsUsed, compact = false }) {
+  if (!skillsUsed?.length) {
+    return <span className="text-sm text-d4u-text-3">Chưa gắn skills</span>;
+  }
+
+  return (
+    <Space wrap size={[6, 6]}>
+      {skillsUsed.map((skill) => (
+        <Tag key={skill.id} icon={compact ? <BookOutlined /> : null}>
+          {skill.skillName}
+        </Tag>
+      ))}
+    </Space>
+  );
+}
+
+function PortfolioShowcaseCard({ item }) {
+  return (
+    <Card
+      key={item.id}
+      size="small"
+      className="overflow-hidden rounded-panel border border-d4u-border/70 shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-card"
+      cover={<PortfolioVisual item={item} />}
+    >
+      <div className="flex h-full flex-col gap-3">
+        <div className="table-title-cell">
+          <strong className="text-[1.02rem] font-semibold text-d4u-text-1">{item.title}</strong>
+          <div className="table-subtext">
+            {item.designCategoryName || 'Chưa gắn danh mục'}
+            {item.completedAt ? ` • Hoàn thành ${formatDate(item.completedAt)}` : ''}
+          </div>
+        </div>
+        <div className="expanded-copy text-d4u-text-2" style={portfolioDescriptionClampStyle}>
+          <p>{item.description || 'Portfolio này đang tập trung vào link dự án để SME xem trực tiếp.'}</p>
+        </div>
+        <PortfolioTagList skillsUsed={item.skillsUsed} />
+        <Space wrap className="mt-auto">
+          <PortfolioLinkButton url={item.projectUrl} label="Xem portfolio" variant="primary" />
+          {!item.projectUrl && item.fileUrl ? <PortfolioLinkButton url={item.fileUrl} label="Mở file đính kèm" /> : null}
+        </Space>
+      </div>
+    </Card>
+  );
+}
+
+function PortfolioListRow({ item }) {
+  return (
+    <div className="rounded-panel border border-d4u-border/70 bg-white/95 p-4 shadow-soft transition duration-200 hover:border-d4u-primary/30 hover:shadow-card">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-4">
+          <PortfolioVisual item={item} size="compact" />
+          <div className="min-w-0 flex-1">
+            <Space wrap className="mb-2">
+              <strong className="text-[1.02rem] font-semibold text-d4u-text-1">{item.title}</strong>
+              <StatusBadge status={item.status} />
+              {item.isFeatured ? <Tag color="gold">Nổi bật</Tag> : null}
+            </Space>
+            <div className="table-subtext">
+              {item.designCategoryName || 'Chưa gắn danh mục'}
+              {' • '}
+              Hoàn thành: {formatDate(item.completedAt)}
+            </div>
+            <div className="expanded-copy mt-2 text-d4u-text-2" style={portfolioDescriptionClampStyle}>
+              <p>{item.description || 'Portfolio này đang để tối giản để SME đi thẳng vào link dự án.'}</p>
+            </div>
+            <div className="mt-3">
+              <PortfolioTagList skillsUsed={item.skillsUsed} compact />
+            </div>
+          </div>
+        </div>
+        <Space wrap className="lg:justify-end">
+          <PortfolioLinkButton url={item.projectUrl} label="Xem portfolio" variant="primary" />
+          {!item.projectUrl && item.fileUrl ? <PortfolioLinkButton url={item.fileUrl} label="Mở file đính kèm" /> : null}
+        </Space>
+      </div>
+    </div>
+  );
+}
+
 export function SmeStudentProfilePage() {
   const navigate = useNavigate();
   const { studentId } = useParams();
@@ -161,62 +289,30 @@ export function SmeStudentProfilePage() {
           </Card>
         </Col>
         <Col xs={24} lg={14}>
-          <Card className="wallet-card" title="Portfolio công khai nổi bật">
+          <Card
+            className="wallet-card"
+            title="Portfolio công khai nổi bật"
+            extra={<span className="text-sm text-d4u-text-3">Ưu tiên các case SME nên xem trước</span>}
+          >
             {featuredPortfolio.length ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {featuredPortfolio.map((item) => (
-                  <Card
-                    key={item.id}
-                    size="small"
-                    cover={item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={item.title} className="h-48 object-cover" /> : null}
-                  >
-                    <div className="table-title-cell">
-                      <strong>{item.title}</strong>
-                      <div className="table-subtext">{item.designCategoryName || 'Chưa gắn danh mục'}</div>
-                    </div>
-                    <div className="expanded-copy mt-3">
-                      <p>{item.description}</p>
-                    </div>
-                    <Space wrap className="mt-3">
-                      {item.skillsUsed.map((skill) => (
-                        <Tag key={skill.id}>{skill.skillName}</Tag>
-                      ))}
-                    </Space>
-                    <Space wrap className="mt-3">
-                      {item.projectUrl ? <a href={item.projectUrl} target="_blank" rel="noreferrer"><LinkOutlined /> Project</a> : null}
-                      {item.fileUrl ? <a href={item.fileUrl} target="_blank" rel="noreferrer"><LinkOutlined /> File</a> : null}
-                    </Space>
-                  </Card>
+                  <PortfolioShowcaseCard key={item.id} item={item} />
                 ))}
               </div>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có portfolio nổi bật." />
             )}
           </Card>
-          <Card className="wallet-card" title="Toàn bộ portfolio công khai">
+          <Card
+            className="wallet-card"
+            title="Toàn bộ portfolio công khai"
+            extra={<span className="text-sm text-d4u-text-3">Dạng xem chi tiết để so sánh nhanh từng item</span>}
+          >
             {profile.publicPortfolio.length ? (
               <div className="grid gap-3">
                 {profile.publicPortfolio.map((item) => (
-                  <div key={item.id} className="rounded-card border border-d4u-border/70 bg-white/90 p-4">
-                    <Space wrap className="mb-2">
-                      <strong>{item.title}</strong>
-                      <StatusBadge status={item.status} />
-                      {item.isFeatured ? <Tag color="gold">Nổi bật</Tag> : null}
-                    </Space>
-                    <div className="table-subtext">{item.designCategoryName || 'Chưa gắn danh mục'} • Hoàn thành: {formatDate(item.completedAt)}</div>
-                    <div className="expanded-copy mt-2">
-                      <p>{item.description}</p>
-                    </div>
-                    <Space wrap className="mt-3">
-                      {item.skillsUsed.map((skill) => (
-                        <Tag key={skill.id} icon={<BookOutlined />}>{skill.skillName}</Tag>
-                      ))}
-                    </Space>
-                    <Space wrap className="mt-3">
-                      {item.projectUrl ? <a href={item.projectUrl} target="_blank" rel="noreferrer"><LinkOutlined /> Project URL</a> : null}
-                      {item.fileUrl ? <a href={item.fileUrl} target="_blank" rel="noreferrer"><LinkOutlined /> File URL</a> : null}
-                    </Space>
-                  </div>
+                  <PortfolioListRow key={item.id} item={item} />
                 ))}
               </div>
             ) : (

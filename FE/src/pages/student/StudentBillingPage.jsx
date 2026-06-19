@@ -25,7 +25,6 @@ import {
   BillingSummaryHero,
   BillingUsagePanel,
   buildBillingPurchaseActionLabel,
-  buildBillingStatusMap,
   buildGenericBillingStatus,
   billingIcons,
   renderBillingDateCell,
@@ -68,6 +67,18 @@ function getStudentUsageProgress(entitlement) {
 
 function getStudentPackageName(aiPackage) {
   return aiPackage?.name || 'Gói AI Student 30 ngày';
+}
+
+function getStudentPackageDescription(aiPackage) {
+  if (!aiPackage) {
+    return 'Gói này dành cho Student muốn chuẩn bị proposal nhanh hơn nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME.';
+  }
+
+  if (aiPackage.code === STUDENT_PACKAGE_CODE) {
+    return 'Mở AI Proposal Writer trong 30 ngày để tạo proposal nháp nhanh hơn và bám sát brief thực tế.';
+  }
+
+  return aiPackage.description || 'Gói này dành cho Student muốn chuẩn bị proposal nhanh hơn nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME.';
 }
 
 function getStudentSummaryDescription(activeEntitlement, latestPurchase) {
@@ -120,7 +131,7 @@ function StudentBillingPlanCard({
       status={status}
       audienceLabel="Student AI"
       title={getStudentPackageName(aiPackage)}
-      description="Gói này dành cho Student muốn chuẩn bị proposal nhanh hơn nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME."
+      description={getStudentPackageDescription(aiPackage)}
       features={[
         {
           icon: <ThunderboltOutlined />,
@@ -261,7 +272,7 @@ function StudentBillingHistory({ purchases, loading, actingPurchaseId, onReopenP
 
 export function StudentBillingPage() {
   const { message } = App.useApp();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [packages, setPackages] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [entitlements, setEntitlements] = useState([]);
@@ -269,6 +280,7 @@ export function StudentBillingPage() {
   const [actingPackageId, setActingPackageId] = useState(null);
   const [actingPurchaseId, setActingPurchaseId] = useState(null);
   const [error, setError] = useState(null);
+  const [handledPaymentReturnKey, setHandledPaymentReturnKey] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -313,6 +325,10 @@ export function StudentBillingPage() {
   );
 
   const latestPurchase = purchases[0] || null;
+  const paymentReturnPurchaseId = searchParams.get('purchaseId');
+  const paymentReturnPaymentId = searchParams.get('paymentId');
+  const isPaymentReturn = searchParams.get('paymentReturn') === '1' || Boolean(paymentReturnPaymentId);
+  const paymentReturnKey = isPaymentReturn ? `${paymentReturnPurchaseId || 'latest'}:${paymentReturnPaymentId || 'none'}` : null;
 
   const openCheckout = (checkoutUrl) => {
     if (checkoutUrl) {
@@ -351,6 +367,43 @@ export function StudentBillingPage() {
       setActingPurchaseId(null);
     }
   };
+
+  useEffect(() => {
+    if (!isPaymentReturn || loading || paymentReturnKey === handledPaymentReturnKey) return;
+
+    const targetPurchase = paymentReturnPurchaseId
+      ? purchases.find((purchase) => purchase.id === paymentReturnPurchaseId) || latestPurchase
+      : latestPurchase;
+
+    if (activeEntitlement || targetPurchase?.status === 'ACTIVE' || targetPurchase?.paymentStatus === 'SUCCESS') {
+      message.success('Thanh toán thành công. Gói AI Student của bạn đã sẵn sàng để sử dụng.');
+    } else if (targetPurchase?.paymentStatus === 'PENDING') {
+      message.info('Hệ thống đang chờ xác nhận thanh toán. Gói AI sẽ được kích hoạt ngay khi PayOS ghi nhận thành công.');
+    } else if (targetPurchase?.paymentStatus && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(targetPurchase.paymentStatus)) {
+      message.warning('Thanh toán chưa hoàn tất. Bạn có thể mở lại phiên PayOS từ lịch sử giao dịch.');
+    } else {
+      message.info('Đã quay lại trang gói AI. Hệ thống đang kiểm tra trạng thái thanh toán mới nhất.');
+    }
+
+    setHandledPaymentReturnKey(paymentReturnKey);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('paymentReturn');
+    nextParams.delete('paymentId');
+    nextParams.delete('purchaseId');
+    setSearchParams(nextParams, { replace: true });
+  }, [
+    activeEntitlement,
+    handledPaymentReturnKey,
+    isPaymentReturn,
+    latestPurchase,
+    loading,
+    message,
+    paymentReturnKey,
+    paymentReturnPurchaseId,
+    purchases,
+    searchParams,
+    setSearchParams,
+  ]);
 
   if (error && !packages.length && !loading) {
     return <ErrorState description={error} onRetry={loadData} />;

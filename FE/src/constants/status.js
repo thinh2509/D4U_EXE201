@@ -15,10 +15,10 @@ export const verificationStatusLabels = {
 };
 
 export const userStatusLabels = {
-  PENDING: 'Chờ kích hoạt',
   ACTIVE: 'Đang hoạt động',
+  PENDING: 'Chờ kích hoạt',
   SUSPENDED: 'Tạm khóa',
-  BANNED: 'Cấm truy cập',
+  BANNED: 'Bị khóa',
   DELETED: 'Đã xóa'
 };
 
@@ -73,19 +73,19 @@ export const paymentStatusLabels = {
   REFUNDED: 'Đã hoàn tiền'
 };
 
-export const featurePackageStatusLabels = {
-  PENDING: 'Chờ xử lý',
-  ACTIVE: 'Đang hoạt động',
-  FAILED: 'Thanh toán lỗi',
-  CANCELLED: 'Đã hủy',
-  EXPIRED: 'Hết hiệu lực'
-};
-
 export const portfolioStatusLabels = {
   DRAFT: 'Bản nháp',
   PUBLIC: 'Công khai',
   PRIVATE: 'Riêng tư',
   HIDDEN: 'Đã ẩn'
+};
+
+export const featurePackageStatusLabels = {
+  PENDING: 'Đang chờ',
+  ACTIVE: 'Đang hoạt động',
+  EXPIRED: 'Hết hiệu lực',
+  CANCELLED: 'Đã hủy',
+  FAILED: 'Thất bại'
 };
 
 export const statusColors = {

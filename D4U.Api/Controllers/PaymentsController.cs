@@ -40,6 +40,16 @@ public sealed class PaymentsController(IPaymentService paymentService) : Control
         return Ok(response);
     }
 
+    [HttpGet("payments/return-status/by-order-code/{orderCode:long}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<PaymentReturnStatusResponse>> GetReturnStatusByOrderCode(
+        long orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await paymentService.GetReturnStatusByOrderCodeAsync(orderCode, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpGet("projects/{projectId:guid}/escrow")]
     [Authorize]
     public async Task<ActionResult<EscrowResponse>> GetProjectEscrow(

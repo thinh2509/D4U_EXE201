@@ -48,7 +48,7 @@ public sealed class OpenAiMatchingService(
 
                 return await HandleFallbackAsync(
                     request,
-                    "Đang tạm thời dùng chế độ gợi ý dự phòng do AI rerank phản hồi chưa ổn định.",
+                    "Đang tạm dùng chế độ gợi ý dự phòng do AI rerank chưa phản hồi ổn định.",
                     cancellationToken);
             }
 
@@ -80,7 +80,7 @@ public sealed class OpenAiMatchingService(
             logger.LogWarning(exception, "OpenAI AI matching rerank failed for project {ProjectId}.", request.Project.ProjectId);
             return await HandleFallbackAsync(
                 request,
-                "Đang tạm thời dùng chế độ gợi ý dự phòng để tránh gián đoạn trải nghiệm.",
+                "Đang tạm dùng chế độ gợi ý dự phòng để tránh gián đoạn trải nghiệm.",
                 cancellationToken);
         }
     }
@@ -285,15 +285,15 @@ public sealed class OpenAiMatchingService(
 
     private const string SystemPrompt =
         """
-        Ban la AI Matching cho D4U.
+        Bạn là AI Matching cho D4U.
 
-        Nhiem vu:
-        - Rerank nhe top candidate cho project cua SME.
-        - Khong tu dong moi, khong tu dong chon, khong tu dong bao gia.
-        - Du lieu base score va reason groups da co san; ban chi duoc phep tinh chinh score va viet lai ly do ngan gon, ro nghia.
-        - Uu tien do khop category, ky nang, portfolio cong khai, tin hieu da ung tuyen, va muc do day du ho so.
-        - Neu du lieu con thieu, dua vao missingDataWarnings thay vi suy doan.
-        - Luon tra ve JSON hop le theo schema.
-        - Viet reasons va warnings bang tieng Viet co dau.
+        Nhiệm vụ:
+        - Rerank nhẹ top candidate cho project của SME.
+        - Không tự động mời, không tự động chọn, không tự động báo giá.
+        - Dữ liệu base score và reason groups đã có sẵn; bạn chỉ được phép tinh chỉnh score và viết lại lý do ngắn gọn, rõ nghĩa.
+        - Ưu tiên độ khớp category, kỹ năng, portfolio công khai, tín hiệu đã ứng tuyển và mức độ đầy đủ hồ sơ.
+        - Nếu dữ liệu còn thiếu, dựa vào missingDataWarnings thay vì suy đoán.
+        - Luôn trả về JSON hợp lệ theo schema.
+        - Viết reasons và warnings bằng tiếng Việt có dấu.
         """;
 }

@@ -55,16 +55,16 @@ internal sealed class MatchingScoringService : IMatchingScoringService
             if (ratio <= 0.1m)
             {
                 applicationScore += 6;
-                applicationReasons.Add("Mức giá đề xuất gần với ngân sách của dự án.");
+                applicationReasons.Add("Mức giá đề xuất bám khá sát ngân sách của dự án.");
             }
             else if (ratio <= 0.25m)
             {
                 applicationScore += 3;
-                applicationReasons.Add("Mức giá đề xuất nằm trong khoảng có thể xem xét.");
+                applicationReasons.Add("Mức giá đề xuất vẫn nằm trong khoảng có thể cân nhắc.");
             }
             else
             {
-                fitWarnings.Add("Mức giá đề xuất hiện tại lệch khá xa so với ngân sách dự án.");
+                fitWarnings.Add("Mức giá đề xuất hiện tại đang lệch khá xa so với ngân sách dự án.");
             }
         }
 
@@ -73,14 +73,14 @@ internal sealed class MatchingScoringService : IMatchingScoringService
             string.Equals(candidate.VerificationStatus, "VERIFIED", StringComparison.OrdinalIgnoreCase))
         {
             trustScore += 10;
-            trustReasons.Add("Hồ sơ sinh viên đã được xác thực.");
+            trustReasons.Add("Hồ sơ Student đã được xác thực.");
         }
 
         if (candidate.AverageRating > 0)
         {
             var ratingScore = (int)Math.Min(12m, Math.Round(candidate.AverageRating * 2.4m, MidpointRounding.AwayFromZero));
             trustScore += ratingScore;
-            trustReasons.Add($"Điểm đánh giá trung bình {candidate.AverageRating:0.0}.");
+            trustReasons.Add($"Điểm đánh giá trung bình hiện là {candidate.AverageRating:0.0}.");
         }
 
         if (candidate.CompletedProjectsCount > 0)
@@ -97,12 +97,12 @@ internal sealed class MatchingScoringService : IMatchingScoringService
         }
         else if (capability.PublicSkills.Count > 0)
         {
-            skillReasons.Add("Đã khai báo kỹ năng, nhưng chưa có nhiều kỹ năng gần với nhóm thiết kế của dự án.");
-            fitWarnings.Add($"Kỹ năng hiện có chưa thể hiện rõ độ khớp với {designCategoryName ?? "nhóm thiết kế"}.");
+            skillReasons.Add("Đã khai báo kỹ năng, nhưng chưa có nhiều kỹ năng bám sát nhóm thiết kế của dự án.");
+            fitWarnings.Add($"Các kỹ năng hiện có chưa thể hiện rõ độ khớp với {designCategoryName ?? "nhóm thiết kế này"}.");
         }
         else
         {
-            missingDataWarnings.Add("Sinh viên chưa khai báo kỹ năng.");
+            missingDataWarnings.Add("Student chưa khai báo kỹ năng.");
         }
 
         var highlightedSkillCount = capability.HighlightedSkills
@@ -128,14 +128,14 @@ internal sealed class MatchingScoringService : IMatchingScoringService
         }
         else
         {
-            missingDataWarnings.Add("Sinh viên chưa có portfolio công khai.");
+            missingDataWarnings.Add("Student chưa có portfolio công khai.");
         }
 
         var featuredPortfolioCount = capability.FeaturedPortfolio.Count(item => item.DesignCategoryId == project.DesignCategoryId || item.IsFeatured);
         if (featuredPortfolioCount > 0)
         {
             capabilityScore += Math.Min(8, featuredPortfolioCount * 4);
-            portfolioReasons.Add("Portfolio nổi bật cung cấp thêm bằng chứng về năng lực.");
+            portfolioReasons.Add("Portfolio nổi bật giúp bổ sung thêm bằng chứng năng lực.");
         }
 
         var completenessSignals = 0;
@@ -145,7 +145,7 @@ internal sealed class MatchingScoringService : IMatchingScoringService
         }
         else
         {
-            missingDataWarnings.Add("Sinh viên chưa có phần giới thiệu cá nhân.");
+            missingDataWarnings.Add("Student chưa có phần giới thiệu cá nhân.");
         }
 
         if (capability.PublicSkills.Count > 0)
@@ -189,7 +189,7 @@ internal sealed class MatchingScoringService : IMatchingScoringService
 
         if (reasons.Count == 0)
         {
-            reasons.Add("Hồ sơ hiện có dữ liệu cơ bản để SME xem xét thêm.");
+            reasons.Add("Hồ sơ hiện có dữ liệu cơ bản để SME tiếp tục xem xét.");
         }
 
         return new MatchingCandidateEvaluation(

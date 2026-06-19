@@ -14,7 +14,7 @@ function getBillingBasePath(role) {
 }
 
 function getRoleHomePath(role) {
-  return role === 'STUDENT' ? '/student/dashboard' : '/sme/offers';
+  return role === 'STUDENT' ? '/student/dashboard' : '/sme/dashboard';
 }
 
 function buildWorkspacePath(projectId, paymentId) {
@@ -31,68 +31,94 @@ function buildBillingPath(role, purchaseId, paymentId) {
 }
 
 export function PaymentSuccessPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState(null);
   const paymentId = searchParams.get('paymentId');
+  const orderCode = searchParams.get('orderCode');
   const projectId = searchParams.get('projectId');
   const purchaseId = searchParams.get('purchaseId');
 
   useEffect(() => {
+    if (loading) return undefined;
+
     let stopped = false;
+
+    const reconcilePaymentReturn = () => {
+      if (paymentId) {
+        void paymentApi.getReturnStatus(paymentId).catch(() => {
+          // The destination page will refresh its own state after redirect.
+        });
+        return;
+      }
+
+      if (orderCode) {
+        void paymentApi.getReturnStatusByOrderCode(orderCode).catch(() => {
+          // The destination page will refresh its own state after redirect.
+        });
+      }
+    };
 
     const redirectAfterLookup = async () => {
       if (projectId) {
-        if (paymentId) {
-          try {
-            await paymentApi.getReturnStatus(paymentId);
-          } catch {
-            // Workspace will keep polling payment status after redirect.
-          }
-        }
+        reconcilePaymentReturn();
         navigate(buildWorkspacePath(projectId, paymentId), { replace: true });
         return;
       }
 
       if (purchaseId) {
-        if (paymentId) {
-          try {
-            await paymentApi.getReturnStatus(paymentId);
-          } catch {
-            // Billing page will refresh latest purchase/payment state after redirect.
-          }
+        if (!user?.role) {
+          navigate('/login', { replace: true });
+          return;
         }
-        navigate(buildBillingPath(user?.role, purchaseId, paymentId), { replace: true });
+
+        reconcilePaymentReturn();
+        navigate(buildBillingPath(user.role, purchaseId, paymentId), { replace: true });
         return;
       }
 
-      if (!paymentId) {
+      if (!paymentId && !orderCode) {
         navigate(`${getRoleHomePath(user?.role)}?paymentReturnError=missing-payment`, { replace: true });
         return;
       }
 
       try {
-        const payment = await paymentApi.getReturnStatus(paymentId);
+        const payment = paymentId
+          ? await paymentApi.getReturnStatus(paymentId)
+          : await paymentApi.getReturnStatusByOrderCode(orderCode);
+
         if (stopped) return;
 
         if (payment.targetType === 'FEATURE_PACKAGE_PURCHASE') {
-          navigate(buildBillingPath(user?.role, payment.featurePackagePurchaseId, paymentId), { replace: true });
+          if (!user?.role) {
+            navigate('/login', { replace: true });
+            return;
+          }
+
+          navigate(
+            buildBillingPath(user.role, payment.featurePackagePurchaseId, payment.paymentId || paymentId),
+            { replace: true }
+          );
           return;
         }
 
-        navigate(buildWorkspacePath(payment.projectId, paymentId), { replace: true });
+        navigate(buildWorkspacePath(payment.projectId, payment.paymentId || paymentId), { replace: true });
       } catch (requestError) {
         if (!stopped) {
           setError(getApiErrorMessage(requestError, 'Không thể xác định màn hình đích của giao dịch.'));
-          window.setTimeout(() => navigate(`${getRoleHomePath(user?.role)}?paymentReturnError=lookup-failed`, { replace: true }), 1800);
+          window.setTimeout(() => {
+            navigate(`${getRoleHomePath(user?.role)}?paymentReturnError=lookup-failed`, { replace: true });
+          }, 1800);
         }
       }
     };
 
     redirectAfterLookup();
-    return () => { stopped = true; };
-  }, [navigate, paymentId, projectId, purchaseId, user?.role]);
+    return () => {
+      stopped = true;
+    };
+  }, [loading, navigate, orderCode, paymentId, projectId, purchaseId, user?.role]);
 
   if (error) return <LoadingState label={`${error} Đang chuyển hướng...`} />;
   return <LoadingState label="Đang kiểm tra trạng thái thanh toán..." />;
@@ -117,11 +143,14 @@ export function PaymentCancelPage() {
           <div>
             <Title level={2}>Thanh toán đã bị hủy</Title>
             <Paragraph className="muted-text">
-              Nếu đây là thanh toán gói, bạn có thể mở lại PayOS từ trang gói AI. Nếu đây là escrow, offer vẫn chờ thanh toán nếu còn hiệu lực.
+              Nếu đây là thanh toán gói, bạn có thể mở lại PayOS từ trang gói AI. Nếu đây là escrow, offer vẫn
+              chờ thanh toán nếu còn hiệu lực.
             </Paragraph>
           </div>
-          <Alert type="info" showIcon message="Backend không ghi nhận thanh toán thành công từ trang này." />
-          <Button type="primary"><Link to={returnPath}>{projectId ? 'Về workspace' : purchaseId ? 'Về gói AI' : 'Về trang chính'}</Link></Button>
+          <Alert type="info" showIcon message="Hệ thống chưa ghi nhận thanh toán thành công từ phiên này." />
+          <Button type="primary">
+            <Link to={returnPath}>{projectId ? 'Về workspace' : purchaseId ? 'Về gói AI' : 'Về trang chính'}</Link>
+          </Button>
         </Space>
       </Card>
     </div>

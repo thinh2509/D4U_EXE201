@@ -235,7 +235,7 @@ public sealed class PaymentService(
                 payment.ProviderOrderCode.Value,
                 payment.Amount,
                 payment.Currency,
-                package.Name,
+                BuildFeaturePackagePaymentDescription(package),
                 returnUrl,
                 cancelUrl,
                 expiresAt),
@@ -295,6 +295,27 @@ public sealed class PaymentService(
     {
         var payment = await unitOfWork.Repository<Payment>().GetByIdAsync(paymentId, cancellationToken)
             ?? throw new InvalidOperationException("Payment was not found.");
+
+        return await BuildReturnStatusAsync(payment, cancellationToken);
+    }
+
+    public async Task<PaymentReturnStatusResponse> GetReturnStatusByOrderCodeAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default)
+    {
+        var payment = await unitOfWork.Repository<Payment>().Query()
+            .Where(value => value.ProviderOrderCode == orderCode)
+            .OrderByDescending(value => value.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Payment was not found.");
+
+        return await BuildReturnStatusAsync(payment, cancellationToken);
+    }
+
+    private async Task<PaymentReturnStatusResponse> BuildReturnStatusAsync(
+        Payment payment,
+        CancellationToken cancellationToken)
+    {
 
         await ReconcilePendingPaymentAsync(payment, cancellationToken, forceProviderCheck: true);
         var now = DateTimeOffset.UtcNow;
@@ -862,12 +883,12 @@ public sealed class PaymentService(
             buyer.Id,
             null,
             "FEATURE_ENTITLEMENT_ACTIVATED",
-            "Goi AI Matching da duoc kich hoat",
+            "Gói AI Matching đã được kích hoạt",
             package.MaxActiveOpenProjectsOverride.HasValue
-                ? $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching va publish toi da {package.MaxActiveOpenProjectsOverride.Value} du an dang mo ngay bay gio."
+                ? $"Thanh toán cho gói {package.Name} đã được xác nhận thành công. Bạn có thể dùng AI Matching và mở tối đa {package.MaxActiveOpenProjectsOverride.Value} dự án cùng lúc ngay bây giờ."
                 : package.Role == FeaturePackageRole.STUDENT
-                    ? $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching va AI Proposal Writer ngay bay gio."
-                    : $"Thanh toan cho goi {package.Name} da thanh cong. Ban co the dung AI Matching ngay bay gio.",
+                    ? $"Thanh toán cho gói {package.Name} đã được xác nhận thành công. Bạn có thể dùng AI Matching và AI Proposal Writer ngay bây giờ."
+                    : $"Thanh toán cho gói {package.Name} đã được xác nhận thành công. Bạn có thể dùng AI Matching ngay bây giờ.",
             nameof(FeaturePackagePurchase),
             purchase.Id,
             now,
@@ -1234,6 +1255,23 @@ public sealed class PaymentService(
                 .Select(item => $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value!)}"));
         var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
         return string.IsNullOrWhiteSpace(queryString) ? url : $"{url}{separator}{queryString}";
+    }
+
+    private static string BuildFeaturePackagePaymentDescription(FeaturePackage package)
+    {
+        var baseDescription = package.Code switch
+        {
+            "STUDENT_AI_MATCHING_30D" => "D4U Student AI",
+            "SME_AI_MATCHING_30D" => "D4U SME Growth",
+            "SME_GROWTH_30D" => "D4U SME Growth",
+            _ when package.Role == FeaturePackageRole.STUDENT => "D4U Student AI",
+            _ when package.Role == FeaturePackageRole.SME => "D4U SME Growth",
+            _ => "D4U Feature Pack"
+        };
+
+        return baseDescription.Length <= 25
+            ? baseDescription
+            : baseDescription[..25];
     }
 
     private static PaymentResponse ToPaymentResponse(

@@ -38,50 +38,25 @@ export function extractApiFieldErrors(error, fieldMap = {}) {
   return result;
 }
 
-function mapKnownApiErrorMessage(message, fallback) {
-  const normalized = String(message || '').trim().toLowerCase();
+function mapProviderErrorMessage(message, fallback) {
+  if (!message) return fallback;
 
-  if (!normalized) {
-    return fallback;
+  const normalized = String(message).trim();
+  const lowered = normalized.toLowerCase();
+
+  if (lowered.includes('payos payment creation failed')) {
+    if (lowered.includes('mô tả tối đa 25 ký tự') || lowered.includes('mo ta toi da 25 ky tu') || lowered.includes('description')) {
+      return 'Không thể tạo thanh toán cho gói AI lúc này. Hệ thống đang điều chỉnh thông tin giao dịch để tương thích với cổng thanh toán.';
+    }
+
+    return 'Không thể tạo phiên thanh toán với PayOS lúc này. Vui lòng thử lại sau ít phút.';
   }
 
-  if (normalized.includes('student profile must be created before purchasing feature packages')) {
-    return 'Bạn cần tạo hồ sơ sinh viên trước khi mua gói AI.';
+  if (lowered.includes('405 not allowed')) {
+    return 'Không thể kết nối tới cổng thanh toán lúc này. Vui lòng kiểm tra cấu hình môi trường hoặc thử lại sau.';
   }
 
-  if (normalized.includes('student verification must be approved before purchasing feature packages')) {
-    return 'Bạn cần được duyệt xác thực sinh viên trước khi mua gói AI.';
-  }
-
-  if (normalized.includes('sme profile must be created before purchasing feature packages')) {
-    return 'Bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói.';
-  }
-
-  if (normalized.includes('an active entitlement already exists for this package feature')) {
-    return 'Bạn đang có gói còn hiệu lực nên chưa thể mua thêm gói cùng loại.';
-  }
-
-  if (normalized.includes('feature entitlement is already active for this purchase')) {
-    return 'Gói này đã được kích hoạt, không cần tạo thanh toán lại.';
-  }
-
-  if (normalized.includes('feature package purchase was not found')) {
-    return 'Không tìm thấy giao dịch mua gói. Vui lòng tải lại trang và thử lại.';
-  }
-
-  if (normalized.includes('only the purchase owner can create payment')) {
-    return 'Bạn không có quyền mở thanh toán cho giao dịch gói này.';
-  }
-
-  if (normalized.includes('payos payment creation failed: description:')) {
-    return 'Không thể tạo link thanh toán PayOS lúc này vì mô tả đơn hàng đang vượt giới hạn của PayOS.';
-  }
-
-  if (normalized.includes('payos payment creation failed')) {
-    return 'Không thể tạo link thanh toán PayOS lúc này. Vui lòng thử lại sau.';
-  }
-
-  return message;
+  return normalized;
 }
 
 export function getApiErrorMessage(error, fallback = 'Đã có lỗi xảy ra. Vui lòng thử lại.') {
@@ -91,27 +66,21 @@ export function getApiErrorMessage(error, fallback = 'Đã có lỗi xảy ra. V
 
   const data = error?.response?.data;
   if (typeof data === 'string') {
-    const message = data.trim().startsWith('<') ? fallback : data;
-    return mapKnownApiErrorMessage(message, fallback);
+    return data.trim().startsWith('<') ? fallback : mapProviderErrorMessage(data, fallback);
   }
 
-  if (data?.detail) return mapKnownApiErrorMessage(data.detail, fallback);
-  if (data?.message) return mapKnownApiErrorMessage(data.message, fallback);
+  if (data?.detail) return mapProviderErrorMessage(data.detail, fallback);
+  if (data?.message) return mapProviderErrorMessage(data.message, fallback);
 
   if (data?.errors && typeof data.errors === 'object') {
     const firstKey = Object.keys(data.errors)[0];
     const firstError = data.errors[firstKey];
-    const message = Array.isArray(firstError) ? firstError[0] : String(firstError);
-    return mapKnownApiErrorMessage(message, fallback);
+    return mapProviderErrorMessage(Array.isArray(firstError) ? firstError[0] : String(firstError), fallback);
   }
 
-  if (data?.title) return mapKnownApiErrorMessage(data.title, fallback);
+  if (data?.title) return mapProviderErrorMessage(data.title, fallback);
 
   return fallback;
-}
-
-export function getPackageBillingErrorMessage(error, fallback = 'Không thể xử lý giao dịch gói AI.') {
-  return getApiErrorMessage(error, fallback);
 }
 
 export function isApiMissing(error) {

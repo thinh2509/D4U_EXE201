@@ -73,6 +73,12 @@ function canUseAiMatchingForProject(projectStatus) {
   return AI_MATCHING_ELIGIBLE_PROJECT_STATUSES.includes(projectStatus);
 }
 
+function buildPurchaseActionLabel(purchase) {
+  if (!purchase) return 'Mua gói & thanh toán';
+  if (purchase.paymentStatus === 'PENDING' && purchase.checkoutUrl) return 'Mở lại PayOS';
+  return 'Thanh toán lại';
+}
+
 function getScoreTone(score) {
   if (score >= 85) return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
   if (score >= 70) return 'bg-sky-50 text-sky-700 ring-sky-200';
@@ -119,34 +125,34 @@ function MetricPill({ icon, label, value }) {
 }
 
 function renderSubscriptionDuration(profile) {
-  if (!profile) return 'Chua co';
-  if (profile.activePackageSummary?.expiresAt) return `Den ${formatDate(profile.activePackageSummary.expiresAt)}`;
-  if (!profile.subscriptionCurrentPeriodEnd) return 'Khong het han';
-  return `Den ${formatDate(profile.subscriptionCurrentPeriodEnd)}`;
+  if (!profile) return 'Chưa có';
+  if (profile.activePackageSummary?.expiresAt) return `Đến ${formatDate(profile.activePackageSummary.expiresAt)}`;
+  if (!profile.subscriptionCurrentPeriodEnd) return 'Không hết hạn';
+  return `Đến ${formatDate(profile.subscriptionCurrentPeriodEnd)}`;
 }
 
 function renderProjectLimit(profile) {
   const activeCount = profile?.activeOpenProjectCount ?? 0;
   const maxOpenProjects = profile?.effectiveMaxActiveOpenProjects;
 
-  if (maxOpenProjects == null) return `${activeCount} dang mo`;
-  return `${activeCount}/${maxOpenProjects} du an dang mo`;
+  if (maxOpenProjects == null) return `${activeCount} đang mở`;
+  return `${activeCount}/${maxOpenProjects} dự án đang mở`;
 }
 
 function renderProjectLimitDescription(profile) {
   const maxOpenProjects = profile?.effectiveMaxActiveOpenProjects;
 
-  if (maxOpenProjects == null) return 'Khong gioi han so du an dang mo';
-  return `Toi da ${maxOpenProjects} du an dang mo cung luc`;
+  if (maxOpenProjects == null) return 'Không giới hạn số dự án đang mở';
+  return `Tối đa ${maxOpenProjects} dự án đang mở cùng lúc`;
 }
 
 function renderPlanPrice(profile) {
   if (profile?.activePackageSummary) {
-    return `${formatCurrency(profile.activePackageSummary.price, profile.activePackageSummary.currency)}/30 ngay`;
+    return `${formatCurrency(profile.activePackageSummary.price, profile.activePackageSummary.currency)}/30 ngày`;
   }
 
-  if (!profile?.subscriptionPlan) return 'Chua co';
-  return `${formatCurrency(profile.subscriptionPlan.monthlyPrice)}/thang`;
+  if (!profile?.subscriptionPlan) return 'Chưa có';
+  return `${formatCurrency(profile.subscriptionPlan.monthlyPrice)}/tháng`;
 }
 
 function getBillingStatusTone(toneKey) {
@@ -211,16 +217,16 @@ function buildBillingSummaryStatus(profile, activePackage, latestPurchase) {
     return { label: 'Đang hoạt động', tone: 'success' };
   }
 
-  if (profile?.isFreePlan) {
-    return { label: 'Đang hoạt động', tone: 'success' };
-  }
-
   if (latestPurchase?.paymentStatus === 'PENDING') {
     return { label: 'Chờ xác nhận', tone: 'warning' };
   }
 
   if (latestPurchase?.entitlementStatus === 'EXPIRED' || latestPurchase?.status === 'EXPIRED') {
     return { label: 'Hết hiệu lực', tone: 'neutral' };
+  }
+
+  if (profile?.isFreePlan) {
+    return { label: 'Đang sử dụng', tone: 'info' };
   }
 
   return { label: 'Chưa kích hoạt', tone: 'neutral' };
@@ -279,7 +285,7 @@ function renderBillingRule(profile, activePackage) {
 
 function getSmeBillingPackageDisplayName(pkg) {
   if (!pkg) return 'Gói SME 30 ngày';
-  if (pkg.code === 'SME_GROWTH_30D') return 'SME AI Boost 30 ngày';
+  if (pkg.code === 'SME_GROWTH_30D' || pkg.code === 'SME_AI_MATCHING_30D') return 'SME Growth 30 ngày';
   return pkg.name;
 }
 
@@ -288,30 +294,15 @@ function getSmeBillingPackageDescription(pkg) {
     return 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
   }
 
-  if (pkg.code === 'SME_GROWTH_30D') {
+  if (pkg.code === 'SME_GROWTH_30D' || pkg.code === 'SME_AI_MATCHING_30D') {
     return 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
   }
 
   return pkg.description || 'Mở khóa AI Matching và nâng giới hạn tối đa 10 dự án đang mở cho SME trong 30 ngày.';
 }
 
-function SmeBillingEligibilityAlert({ onGoToProfile }) {
-  return (
-    <Alert
-      type="warning"
-      showIcon
-      className="form-alert"
-      message="Bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói."
-      description={(
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <span>Hoàn thiện hồ sơ SME trước để hệ thống gắn gói AI đúng với doanh nghiệp của bạn.</span>
-          <Button type="primary" className="!rounded-btn" onClick={onGoToProfile}>
-            Tạo hồ sơ SME
-          </Button>
-        </div>
-      )}
-    />
-  );
+function shouldShowBillingRetryPurchase(purchase) {
+  return Boolean(purchase && ['PENDING', 'FAILED'].includes(purchase.paymentStatus));
 }
 
 function SmePlanSummaryCard({ profile, activePackage, featuredPackage, latestPurchase }) {
@@ -365,9 +356,10 @@ function SmePlanPackageCard({
   pkg,
   activePackage,
   latestPurchase,
-  canPurchasePackage,
   actingPackageId,
-  onStartPurchase
+  actingPurchaseId,
+  onStartPurchase,
+  onReopenPurchasePayment
 }) {
   if (!pkg) return null;
 
@@ -423,24 +415,35 @@ function SmePlanPackageCard({
             <p className="text-[15px] font-semibold text-d4u-text-1">{packageStatus.label}</p>
           </div>
 
-          {!activePackage || activePackage.packageId !== pkg.id ? (
-            <Button
-              type="primary"
-              className="!h-11 !rounded-btn !font-semibold"
-              loading={actingPackageId === pkg.id}
-              disabled={!canPurchasePackage}
-              onClick={() => onStartPurchase(pkg)}
-            >
-              Mua gói
-            </Button>
-          ) : null}
+          <div className="flex flex-col gap-3">
+            {!activePackage || activePackage.packageId !== pkg.id ? (
+              <Button
+                type="primary"
+                className="!h-11 !rounded-btn !font-semibold"
+                loading={actingPackageId === pkg.id}
+                onClick={() => onStartPurchase(pkg)}
+              >
+                Mua gói
+              </Button>
+            ) : null}
+
+            {shouldShowBillingRetryPurchase(latestPurchase) ? (
+              <Button
+                className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                loading={actingPurchaseId === latestPurchase.id}
+                onClick={() => onReopenPurchasePayment(latestPurchase)}
+              >
+                Mở lại thanh toán
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
     </Card>
   );
 }
 
-function SmePurchaseHistorySection({ purchases, loading }) {
+function SmePurchaseHistorySection({ purchases, loading, actingPurchaseId, onReopenPurchasePayment }) {
   return (
     <Card
       className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft"
@@ -489,6 +492,23 @@ function SmePurchaseHistorySection({ purchases, loading }) {
             dataIndex: 'expiresAt',
             width: 180,
             render: (value) => renderBillingDateCell(value, 'Chưa kích hoạt')
+          },
+          {
+            title: <span className="text-[12px] font-semibold text-d4u-text-3">Thao tác</span>,
+            width: 170,
+            render: (_, row) => (
+              shouldShowBillingRetryPurchase(row)
+                ? (
+                  <Button
+                    className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                    loading={actingPurchaseId === row.id}
+                    onClick={() => onReopenPurchasePayment(row)}
+                  >
+                    Mở lại thanh toán
+                  </Button>
+                )
+                : null
+            )
           }
         ]}
       />
@@ -510,51 +530,38 @@ function RecommendationReason({ reason }) {
 function getMatchTierCopy(tier) {
   if (tier === 'STRONG') return { label: 'Rất phù hợp', tone: 'success' };
   if (tier === 'GOOD') return { label: 'Phù hợp tốt', tone: 'info' };
-  return { label: 'Cần xem lại', tone: 'warning' };
+  return { label: 'Cần review', tone: 'warning' };
 }
 
 function buildMatchingProviderCopy(provider) {
   if (provider === 'OpenAI') {
-    return 'Đang dùng AI rerank để giải thích nhóm ứng viên phù hợp nhất.';
+    return 'Đang dùng AI rerank để giải thích nhóm ứng viên nổi bật nhất.';
   }
 
   return 'Đang dùng chế độ gợi ý dự phòng từ dữ liệu hồ sơ hiện có.';
 }
 
 function MatchingFilterBar({ viewMode, onChange, result }) {
-  const totalCandidates = result?.recommendations?.length ?? 0;
-  const appliedCandidates = result?.recommendations?.filter((item) => item.hasAppliedToProject).length ?? 0;
-  const suggestedCandidates = Math.max(totalCandidates - appliedCandidates, 0);
-
   return (
-    <div className="rounded-card border border-d4u-border/80 bg-gradient-to-r from-d4u-soft/80 via-white to-white p-4 sm:p-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="grid gap-3">
-          <div>
-            <p className="text-sm font-semibold text-d4u-text-1">Danh sách gợi ý</p>
-            <p className="mt-1 text-sm leading-6 text-d4u-text-3">{buildMatchingProviderCopy(result?.provider)}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <PillBadge tone="info">{`${totalCandidates} ứng viên trong kết quả hiện tại`}</PillBadge>
-            <PillBadge tone="neutral">{`${appliedCandidates} đã ứng tuyển`}</PillBadge>
-            <PillBadge tone="neutral">{`${suggestedCandidates} gợi ý mở rộng`}</PillBadge>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {MATCHING_VIEW_OPTIONS.map((option) => (
-            <Button
-              key={option.key}
-              size="small"
-              type={viewMode === option.key ? 'primary' : 'default'}
-              className={viewMode === option.key
-                ? '!h-10 !rounded-chip !bg-d4u-cyan !px-4 !font-semibold hover:!bg-d4u-cyan-hover'
-                : '!h-10 !rounded-chip !border-d4u-border !bg-white !px-4 !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep'}
-              onClick={() => onChange(option.key)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
+    <div className="flex flex-col gap-3 border-b border-d4u-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-semibold text-d4u-text-1">Danh sách gợi ý</p>
+        <p className="mt-1 text-sm text-d4u-text-3">{buildMatchingProviderCopy(result?.provider)}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {MATCHING_VIEW_OPTIONS.map((option) => (
+          <Button
+            key={option.key}
+            size="small"
+            type={viewMode === option.key ? 'primary' : 'default'}
+            className={viewMode === option.key
+              ? '!rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover'
+              : '!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep'}
+            onClick={() => onChange(option.key)}
+          >
+            {option.label}
+          </Button>
+        ))}
       </div>
     </div>
   );
@@ -564,10 +571,10 @@ function MatchingResultSection({ title, description, items, renderItem }) {
   if (!items?.length) return null;
 
   return (
-    <section className="grid gap-4 rounded-card border border-d4u-border/70 bg-white/80 p-4 sm:p-5">
-      <div className="flex flex-col gap-1 border-b border-d4u-border/70 pb-4">
-        <p className="font-display text-lg font-semibold text-d4u-text-1">{title}</p>
-        {description ? <p className="text-sm leading-6 text-d4u-text-2">{description}</p> : null}
+    <section className="grid gap-4">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-semibold text-d4u-text-1">{title}</p>
+        {description ? <p className="text-sm text-d4u-text-3">{description}</p> : null}
       </div>
       <List
         className="[&_.ant-list-item]:!border-0 [&_.ant-list-item]:!px-0 [&_.ant-list-item]:!pt-0 [&_.ant-list-item]:!pb-5 last:[&_.ant-list-item]:!pb-0"
@@ -683,24 +690,21 @@ function RecommendationCard({
                     {activeOffer.offerStatus === 'WAITING_ACCEPTANCE' ? 'Đang chờ phản hồi' : 'Đã có đề nghị'}
                   </PillBadge>
                 ) : null}
-                {isTopMatch ? <PillBadge tone="warning">Ưu tiên cao nhất</PillBadge> : null}
+                {isTopMatch ? <PillBadge tone="warning">Phù hợp nhất</PillBadge> : null}
               </div>
 
               <Title level={4} className="!mb-1 truncate !font-display !text-d4u-text-1">
                 {item.studentFullName}
               </Title>
               <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                {[item.school || 'Chưa cập nhật trường', item.major || 'Chưa cập nhật chuyên ngành'].join(' · ')}
+                {[item.school || 'Chưa có trường', item.major || 'Chưa có chuyên ngành'].join(' · ')}
               </Paragraph>
             </div>
 
-            <div className="rounded-2xl border border-d4u-border bg-d4u-soft/70 px-4 py-3 text-left lg:min-w-[210px] lg:text-right">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-d4u-text-3">Mức đề xuất AI</p>
-              <p className="mt-1 text-lg font-semibold text-d4u-teal-deep">
-                {item.proposedPrice ? formatCurrency(item.proposedPrice) : 'Chưa có đề xuất'}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-d4u-text-3">
-                Dùng làm mốc tham khảo khi tạo đề nghị hợp tác.
+            <div className="rounded-2xl border border-d4u-border bg-d4u-soft/70 px-4 py-3 text-left lg:min-w-[180px] lg:text-right">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-d4u-text-3">Giá đề xuất</p>
+              <p className="mt-1 text-base font-semibold text-d4u-teal-deep">
+                {item.proposedPrice ? formatCurrency(item.proposedPrice) : 'Chưa có'}
               </p>
             </div>
           </div>
@@ -716,7 +720,7 @@ function RecommendationCard({
             <div className="rounded-2xl border border-d4u-border bg-white/90 p-4">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Độ đầy đủ hồ sơ</p>
               <p className="mt-2 text-2xl font-semibold text-d4u-teal-deep">{item.profileCompleteness ?? 0}%</p>
-              <p className="mt-1 text-sm text-d4u-text-3">Tổng hợp từ bio, kỹ năng và portfolio công khai.</p>
+              <p className="mt-1 text-sm text-d4u-text-3">Tổng hợp từ bio, skills và portfolio công khai.</p>
             </div>
             <div className="rounded-2xl border border-d4u-border bg-white/90 p-4 lg:col-span-2">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Tín hiệu năng lực</p>
@@ -728,7 +732,7 @@ function RecommendationCard({
                 </div>
               ) : (
                 <p className="mt-2 text-sm leading-6 text-d4u-text-2">
-                  Hệ thống đang ưu tiên đánh giá dựa trên portfolio công khai, mức độ đầy đủ hồ sơ và tín hiệu ứng tuyển hiện có.
+                  Hệ thống ưu tiên đánh giá từ portfolio công khai, mức độ đầy đủ hồ sơ và tín hiệu ứng tuyển hiện có.
                 </p>
               )}
             </div>
@@ -759,7 +763,7 @@ function RecommendationCard({
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-d4u-text-3">Lý do gợi ý</p>
-                <p className="text-sm font-semibold text-d4u-teal-deep">Những điểm nổi bật phù hợp với dự án này</p>
+                <p className="text-sm font-semibold text-d4u-teal-deep">Điểm mạnh nổi bật cho dự án này</p>
               </div>
             </div>
             <ul className="grid gap-3">
@@ -792,7 +796,7 @@ function RecommendationCard({
                 className="!h-11 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
                 onClick={() => onOpenProfile(item.studentProfileId)}
               >
-                Xem hồ sơ
+                Xem ho so
               </Button>
               <Button
                 type="primary"
@@ -825,7 +829,9 @@ function PackageShowcaseCard({
   isActivePackage,
   loading,
   actingPackageId,
-  onStartPurchase
+  actingPurchaseId,
+  onStartPurchase,
+  onReopenPurchasePayment
 }) {
   return (
     <Card
@@ -849,10 +855,10 @@ function PackageShowcaseCard({
 
           <div>
             <Title level={3} className="!mb-2 !font-display !text-d4u-teal-deep">
-              {pkg.name}
+              {getSmeBillingPackageDisplayName(pkg)}
             </Title>
             <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-              {pkg.description}
+              {getSmeBillingPackageDescription(pkg)}
             </Paragraph>
           </div>
 
@@ -865,8 +871,8 @@ function PackageShowcaseCard({
             </div>
             <p className="mt-3 text-sm text-d4u-text-2">
               {pkg.maxActiveOpenProjectsOverride
-                ? `Goi cho vai tro ${pkg.role} · AI Matching + toi da ${pkg.maxActiveOpenProjectsOverride} du an dang mo`
-                : `Goi cho vai tro ${pkg.role}`}
+                ? `Gói cho vai trò ${pkg.role} · AI Matching + tối đa ${pkg.maxActiveOpenProjectsOverride} dự án đang mở`
+                : `Gói cho vai trò ${pkg.role}`}
             </p>
           </div>
 
@@ -895,7 +901,7 @@ function PackageShowcaseCard({
                 </p>
               ) : (
                 <p className="mt-3 text-sm leading-6 text-d4u-text-2">
-                  Gói sẽ được mở khóa sau khi PayOS webhook xác nhận thanh toán thành công.
+                  Gói sẽ được mở khóa sau khi hệ thống xác nhận thanh toán thành công.
                 </p>
               )}
             </div>
@@ -905,16 +911,25 @@ function PackageShowcaseCard({
             </div>
           )}
 
-          <div className="mt-auto">
+          <div className="mt-auto flex flex-col gap-3 sm:flex-row">
             <Button
               type="primary"
-              className="!h-12 w-full !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
+              className="!h-12 flex-1 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
               disabled={isActivePackage}
               loading={actingPackageId === pkg.id}
               onClick={() => onStartPurchase(pkg)}
             >
               {isActivePackage ? 'Gói đang hoạt động' : 'Mua gói & thanh toán'}
             </Button>
+            {latestPurchase && !isActivePackage ? (
+              <Button
+                className="!h-12 flex-1 !rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                loading={actingPurchaseId === latestPurchase.id}
+                onClick={() => onReopenPurchasePayment(latestPurchase)}
+              >
+                {buildPurchaseActionLabel(latestPurchase)}
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -931,13 +946,13 @@ export function SmeBillingLivePage() {
   const [entitlements, setEntitlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actingPackageId, setActingPackageId] = useState(null);
+  const [actingPurchaseId, setActingPurchaseId] = useState(null);
   const [error, setError] = useState(null);
   const activePackage = useMemo(() => findActiveMatchingEntitlement(entitlements), [entitlements]);
   const featuredPackage = useMemo(
     () => packages.find((pkg) => pkg.maxActiveOpenProjectsOverride) || packages[0] || null,
     [packages]
   );
-  const canPurchasePackage = Boolean(profile);
 
   const loadData = async () => {
     setLoading(true);
@@ -982,8 +997,6 @@ export function SmeBillingLivePage() {
   };
 
   const startPurchase = async (pkg) => {
-    if (!pkg || !canPurchasePackage) return;
-
     setActingPackageId(pkg.id);
     setError(null);
     try {
@@ -996,6 +1009,20 @@ export function SmeBillingLivePage() {
       setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói.'));
     } finally {
       setActingPackageId(null);
+    }
+  };
+
+  const reopenPurchasePayment = async (purchase) => {
+    setActingPurchaseId(purchase.id);
+    setError(null);
+    try {
+      const payment = await packageApi.createPurchasePayment(purchase.id);
+      openCheckout(payment.checkoutUrl || purchase.checkoutUrl);
+      await loadData();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Không thể mở lại thanh toán PayOS cho gói.'));
+    } finally {
+      setActingPurchaseId(null);
     }
   };
 
@@ -1066,30 +1093,29 @@ export function SmeBillingLivePage() {
           type="info"
           showIcon
           className="hidden form-alert"
-          message="Gói chỉ được kích hoạt sau khi PayOS webhook xác nhận thành công."
-          description="Trang return từ PayOS không tự mở khóa tính năng. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái mới nhất."
+          message="Gói chỉ được kích hoạt sau khi hệ thống xác nhận thanh toán thành công."
+          description="Trang quay lại từ PayOS không tự mở khóa tính năng ngay lập tức. Nếu vừa thanh toán xong, hãy bấm Làm mới để kiểm tra trạng thái mới nhất."
         />
       )}
 
       {error ? <Alert type="error" showIcon className="form-alert" message={error} /> : null}
-
-      {!canPurchasePackage ? (
-        <SmeBillingEligibilityAlert onGoToProfile={() => navigate('/sme/profile')} />
-      ) : null}
 
       <div className="grid gap-6">
         <SmePlanPackageCard
           pkg={featuredPackage}
           activePackage={activePackage}
           latestPurchase={latestPurchase}
-          canPurchasePackage={canPurchasePackage}
           actingPackageId={actingPackageId}
+          actingPurchaseId={actingPurchaseId}
           onStartPurchase={startPurchase}
+          onReopenPurchasePayment={reopenPurchasePayment}
         />
 
         <SmePurchaseHistorySection
           purchases={purchases}
           loading={loading}
+          actingPurchaseId={actingPurchaseId}
+          onReopenPurchasePayment={reopenPurchasePayment}
         />
       </div>
 
@@ -1107,7 +1133,9 @@ export function SmeBillingLivePage() {
                 isActivePackage={isActivePackage}
                 loading={loading}
                 actingPackageId={actingPackageId}
+                actingPurchaseId={actingPurchaseId}
                 onStartPurchase={startPurchase}
+                onReopenPurchasePayment={reopenPurchasePayment}
               />
             );
           })}
@@ -1180,6 +1208,20 @@ export function SmeBillingLivePage() {
               width: 170,
               render: renderDateCell
             },
+            {
+              title: 'Hành động',
+              width: 180,
+              render: (_, row) => (
+                <Button
+                  className="!rounded-btn !border-d4u-border !font-semibold !text-d4u-text-1 hover:!border-d4u-cyan hover:!text-d4u-teal-deep"
+                  disabled={row.status === 'ACTIVE'}
+                  loading={actingPurchaseId === row.id}
+                  onClick={() => reopenPurchasePayment(row)}
+                >
+                  {buildPurchaseActionLabel(row)}
+                </Button>
+              )
+            }
           ]}
         />
       </Card>
@@ -1200,6 +1242,7 @@ export function SmeAiMatchingLivePage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [autoRunAttempted, setAutoRunAttempted] = useState(false);
   const [actingOfferStudentId, setActingOfferStudentId] = useState(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState(null);
   const [viewMode, setViewMode] = useState('ALL');
@@ -1235,8 +1278,8 @@ export function SmeAiMatchingLivePage() {
     if (viewMode === 'APPLIED') {
       return [{
         key: 'applied',
-        title: 'Đã ứng tuyển và đang được ưu tiên xem xét',
-        description: 'Nhóm ứng viên đã chủ động nộp đơn cho dự án này.',
+        title: 'Đã ứng tuyển và đang được ưu tiên review',
+        description: 'Nhóm sinh viên đã chủ động nộp ứng tuyển vào dự án này.',
         items: filteredRecommendations
       }];
     }
@@ -1245,7 +1288,7 @@ export function SmeAiMatchingLivePage() {
       return [{
         key: 'discover',
         title: 'Phù hợp nhưng chưa ứng tuyển',
-        description: 'Nhóm ứng viên được mở rộng từ marketplace để SME cân nhắc gửi đề nghị trực tiếp.',
+        description: 'Nhóm sinh viên được mở rộng từ marketplace để SME cân nhắc gửi đề nghị trực tiếp.',
         items: filteredRecommendations
       }];
     }
@@ -1264,13 +1307,13 @@ export function SmeAiMatchingLivePage() {
       {
         key: 'applied',
         title: 'Đã ứng tuyển và phù hợp',
-        description: 'Những sinh viên đã nộp ứng tuyển và vẫn được chấm điểm tốt.',
+        description: 'Những Student đã nộp ứng tuyển và vẫn giữ mức độ phù hợp tốt.',
         items: remaining.filter((item) => item.hasAppliedToProject)
       },
       {
         key: 'discover',
         title: 'Phù hợp nhưng chưa ứng tuyển',
-        description: 'SME có thể mở rộng danh sách ứng viên và gửi đề nghị trực tiếp khi cần.',
+        description: 'SME có thể mở rộng tập ứng viên và gửi đề nghị trực tiếp khi cần.',
         items: remaining.filter((item) => !item.hasAppliedToProject)
       }
     ].filter((section) => section.items.length > 0);
@@ -1307,24 +1350,34 @@ export function SmeAiMatchingLivePage() {
     loadContext();
   }, [projectId]);
 
-  const runMatching = async () => {
+  useEffect(() => {
+    setAutoRunAttempted(false);
+    setResult(null);
+    setError(null);
+  }, [projectId]);
+
+  const runMatching = async ({ auto = false } = {}) => {
     if (!projectId || !canUseAiMatching) return;
+
+    if (auto) {
+      setAutoRunAttempted(true);
+    }
 
     setRunning(true);
     setError(null);
     try {
       setResult(await matchingApi.matchStudentsForProject(projectId, { maxResults: 6 }));
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Không thể chạy gợi ý AI cho dự án này.'));
+      setError(getAiMatchingErrorMessage(requestError, 'Không thể chạy gợi ý AI cho dự án này.'));
     } finally {
       setRunning(false);
     }
   };
 
   useEffect(() => {
-    if (!projectId || !activePackage || !canUseAiMatching || result || running || loading) return;
-    runMatching();
-  }, [activePackage, canUseAiMatching, loading, projectId, result, running]);
+    if (!projectId || !activePackage || !canUseAiMatching || result || running || loading || autoRunAttempted) return;
+    runMatching({ auto: true });
+  }, [activePackage, autoRunAttempted, canUseAiMatching, loading, projectId, result, running]);
 
   useEffect(() => {
     if (!selectedRecommendation || !project) return;
@@ -1376,7 +1429,7 @@ export function SmeAiMatchingLivePage() {
       <PageHeader
         icon={<TeamOutlined />}
         title="Gợi ý AI"
-        description="Xem nhanh danh sách sinh viên phù hợp theo điểm số, lý do gợi ý và mức độ sẵn sàng để ra quyết định gửi đề nghị chính xác hơn."
+        description="Đánh giá nhanh các gợi ý sinh viên theo điểm, lý do gợi ý và mức độ sẵn sàng trước khi quay lại luồng đề nghị."
         extra={(
           <Space>
             <Button
@@ -1390,7 +1443,7 @@ export function SmeAiMatchingLivePage() {
               className="!h-11 !rounded-btn !bg-d4u-cyan !font-semibold hover:!bg-d4u-cyan-hover"
               disabled={!projectId || !activePackage || !canUseAiMatching}
               loading={running}
-              onClick={runMatching}
+              onClick={() => runMatching()}
             >
               Chạy lại gợi ý
             </Button>
@@ -1435,7 +1488,7 @@ export function SmeAiMatchingLivePage() {
                   Bạn chưa có gói AI Matching + 10 dự án đang mở
                 </Title>
                 <Paragraph className="!mb-0 !text-sm !leading-6 !text-d4u-text-2">
-                  SME cần mua gói và chờ webhook xác nhận trước khi dùng AI Matching hoặc mở rộng giới hạn dự án đang mở.
+                  SME cần mua gói và chờ thanh toán được xác nhận thành công trước khi dùng AI Matching hoặc mở rộng giới hạn dự án đang mở.
                 </Paragraph>
               </div>
               <Button
@@ -1505,25 +1558,22 @@ export function SmeAiMatchingLivePage() {
         title={<span className="font-display text-lg font-semibold text-d4u-text-1">Kết quả gợi ý sinh viên</span>}
       >
         {!result ? (
-          <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-d4u-border bg-white/80 px-6 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-d4u-soft text-d4u-teal-deep">
-              <TeamOutlined className="text-xl" />
-            </div>
-            <p className="mt-4 text-base font-semibold text-d4u-text-1">Chưa có kết quả gợi ý</p>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-d4u-text-2">
-              {!activePackage
-                ? 'Tính năng hiện đang bị khóa vì tài khoản chưa có gói AI Matching đang hoạt động.'
+          <Empty
+            description={
+              !activePackage
+                ? 'Tính năng đang bị khóa vì chưa có gói.'
                 : !canUseAiMatching
-                  ? 'Dự án này đã qua giai đoạn tuyển chọn nên hiện không thể tiếp tục dùng AI Matching.'
-                  : 'Hãy chạy gợi ý AI để lấy danh sách sinh viên phù hợp cho dự án này.'}
-            </p>
-          </div>
+                  ? 'Dự án này đã qua giai đoạn tuyển chọn nên không còn dùng AI Matching.'
+                  : 'Chưa có kết quả. Hãy chạy gợi ý AI để lấy danh sách gợi ý.'
+            }
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
         ) : (
           <div className="grid gap-6">
             <MatchingFilterBar viewMode={viewMode} onChange={setViewMode} result={result} />
 
             {result.warnings?.length ? (
-              <div className="rounded-card border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50/70 px-4 py-4">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Lưu ý hệ thống</p>
                 <ul className="mt-2 grid gap-2">
                   {result.warnings.slice(0, 3).map((warning) => (
@@ -1556,15 +1606,7 @@ export function SmeAiMatchingLivePage() {
                 )}
               />
             )) : (
-              <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-d4u-border bg-white/80 px-6 py-12 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-d4u-soft text-d4u-teal-deep">
-                  <TeamOutlined className="text-xl" />
-                </div>
-                <p className="mt-4 text-base font-semibold text-d4u-text-1">Chưa có ứng viên phù hợp</p>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-d4u-text-2">
-                  Thử chuyển bộ lọc hoặc chạy lại gợi ý khi dữ liệu hồ sơ, ứng tuyển hay trạng thái dự án đã được cập nhật.
-                </p>
-              </div>
+              <Empty description="Không có candidate nào phù hợp với bộ lọc hiện tại." image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
           </div>
         )}
@@ -1583,8 +1625,8 @@ export function SmeAiMatchingLivePage() {
               type="info"
               showIcon
               className="form-alert"
-              message="Student sẽ có thời gian phản hồi theo policy hiện có của hệ thống."
-              description="Sau khi student chấp nhận, SME mới tiếp tục thanh toán escrow qua PayOS."
+              message="Student sẽ có thời gian phản hồi theo quy định hiện tại của hệ thống."
+              description="Sau khi Student chấp nhận, SME mới tiếp tục thanh toán escrow qua PayOS."
             />
             <Descriptions column={1} bordered size="small">
               <Descriptions.Item label="Student">{selectedRecommendation.studentFullName}</Descriptions.Item>

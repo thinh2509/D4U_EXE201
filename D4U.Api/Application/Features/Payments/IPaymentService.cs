@@ -23,6 +23,10 @@ public interface IPaymentService
         Guid paymentId,
         CancellationToken cancellationToken = default);
 
+    Task<PaymentReturnStatusResponse> GetReturnStatusByOrderCodeAsync(
+        long orderCode,
+        CancellationToken cancellationToken = default);
+
     Task<EscrowResponse> GetProjectEscrowAsync(
         Guid userId,
         Guid projectId,

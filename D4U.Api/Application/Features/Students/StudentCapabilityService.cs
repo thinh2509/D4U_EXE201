@@ -127,9 +127,9 @@ public sealed partial class StudentCapabilityService(IUnitOfWork unitOfWork) : I
             SourceProjectId = request.SourceProjectId,
             DesignCategoryId = request.DesignCategoryId,
             Title = request.Title.Trim(),
-            Description = request.Description.Trim(),
+            Description = (request.Description ?? string.Empty).Trim(),
             ThumbnailUrl = NormalizeOptionalText(request.ThumbnailUrl),
-            ProjectUrl = NormalizeOptionalText(request.ProjectUrl),
+            ProjectUrl = NormalizeOptionalText(request.ProjectUrl?.Trim()),
             FileUrl = NormalizeOptionalText(request.FileUrl),
             CompletedAt = request.CompletedAt,
             Status = PortfolioItemStatus.PRIVATE,
@@ -159,9 +159,9 @@ public sealed partial class StudentCapabilityService(IUnitOfWork unitOfWork) : I
         item.SourceProjectId = request.SourceProjectId;
         item.DesignCategoryId = request.DesignCategoryId;
         item.Title = request.Title.Trim();
-        item.Description = request.Description.Trim();
+        item.Description = (request.Description ?? string.Empty).Trim();
         item.ThumbnailUrl = NormalizeOptionalText(request.ThumbnailUrl);
-        item.ProjectUrl = NormalizeOptionalText(request.ProjectUrl);
+        item.ProjectUrl = NormalizeOptionalText(request.ProjectUrl?.Trim());
         item.FileUrl = NormalizeOptionalText(request.FileUrl);
         item.CompletedAt = request.CompletedAt;
         item.IsFeatured = request.IsFeatured;
