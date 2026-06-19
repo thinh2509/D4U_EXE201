@@ -1,9 +1,5 @@
 import { GoogleLogin } from '@react-oauth/google';
-import {
-  GoogleOutlined,
-  LockOutlined,
-  MailOutlined,
-} from '@ant-design/icons';
+import { GoogleOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Card, Form, Input, Radio, Typography } from 'antd';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -70,7 +66,7 @@ export function LoginPage() {
       navigate(roleHome(response.user.role), { replace: true });
     } catch (error) {
       const errorMessage = getFriendlyAuthError(
-        getApiErrorMessage(error, 'Đăng nhập thất bại.')
+        getApiErrorMessage(error, 'Đăng nhập thất bại.'),
       );
 
       if (errorMessage === 'Email is not verified.') {
@@ -117,7 +113,7 @@ export function LoginPage() {
       navigate(roleHome(response.user.role), { replace: true });
     } catch (error) {
       const errorMessage = getFriendlyAuthError(
-        getApiErrorMessage(error, 'Không thể đăng nhập bằng Google.')
+        getApiErrorMessage(error, 'Không thể đăng nhập bằng Google.'),
       );
       setFormError(errorMessage);
       message.error(errorMessage);
@@ -141,9 +137,9 @@ export function LoginPage() {
               </Text>
             </div>
 
-            {formError && (
+            {formError ? (
               <Alert className="auth-form-alert" type="error" showIcon message={formError} />
-            )}
+            ) : null}
 
             <Form form={form} layout="vertical" onFinish={handleLogin} requiredMark={false}>
               <Form.Item
@@ -154,7 +150,12 @@ export function LoginPage() {
                   { type: 'email', message: 'Email không hợp lệ.' },
                 ]}
               >
-                <Input size="large" prefix={<MailOutlined />} placeholder="Nhập email" autoComplete="email" />
+                <Input
+                  size="large"
+                  prefix={<MailOutlined />}
+                  placeholder="Nhập email"
+                  autoComplete="email"
+                />
               </Form.Item>
 
               <Form.Item
@@ -190,21 +191,26 @@ export function LoginPage() {
 
                 <div className="google-box">
                   {googleConfigured ? (
-                    <div className="google-login-frame">
-                      <GoogleLogin
-                        onSuccess={handleGoogleSuccess}
-                        onError={() => message.error('Đăng nhập Google bị hủy hoặc thất bại.')}
-                        locale="vi"
-                        shape="rectangular"
-                        text="continue_with"
-                        width="360"
-                      />
+                    <div className="google-login-frame google-login-frame-custom">
+                      <Button size="large" className="google-visual-button" icon={<GoogleOutlined />}>
+                        Tiếp tục với Google
+                      </Button>
+                      <div className="google-login-hitbox" aria-hidden="true">
+                        <GoogleLogin
+                          onSuccess={handleGoogleSuccess}
+                          onError={() => message.error('Đăng nhập Google bị hủy hoặc thất bại.')}
+                          locale="vi"
+                          shape="rectangular"
+                          text="continue_with"
+                          width="360"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <>
                       <div className="google-login-frame">
                         <Button size="large" disabled icon={<GoogleOutlined />}>
-                          Tiếp tục bằng Google
+                          Tiếp tục với Google
                         </Button>
                       </div>
                       <Text type="secondary" className="google-hint">

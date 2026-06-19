@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   IdcardOutlined,
   SafetyCertificateOutlined,
-  TeamOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { D4ULogo } from '../../components/D4ULogo.jsx';
@@ -12,24 +11,18 @@ const FEATURES = [
   {
     icon: IdcardOutlined,
     title: 'Hồ sơ xác thực',
-    copy: 'Student hoàn thiện hồ sơ và tài liệu trước khi tham gia dự án thật.'
+    copy: 'Student hoàn thiện hồ sơ và tài liệu trước khi tham gia dự án thật.',
   },
   {
     icon: AppstoreOutlined,
     title: 'Workspace theo dự án',
-    copy: 'SME quản lý brief, proposal, offer và tiến độ trong cùng một nơi.'
+    copy: 'SME quản lý brief, proposal, offer và tiến độ trong cùng một nơi.',
   },
   {
     icon: CheckCircleOutlined,
     title: 'Review theo milestone',
-    copy: 'Sketch, Revision và Final được theo dõi bằng trạng thái rõ ràng.'
-  }
-];
-
-const STATS = [
-  ['3 vai trò', 'Student, SME, Admin'],
-  ['Escrow', 'Thanh toán trước khi làm'],
-  ['Sketch/Final', 'Bàn giao theo milestone']
+    copy: 'Sketch, Revision và Final được theo dõi bằng trạng thái rõ ràng.',
+  },
 ];
 
 export function AuthBrandPanel() {
@@ -57,23 +50,13 @@ export function AuthBrandPanel() {
         <div className="auth-feature-grid">
           {FEATURES.map(({ icon: Icon, title, copy }) => (
             <article className="auth-feature-card" key={title}>
-              <span><Icon /></span>
+              <span>
+                <Icon />
+              </span>
               <strong>{title}</strong>
               <p>{copy}</p>
             </article>
           ))}
-        </div>
-
-        <div className="auth-stats-row">
-          {STATS.map(([value, label]) => (
-            <div key={value}>
-              <strong>{value}</strong>
-              <span>{label}</span>
-            </div>
-          ))}
-          <div className="auth-stats-icon">
-            <TeamOutlined />
-          </div>
         </div>
       </div>
     </section>

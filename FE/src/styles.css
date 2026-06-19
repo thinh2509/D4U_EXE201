@@ -369,43 +369,6 @@ a:hover {
   line-height: 1.55;
 }
 
-.auth-stats-row {
-  padding: 16px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  gap: 12px;
-  border: 1px solid rgba(215, 229, 234, 0.86);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: var(--shadow-xs);
-}
-
-.auth-stats-row div {
-  display: grid;
-  gap: 4px;
-}
-
-.auth-stats-row strong,
-.auth-stats-row .anticon {
-  color: var(--ink);
-  font-size: 20px;
-}
-
-.auth-stats-icon {
-  width: 42px;
-  min-height: 42px;
-  display: grid;
-  place-items: center;
-  align-self: center;
-  border-radius: 14px;
-  background: var(--primary-soft);
-}
-
-.auth-stats-row span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
 .auth-card {
   width: min(100% - 40px, 480px);
   margin: auto;
@@ -484,6 +447,32 @@ a:hover {
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+
+.google-login-frame-custom {
+  position: relative;
+}
+
+.google-visual-button {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.google-login-hitbox {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.google-login-hitbox > div {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .google-label {
@@ -2025,14 +2014,6 @@ a:hover {
 
   .auth-feature-card {
     min-height: auto;
-  }
-
-  .auth-stats-row {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-stats-icon {
-    display: none;
   }
 
   .auth-card {
