@@ -1,5 +1,6 @@
 import {
   CheckCircleFilled,
+  CheckOutlined,
   ClockCircleOutlined,
   CreditCardOutlined,
   HistoryOutlined,
@@ -8,7 +9,8 @@ import {
   SafetyCertificateOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Card, Progress, Table, Typography } from 'antd';
+import { Alert, Button, Progress, Table, Typography } from 'antd';
+import { Children } from 'react';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { formatCurrency, formatDate } from '../../utils/format.js';
 
@@ -120,6 +122,17 @@ export function BillingUsagePanel({
   );
 }
 
+function BillingSideHighlight({ children }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl bg-white/72 px-3 py-2.5 ring-1 ring-white/70">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[11px] text-emerald-600">
+        <CheckOutlined />
+      </span>
+      <span className="text-sm font-medium leading-6 text-d4u-text-1">{children}</span>
+    </div>
+  );
+}
+
 export function BillingPlanCard({
   status,
   audienceLabel,
@@ -129,11 +142,17 @@ export function BillingPlanCard({
   metrics = [],
   sideLabel = 'Giá gói',
   sideValue,
+  sideSuffix = null,
   sideStatusLabel = 'Trạng thái hiện tại',
   sideStatusValue,
+  sideStatusTone = 'neutral',
+  sideHighlights = [],
+  sideFootnote = null,
   children,
   extraContent = null,
 }) {
+  const hasActionArea = Children.count(children) > 0 || Boolean(sideFootnote);
+
   return (
     <section className="overflow-hidden rounded-panel border border-d4u-border bg-d4u-surface shadow-soft transition-shadow duration-200 hover:shadow-card">
       <div className="border-b border-d4u-border/60 px-5 py-5 sm:px-6">
@@ -149,7 +168,7 @@ export function BillingPlanCard({
         </Paragraph>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="grid grid-cols-1 gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_290px]">
         <div className="min-w-0 space-y-4">
           <div className="rounded-2xl bg-d4u-soft/70 p-4">
             <p className="text-xs font-semibold tracking-[0.04em] text-d4u-text-3">Bạn nhận được gì</p>
@@ -179,25 +198,54 @@ export function BillingPlanCard({
           {extraContent}
         </div>
 
-        <div className="flex flex-col justify-between gap-4 rounded-2xl bg-white/90 p-4 ring-1 ring-d4u-border/70">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 text-sm text-d4u-text-2">
-              <CreditCardOutlined className="text-d4u-teal-deep" />
-              <span className="font-medium">{sideLabel}</span>
-            </div>
-            <p className="text-[28px] font-bold leading-none tracking-tight text-d4u-teal-deep">
-              {sideValue}
-            </p>
+        <div className="rounded-[28px] border border-d4u-border/80 bg-gradient-to-br from-white via-d4u-soft/30 to-sky-50/80 p-4 shadow-sm">
+          <div className="space-y-4">
+            <div className="rounded-[22px] border border-white/90 bg-white/95 p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-sm text-d4u-text-2">
+                <CreditCardOutlined className="text-d4u-teal-deep" />
+                <span className="font-medium">{sideLabel}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-end gap-2">
+                <p className="text-[38px] font-bold leading-none tracking-tight text-d4u-teal-deep">
+                  {sideValue}
+                </p>
+                {sideSuffix ? <span className="pb-1 text-sm font-semibold text-d4u-text-2">{sideSuffix}</span> : null}
+              </div>
 
-            <div className="flex items-center gap-3 pt-2 text-sm text-d4u-text-2">
-              <ClockCircleOutlined className="text-d4u-teal-deep" />
-              <span className="font-medium">{sideStatusLabel}</span>
+              <div className="mt-4 rounded-2xl bg-d4u-soft/65 p-3 ring-1 ring-d4u-border/60">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">
+                  <ClockCircleOutlined className="text-d4u-teal-deep" />
+                  <span>{sideStatusLabel}</span>
+                </div>
+                <div className="mt-2">
+                  <BillingStatusPill label={sideStatusValue} tone={sideStatusTone} />
+                </div>
+              </div>
             </div>
-            <p className="text-[15px] font-semibold text-d4u-text-1">{sideStatusValue}</p>
-          </div>
 
-          <div className="flex flex-col gap-3">
-            {children}
+            {sideHighlights.length > 0 ? (
+              <div className="rounded-[22px] border border-white/70 bg-white/78 p-3.5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Điểm nổi bật</p>
+                <div className="mt-3 space-y-2.5">
+                  {sideHighlights.map((item) => (
+                    <BillingSideHighlight key={item}>{item}</BillingSideHighlight>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {hasActionArea ? (
+              <div className="rounded-[22px] border border-d4u-border/70 bg-white/92 p-4 shadow-sm">
+                <div className="flex flex-col gap-3">
+                  {children}
+                </div>
+                {sideFootnote ? (
+                  <div className="mt-3 rounded-xl bg-d4u-soft/55 px-3 py-2.5 text-sm leading-6 text-d4u-text-2">
+                    {sideFootnote}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

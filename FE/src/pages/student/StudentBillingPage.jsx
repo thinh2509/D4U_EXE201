@@ -24,6 +24,7 @@ import {
   BillingSuccessAlert,
   BillingSummaryHero,
   BillingUsagePanel,
+  BillingPill,
   buildBillingPurchaseActionLabel,
   buildGenericBillingStatus,
   billingIcons,
@@ -47,9 +48,9 @@ function formatStudentUsageSummary(entitlement) {
 }
 
 function formatStudentUsageDetail(entitlement) {
-  if (!entitlement) return '30 lượt trong 30 ngày sau khi gói được kích hoạt.';
+  if (!entitlement) return 'Gói mở 30 lượt dùng AI trong 30 ngày sau khi thanh toán được xác nhận.';
   if (entitlement.usageLimit == null || entitlement.usageLimit >= BILLING_UNLIMITED_USAGE_THRESHOLD) {
-    return 'Bạn đang ở trạng thái AI Pro, không áp dụng giới hạn lượt dùng hiển thị trên màn này.';
+    return 'Bạn đang ở trạng thái AI Pro nên không cần theo dõi giới hạn lượt dùng trên màn hình này.';
   }
 
   const remaining = Math.max(0, entitlement.usageLimit - entitlement.usageConsumed);
@@ -66,31 +67,32 @@ function getStudentUsageProgress(entitlement) {
 }
 
 function getStudentPackageName(aiPackage) {
-  return aiPackage?.name || 'Gói AI Student 30 ngày';
+  if (aiPackage?.code === STUDENT_PACKAGE_CODE) return 'Student AI Proposal 30 ngày';
+  return aiPackage?.name || 'Student AI Proposal 30 ngày';
 }
 
 function getStudentPackageDescription(aiPackage) {
   if (!aiPackage) {
-    return 'Gói này dành cho Student muốn chuẩn bị proposal nhanh hơn nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME.';
+    return 'Gói dành cho Student muốn tăng tốc viết proposal, bám sát brief thực tế nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME.';
   }
 
   if (aiPackage.code === STUDENT_PACKAGE_CODE) {
-    return 'Mở AI Proposal Writer trong 30 ngày để tạo proposal nháp nhanh hơn và bám sát brief thực tế.';
+    return 'Mở AI Proposal Writer trong 30 ngày để tạo proposal nháp nhanh hơn, rõ ý hơn và vào việc nhanh hơn ngay trong luồng ứng tuyển.';
   }
 
-  return aiPackage.description || 'Gói này dành cho Student muốn chuẩn bị proposal nhanh hơn nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME.';
+  return aiPackage.description || 'Gói dành cho Student muốn tăng tốc viết proposal nhưng vẫn giữ toàn quyền chỉnh sửa trước khi gửi cho SME.';
 }
 
 function getStudentSummaryDescription(activeEntitlement, latestPurchase) {
   if (activeEntitlement) {
-    return `Gói hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}. Bạn có thể tiếp tục dùng AI Proposal Writer để tạo proposal nháp ngay trong luồng ứng tuyển.`;
+    return `Gói hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}. Bạn có thể tiếp tục dùng AI Proposal Writer ngay trong luồng ứng tuyển để chuẩn bị proposal nhanh và rõ hơn.`;
   }
 
   if (latestPurchase?.paymentStatus === 'PENDING') {
-    return 'Giao dịch của bạn đang chờ xác nhận thanh toán. Quyền dùng AI sẽ được cập nhật tự động ngay sau khi hệ thống ghi nhận thanh toán thành công.';
+    return 'Giao dịch của bạn đang chờ xác nhận thanh toán. Quyền dùng AI sẽ tự cập nhật ngay sau khi PayOS và hệ thống cùng ghi nhận thanh toán thành công.';
   }
 
-  return 'Mở khóa AI Proposal Writer trong 30 ngày để lên proposal nháp nhanh hơn, bám sát brief dự án và tận dụng dữ liệu hồ sơ năng lực của bạn.';
+  return 'Mở khóa AI Proposal Writer trong 30 ngày để tăng tốc viết proposal, tận dụng dữ liệu hồ sơ hiện có và vẫn giữ quyền kiểm soát nội dung cuối cùng.';
 }
 
 function StudentBillingSummary({ aiPackage, activeEntitlement, latestPurchase }) {
@@ -135,29 +137,36 @@ function StudentBillingPlanCard({
       features={[
         {
           icon: <ThunderboltOutlined />,
-          label: 'Tạo proposal nháp trong luồng ứng tuyển',
-          description: 'Bạn có thể gọi AI ngay khi ứng tuyển để lấy bản nháp đầu tiên, không cần rời khỏi flow hiện tại.',
+          label: 'Tạo proposal nháp ngay trong luồng ứng tuyển',
+          description: 'Bạn có thể gọi AI ngay khi ứng tuyển để lấy bản nháp đầu tiên mà không phải rời khỏi flow hiện tại.',
         },
         {
           icon: <EditOutlined />,
-          label: 'Nội dung vẫn do bạn quyết định',
-          description: 'AI chỉ hỗ trợ bản nháp. Bạn luôn là người chỉnh sửa, chọn giọng điệu và gửi phiên bản cuối cùng.',
+          label: 'Tăng tốc viết nhưng vẫn giữ quyền chỉnh sửa',
+          description: 'AI chỉ hỗ trợ bản nháp. Bạn vẫn là người quyết định giọng điệu, cấu trúc và phiên bản cuối cùng gửi cho SME.',
         },
         {
           icon: <SafetyCertificateOutlined />,
-          label: 'Kích hoạt sau khi thanh toán được xác nhận',
-          description: 'Quyền dùng AI chỉ mở khi hệ thống xác nhận thanh toán thành công, không kích hoạt sớm.',
+          label: 'Chỉ kích hoạt sau khi thanh toán được xác nhận',
+          description: 'Quyền dùng AI chỉ mở khi hệ thống ghi nhận thanh toán thành công, không kích hoạt sớm theo trạng thái tạm.',
         },
       ]}
       metrics={[
         { icon: billingIcons.duration, label: 'Hiệu lực', value: `${aiPackage?.durationDays ?? 30} ngày` },
-        { icon: billingIcons.ai, label: 'Usage', value: formatStudentUsageSummary(activeEntitlement) },
+        { icon: billingIcons.ai, label: 'Lượt AI', value: formatStudentUsageSummary(activeEntitlement) },
         { icon: billingIcons.payment, label: 'Thanh toán', value: latestPurchase?.paymentStatus || 'Chưa có' },
       ]}
       sideLabel="Giá gói"
       sideValue={aiPackage ? formatCurrency(aiPackage.price, aiPackage.currency) : 'Chưa có'}
+      sideSuffix="/30 ngày"
       sideStatusLabel="Trạng thái hiện tại"
       sideStatusValue={status.label}
+      sideStatusTone={status.tone}
+      sideHighlights={[
+        '30 lượt AI trong 30 ngày',
+        'Dùng trực tiếp khi ứng tuyển dự án',
+        'Tự cập nhật ngay sau khi thanh toán được xác nhận',
+      ]}
       extraContent={(
         <BillingUsagePanel
           title="Mức sử dụng AI"
@@ -174,7 +183,7 @@ function StudentBillingPlanCard({
         />
       )}
     >
-      {!activeEntitlement ? (
+      {!activeEntitlement && !shouldShowBillingRetryPurchase(latestPurchase) ? (
         <Button
           type="primary"
           className="!h-11 !rounded-btn !font-semibold"
@@ -345,7 +354,7 @@ export function StudentBillingPage() {
       const purchase = await packageApi.purchasePackage(aiPackage.id);
       const payment = await packageApi.createPurchasePayment(purchase.id);
       openCheckout(payment.checkoutUrl);
-      message.success('Đã tạo giao dịch thanh toán cho gói AI Student 30 ngày.');
+      message.success('Đã tạo giao dịch thanh toán cho gói AI Student.');
       await loadData();
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói AI.'));
@@ -414,7 +423,7 @@ export function StudentBillingPage() {
       <PageHeader
         icon={<CreditCardOutlined />}
         title="Gói AI"
-        description="Quản lý gói AI của Student để mở AI Proposal Writer, theo dõi mức sử dụng và xem lại các giao dịch thanh toán gần nhất."
+        description="Quản lý gói AI của Student để mở AI Proposal Writer, theo dõi lượt dùng còn lại và xem lại các giao dịch thanh toán gần nhất."
         extra={<BillingRefreshButton onClick={loadData} />}
       />
 
@@ -457,6 +466,12 @@ export function StudentBillingPage() {
         onStartPurchase={startPurchase}
         onReopenPurchasePayment={reopenPurchasePayment}
       />
+
+      {activeEntitlement ? (
+        <div className="mt-4">
+          <BillingPill tone="info">Gói đang vận hành và sẽ tự gia hạn thủ công bằng lần mua mới khi bạn cần.</BillingPill>
+        </div>
+      ) : null}
 
       <StudentBillingHistory
         purchases={purchases}
