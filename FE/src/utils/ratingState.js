@@ -21,10 +21,10 @@ export function getRatingStateMeta({
   if (canCurrentUserRate) {
     return {
       key: "AVAILABLE",
-      label: "Cần đánh giá",
+      label: "Có thể đánh giá",
       tone: "warning",
       helper: ratingDueAt
-        ? `Bạn có thể đánh giá đến ${formatDate(ratingDueAt)}.`
+        ? `Bạn có thể gửi đánh giá đến ${formatDate(ratingDueAt)}.`
         : "Bạn có thể gửi đánh giá cho đối tác ngay bây giờ.",
     };
   }
