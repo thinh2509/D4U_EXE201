@@ -10,7 +10,8 @@ public sealed record AdminDashboardStatsResponse(
     AdminDashboardActionsDto Actions,
     AdminDashboardOverdueDto Overdue,
     AdminDashboardMoneyPipelineDto Money,
-    AdminDashboardWorkflowBottlenecksDto Workflow);
+    AdminDashboardWorkflowBottlenecksDto Workflow,
+    AdminDashboardRevenueDto Revenue);
 
 public sealed record AdminDashboardSummaryDto(
     int TotalUsers,
@@ -78,3 +79,21 @@ public sealed record AdminDashboardWorkflowBottlenecksDto(
     int WaitingStudentAcceptance,
     int WaitingSmePayment,
     int ProjectsInReview);
+
+public sealed record AdminDashboardRevenueDto(
+    decimal TotalRevenue,
+    decimal ProjectFeeRevenue,
+    decimal PackageRevenue,
+    decimal WithdrawalFeeRevenue,
+    decimal GrossMerchandiseValue,
+    decimal RevenueThisMonth,
+    int RevenueTransactionCount,
+    IReadOnlyList<AdminDashboardRecentRevenueItemDto> RecentTransactions);
+
+public sealed record AdminDashboardRecentRevenueItemDto(
+    string Type,
+    string Title,
+    string Counterparty,
+    decimal Amount,
+    DateTimeOffset OccurredAt,
+    string Status);

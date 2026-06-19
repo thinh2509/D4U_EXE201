@@ -1,4 +1,4 @@
-import {
+﻿import {
   ApiOutlined,
   ArrowRightOutlined,
   BulbOutlined,
@@ -1285,227 +1285,394 @@ function AdminDashboard({ content, data, onNavigate }) {
     }
   ];
 
+  const totalRevenue = data.revenue?.totalRevenue ?? data.summary.totalRevenue ?? 0;
+
+  const revenueBreakdown = [
+    {
+      label: 'Phí nền tảng từ dự án',
+      value: data.revenue?.projectFeeRevenue ?? 0,
+      helper: 'Khoản phần trăm D4U giữ lại sau khi dự án hoàn tất và giải ngân.'
+    },
+    {
+      label: 'Doanh thu mua gói AI',
+      value: data.revenue?.packageRevenue ?? 0,
+      helper: 'Bao gồm giao dịch Student AI và SME AI Matching đã thanh toán thành công.'
+    },
+    {
+      label: 'Phí rút tiền',
+      value: data.revenue?.withdrawalFeeRevenue ?? 0,
+      helper: 'Phí xử lý thu khi Student hoặc SME rút tiền khỏi ví hệ thống.'
+    }
+  ];
+
+  const revenueCards = [
+    {
+      label: 'Tổng doanh thu',
+      value: totalRevenue,
+      helper: 'Tổng hợp tất cả nguồn thu đang ghi nhận trên hệ thống.',
+      tone: 'success'
+    },
+    {
+      label: 'Phí dự án',
+      value: data.revenue?.projectFeeRevenue ?? 0,
+      helper: 'Nguồn thu chính từ các dự án đã hoàn tất.',
+      tone: 'info'
+    },
+    {
+      label: 'Mua gói',
+      value: data.revenue?.packageRevenue ?? 0,
+      helper: 'Doanh thu từ các gói AI trả phí.',
+      tone: 'success'
+    },
+    {
+      label: 'Phí rút tiền',
+      value: data.revenue?.withdrawalFeeRevenue ?? 0,
+      helper: 'Phí dịch vụ khi xử lý yêu cầu rút tiền.',
+      tone: 'warning'
+    }
+  ];
+
+  const revenueTypeLabels = {
+    PROJECT_FEE: 'Phí dự án',
+    PACKAGE: 'Mua gói',
+    WITHDRAWAL_FEE: 'Phí rút tiền'
+  };
+
+  const attentionSources = [
+    {
+      label: 'Xác thực chờ duyệt',
+      value: data.queues.pendingVerifications,
+      path: '/admin/verifications'
+    },
+    {
+      label: 'Tài chính đang chờ',
+      value: data.queues.pendingWithdrawals + data.queues.processingWithdrawals + data.queues.pendingRefunds,
+      path: '/admin/withdrawals'
+    },
+    {
+      label: 'Gói chờ xác nhận',
+      value: data.queues.pendingPackagePurchases,
+      path: '/admin/package-support'
+    }
+  ].sort((left, right) => right.value - left.value);
+
+  const topAttentionItem = attentionSources[0];
+  const recentRevenuePreview = (data.revenue?.recentTransactions ?? []).slice(0, 4);
+
   return (
     <PageShell size="wide" density="relaxed">
       <PageHeader
         icon={<DashboardOutlined />}
         eyebrow={content.label}
-        title="Tổng quan vận hành"
-        description="Theo dõi nhanh người dùng, dự án, giao dịch và các hàng đợi cần xử lý."
-        extra={<Button type="primary" onClick={() => onNavigate('/admin/verifications')}>Duyệt xác thực</Button>}
+        title="Bảng điều hành admin"
+        description="Giữ mọi tín hiệu cần demo trên một màn ngắn gọn: việc cần xử lý, doanh thu hệ thống và các chỉ số tài chính quan trọng."
+        extra={(
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => onNavigate('/admin/package-support')}>Package support</Button>
+            <Button type="primary" onClick={() => onNavigate('/admin/verifications')}>Duyệt xác thực</Button>
+          </div>
+        )}
       />
 
       <section className="overflow-hidden rounded-panel border border-d4u-border bg-white shadow-soft">
         <div className="relative p-5 sm:p-6">
           <div className="absolute inset-0 bg-gradient-to-br from-d4u-soft via-white to-sky-50" />
-          <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
             <div className="grid gap-3">
               <Tag color="cyan" className="w-fit !rounded-full !px-3 !py-1 !text-xs !font-semibold">{content.label}</Tag>
               <div className="grid gap-2">
                 <h2 className="font-display text-[26px] font-semibold tracking-tight text-d4u-teal-deep sm:text-[30px]">
-                  Điều phối các tác vụ vận hành quan trọng: xác thực, rút tiền, refund và mua gói.
+                  Tập trung vào đúng 3 câu hỏi: hôm nay cần xử lý gì, hệ thống đang thu từ đâu và dòng tiền nào cần admin chú ý.
                 </h2>
                 <p className="max-w-3xl text-sm leading-6 text-d4u-text-2">
-                  Giữ bố cục gọn, ưu tiên các hàng đợi cần thao tác ngay và tách rõ nhóm báo cáo gói, thanh toán.
+                  Dashboard mới ưu tiên thao tác và giải thích khi demo, thay vì dàn toàn bộ báo cáo theo chiều dọc như trước.
                 </p>
               </div>
             </div>
-            <div className="rounded-card border border-d4u-cyan/20 bg-d4u-soft/80 p-4">
-              <div className="flex items-start gap-3">
-                <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15">
-                  <ExclamationCircleFilled />
+            <div className="grid gap-3">
+              <div className="rounded-card border border-d4u-cyan/20 bg-d4u-soft/80 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-d4u-cyan ring-1 ring-d4u-cyan/15">
+                    <ExclamationCircleFilled />
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-sm font-semibold text-d4u-teal-deep">Ưu tiên lớn nhất</span>
+                    <p className="text-sm leading-6 text-d4u-text-2">
+                      {topAttentionItem?.value > 0
+                        ? `${topAttentionItem.label} đang là cụm việc nổi bật nhất hiện tại.`
+                        : 'Các hàng đợi chính đang ổn định, admin có thể ưu tiên kiểm tra doanh thu và lịch sử giao dịch.'}
+                    </p>
+                  </div>
                 </div>
-                <div className="grid gap-1">
-                  <span className="text-sm font-semibold text-d4u-teal-deep">Ưu tiên hôm nay</span>
-                  <p className="text-sm leading-6 text-d4u-text-2">
-                    Kiểm tra các yêu cầu tài chính và xác thực đang chờ xử lý.
-                  </p>
-                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                {attentionSources.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="flex items-center justify-between gap-3 rounded-card border border-d4u-border/80 bg-white/92 px-4 py-3 text-left transition-all duration-200 hover:border-d4u-cyan/35 hover:shadow-soft"
+                    onClick={() => onNavigate(item.path)}
+                  >
+                    <span className="text-sm font-medium text-d4u-text-2">{item.label}</span>
+                    <strong className="text-lg font-semibold text-d4u-teal-deep">{formatCount(item.value)}</strong>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <DashboardBand
-        tone="soft"
-        eyebrow="Tổng quan hệ thống"
-        title="Nhìn nhanh các chỉ số chính và phần việc cần ưu tiên"
-        description="Giữ các KPI vận hành trên một lớp nền riêng để dashboard admin bớt phẳng và đọc theo cụm rõ hơn."
-      >
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {summaryMetrics.map((metric) => (
+          <AdminSummaryCard key={metric.label} metric={metric} onNavigate={onNavigate} />
+        ))}
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {summaryMetrics.map((metric) => (
-            <AdminSummaryCard key={metric.label} metric={metric} onNavigate={onNavigate} />
-          ))}
-        </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_400px]">
+        <div className="grid gap-5">
+          <DataPanel
+            title="Việc cần xử lý ngay"
+            description="Giữ các hàng đợi thao tác ở trên cùng để admin mở đúng màn cần xử lý mà không phải cuộn qua nhiều báo cáo."
+            extra={<Button onClick={() => onNavigate('/admin/withdrawals')}>Mở tài chính</Button>}
+          >
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {queueCards.map((card) => (
+                <AdminQueueCard key={card.label} card={card} onNavigate={onNavigate} />
+              ))}
+            </div>
+          </DataPanel>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-panel border border-d4u-border/80 bg-white/95 p-5 shadow-soft">
-            <div className="flex items-start gap-4">
-              <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-d4u-soft text-[22px] text-d4u-cyan">
-                <WalletOutlined />
+          <div className="grid gap-5 lg:grid-cols-2">
+            <DataPanel
+              className="bg-gradient-to-br from-white via-d4u-soft/35 to-white"
+              title="Điểm nghẽn workflow"
+              description="Nơi admin nhìn ra bước nào đang làm chậm pipeline dự án."
+            >
+              <div className="grid gap-4">
+                <AdminSnapshotMetric
+                  label="Chờ Student phản hồi"
+                  value={data.workflow.waitingStudentAcceptance}
+                  helper="Offer đã gửi nhưng Student chưa xác nhận."
+                  tone={data.workflow.waitingStudentAcceptance > 0 ? 'info' : 'neutral'}
+                />
+                <AdminSnapshotMetric
+                  label="Chờ SME thanh toán"
+                  value={data.workflow.waitingSmePayment}
+                  helper="Offer đã được chấp nhận nhưng SME chưa hoàn tất thanh toán."
+                  tone={data.workflow.waitingSmePayment > 0 ? 'warning' : 'neutral'}
+                />
+                <AdminSnapshotMetric
+                  label="Dự án chờ review"
+                  value={data.workflow.projectsInReview}
+                  helper="Các dự án đang nằm ở Sketch Review, Final Review hoặc Admin Review."
+                  tone={data.workflow.projectsInReview > 0 ? 'info' : 'neutral'}
+                />
               </div>
-              <div className="grid gap-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Doanh thu D4U đã ghi nhận</span>
-                <strong className="font-display text-[30px] font-bold tracking-tight text-d4u-teal-deep">
-                  {formatCurrency(data.summary.totalRevenue, 'VND')}
-                </strong>
-                <p className="text-sm leading-6 text-d4u-text-2">
-                  Gồm phí nền tảng đã giải ngân và giao dịch mua gói thanh toán thành công.
-                </p>
+            </DataPanel>
+
+            <DataPanel
+              className="bg-gradient-to-br from-d4u-soft/45 via-white to-white"
+              title="Tiền đang chờ xử lý"
+              description="Theo dõi áp lực dòng tiền đang nằm trong hệ thống."
+            >
+              <div className="grid gap-4">
+                <AdminSnapshotMetric
+                  label="Escrow đang giữ"
+                  value={data.money.escrowHeldAmount}
+                  helper="Tổng tiền đang nằm trong escrow đã giữ hoặc đang chờ bước tiếp theo."
+                  tone="info"
+                  valueFormatter={(value) => formatCurrency(value, 'VND')}
+                />
+                <AdminSnapshotMetric
+                  label="Chờ giải ngân"
+                  value={data.money.pendingDisbursementAmount}
+                  helper="Giá trị dự kiến chuyển cho Student khi các bước giải ngân hoàn tất."
+                  tone={data.money.pendingDisbursementAmount > 0 ? 'warning' : 'neutral'}
+                  valueFormatter={(value) => formatCurrency(value, 'VND')}
+                />
+                <AdminSnapshotMetric
+                  label="Chờ refund"
+                  value={data.money.pendingRefundAmount}
+                  helper="Tổng tiền refund đang chờ admin hoặc hệ thống xử lý."
+                  tone={data.money.pendingRefundAmount > 0 ? 'warning' : 'neutral'}
+                  valueFormatter={(value) => formatCurrency(value, 'VND')}
+                />
+              </div>
+            </DataPanel>
+          </div>
+
+          <DataPanel
+            className="bg-gradient-to-br from-amber-50/55 via-white to-d4u-soft/25"
+            title="Cảnh báo quá hạn và gói thanh toán"
+            description="Các chỉ số phụ nhưng cần có khi demo: quá hạn xử lý và trạng thái vận hành package."
+          >
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+              <div className="grid gap-4">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Quá hạn xử lý</span>
+                <div className="grid gap-4">
+                  <AdminSnapshotMetric
+                    label="Xác thực quá hạn"
+                    value={data.overdue.pendingVerificationsOverdue}
+                    helper="Yêu cầu xác thực vẫn chờ xử lý sau 24 giờ."
+                    tone={data.overdue.pendingVerificationsOverdue > 0 ? 'warning' : 'success'}
+                  />
+                  <AdminSnapshotMetric
+                    label="Rút tiền quá hạn"
+                    value={data.overdue.pendingWithdrawalsOverdue}
+                    helper="Yêu cầu rút tiền pending quá 24 giờ."
+                    tone={data.overdue.pendingWithdrawalsOverdue > 0 ? 'warning' : 'success'}
+                  />
+                  <AdminSnapshotMetric
+                    label="Refund quá hạn"
+                    value={data.overdue.pendingRefundsOverdue}
+                    helper="Refund pending quá 24 giờ cần được kiểm tra."
+                    tone={data.overdue.pendingRefundsOverdue > 0 ? 'warning' : 'success'}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Gói và thanh toán</span>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminSnapshotMetric
+                    label="Tổng lượt mua gói"
+                    value={data.packages.totalPurchases}
+                    helper="Toàn bộ giao dịch mua gói đã phát sinh."
+                    tone="info"
+                  />
+                  <AdminSnapshotMetric
+                    label="Gói đang hoạt động"
+                    value={data.packages.activePurchases}
+                    helper="Các entitlement đang có hiệu lực."
+                    tone="success"
+                  />
+                  <AdminSnapshotMetric
+                    label="Chờ xác nhận"
+                    value={data.packages.pendingPurchases}
+                    helper="Giao dịch đang chờ xác nhận."
+                    tone={data.packages.pendingPurchases > 0 ? 'warning' : 'neutral'}
+                  />
+                  <AdminSnapshotMetric
+                    label="Thanh toán thất bại"
+                    value={data.packages.failedPurchases}
+                    helper="Các lượt mua chưa hoàn tất."
+                    tone={data.packages.failedPurchases > 0 ? 'warning' : 'success'}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          </DataPanel>
+        </div>
 
-          <div className="rounded-panel border border-d4u-border/80 bg-gradient-to-br from-d4u-soft via-white to-white p-5 shadow-soft">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Nhịp vận hành</span>
-            <div className="mt-3 grid gap-3">
-              <div className="flex items-center justify-between gap-3 rounded-card border border-d4u-border/70 bg-white/90 px-4 py-3">
-                <span className="text-sm text-d4u-text-2">Xác thực + tài chính đang chờ</span>
-                <strong className="text-lg font-semibold text-d4u-text-1">{formatCount(data.actions.needsAttentionCount)}</strong>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-card border border-d4u-border/70 bg-white/90 px-4 py-3">
-                <span className="text-sm text-d4u-text-2">Dự án đã hoàn thành</span>
-                <strong className="text-lg font-semibold text-d4u-text-1">{formatCount(data.summary.completedProjects)}</strong>
+        <div className="grid gap-5">
+          <DataPanel
+            className="bg-gradient-to-br from-emerald-50/75 via-white to-d4u-soft/55"
+            title="Doanh thu hệ thống"
+            description="Gom toàn bộ doanh thu thành một khối gọn để vừa đọc tổng quan vừa giải thích được nguồn thu."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              {revenueCards.map((card) => (
+                <AdminSnapshotMetric
+                  key={card.label}
+                  label={card.label}
+                  value={card.value}
+                  helper={card.helper}
+                  tone={card.tone}
+                  valueFormatter={(value) => formatCurrency(value, 'VND')}
+                />
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {revenueBreakdown.map((item) => {
+                const share = totalRevenue > 0 ? Math.round((item.value / totalRevenue) * 100) : 0;
+
+                return (
+                  <div key={item.label} className="rounded-card border border-d4u-border/75 bg-white/90 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="text-sm font-semibold text-d4u-text-1">{item.label}</strong>
+                      <span className="text-sm font-semibold text-d4u-teal-deep">{share}%</span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-d4u-soft">
+                      <div className="h-full rounded-full bg-d4u-cyan" style={{ width: `${share}%` }} />
+                    </div>
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <p className="text-xs leading-5 text-d4u-text-3">{item.helper}</p>
+                      <strong className="text-sm font-semibold text-d4u-text-1">{formatCurrency(item.value, 'VND')}</strong>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid gap-4">
+              <AdminSnapshotMetric
+                label="GMV qua project"
+                value={data.revenue?.grossMerchandiseValue ?? 0}
+                helper="Tổng giá trị đơn hàng đã đi qua các project hoàn tất trên D4U."
+                tone="info"
+                valueFormatter={(value) => formatCurrency(value, 'VND')}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <AdminSnapshotMetric
+                  label="Doanh thu tháng này"
+                  value={data.revenue?.revenueThisMonth ?? 0}
+                  helper="Doanh thu ghi nhận từ đầu tháng đến hiện tại."
+                  tone="success"
+                  valueFormatter={(value) => formatCurrency(value, 'VND')}
+                />
+                <AdminSnapshotMetric
+                  label="Giao dịch ghi nhận doanh thu"
+                  value={data.revenue?.revenueTransactionCount ?? 0}
+                  helper="Chỉ tính các giao dịch đã hoàn tất thực sự."
+                  tone="neutral"
+                />
               </div>
             </div>
-          </div>
-        </div>
-      </DashboardBand>
+          </DataPanel>
 
-      <DataPanel title="Hàng đợi vận hành" description="Mở thẳng các màn cần xử lý khi số lượng đang tăng.">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {queueCards.map((card) => (
-            <AdminQueueCard key={card.label} card={card} onNavigate={onNavigate} />
-          ))}
+          <DataPanel
+            className="bg-gradient-to-br from-white via-d4u-soft/30 to-white"
+            title="Giao dịch doanh thu gần đây"
+            description="Feed ngắn để admin giải thích doanh thu mới nhất đến từ đâu mà không chiếm quá nhiều chiều cao."
+          >
+            {recentRevenuePreview.length ? (
+              <div className="grid gap-3">
+                {recentRevenuePreview.map((item, index) => (
+                  <article
+                    key={`${item.type}-${item.occurredAt}-${index}`}
+                    className="rounded-card border border-d4u-border/80 bg-white/92 p-4 shadow-soft"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <Tag color={item.type === 'PROJECT_FEE' ? 'cyan' : item.type === 'PACKAGE' ? 'green' : 'gold'}>
+                            {revenueTypeLabels[item.type] || item.type}
+                          </Tag>
+                          {getAdminStatusTag(item.status)}
+                        </div>
+                        <strong className="block text-sm font-semibold leading-6 text-d4u-text-1">{item.title}</strong>
+                        <span className="text-sm text-d4u-text-2">{item.counterparty}</span>
+                      </div>
+                      <div className="text-right">
+                        <strong className="block text-base font-semibold text-d4u-teal-deep">
+                          {formatCurrency(item.amount, 'VND')}
+                        </strong>
+                        <span className="text-xs text-d4u-text-3">{formatDate(item.occurredAt)}</span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-card border border-dashed border-d4u-border bg-d4u-soft/35 p-6 text-sm text-d4u-text-2">
+                Chưa có giao dịch doanh thu nào để hiển thị.
+              </div>
+            )}
+          </DataPanel>
         </div>
-      </DataPanel>
-
-      <DataPanel
-        className="bg-gradient-to-br from-amber-50/80 via-white to-white"
-        title="Cảnh báo quá hạn xử lý"
-        description="Nhìn nhanh các hàng đợi đã chờ trên 24 giờ để admin ưu tiên xử lý khi demo hoặc vận hành."
-      >
-        <div className="grid gap-4 md:grid-cols-3">
-          <AdminSnapshotMetric
-            label="Xác thực quá hạn"
-            value={data.overdue.pendingVerificationsOverdue}
-            helper="Yêu cầu xác thực vẫn chờ xử lý sau 24 giờ."
-            tone={data.overdue.pendingVerificationsOverdue > 0 ? 'warning' : 'success'}
-          />
-          <AdminSnapshotMetric
-            label="Rút tiền quá hạn"
-            value={data.overdue.pendingWithdrawalsOverdue}
-            helper="Yêu cầu rút tiền pending quá 24 giờ."
-            tone={data.overdue.pendingWithdrawalsOverdue > 0 ? 'warning' : 'success'}
-          />
-          <AdminSnapshotMetric
-            label="Refund quá hạn"
-            value={data.overdue.pendingRefundsOverdue}
-            helper="Refund pending quá 24 giờ cần được kiểm tra."
-            tone={data.overdue.pendingRefundsOverdue > 0 ? 'warning' : 'success'}
-          />
-        </div>
-      </DataPanel>
-
-      <DataPanel
-        className="bg-gradient-to-br from-d4u-soft/45 via-white to-white"
-        title="Tiền đang chờ xử lý"
-        description="Giúp giảng viên thấy admin không chỉ theo dõi số lượng tác vụ mà còn theo dõi áp lực tiền đang nằm trong hệ thống."
-      >
-        <div className="grid gap-4 md:grid-cols-3">
-          <AdminSnapshotMetric
-            label="Escrow đang giữ"
-            value={data.money.escrowHeldAmount}
-            helper="Tổng tiền đang nằm trong escrow đã giữ hoặc đang chờ bước tiếp theo."
-            tone="info"
-            valueFormatter={(value) => formatCurrency(value, 'VND')}
-          />
-          <AdminSnapshotMetric
-            label="Chờ giải ngân"
-            value={data.money.pendingDisbursementAmount}
-            helper="Giá trị dự kiến chuyển cho Student khi các bước giải ngân hoàn tất."
-            tone={data.money.pendingDisbursementAmount > 0 ? 'warning' : 'neutral'}
-            valueFormatter={(value) => formatCurrency(value, 'VND')}
-          />
-          <AdminSnapshotMetric
-            label="Chờ refund"
-            value={data.money.pendingRefundAmount}
-            helper="Tổng tiền refund đang chờ admin hoặc hệ thống xử lý."
-            tone={data.money.pendingRefundAmount > 0 ? 'warning' : 'neutral'}
-            valueFormatter={(value) => formatCurrency(value, 'VND')}
-          />
-        </div>
-      </DataPanel>
-
-      <DataPanel
-        className="bg-gradient-to-br from-white via-d4u-soft/35 to-white"
-        title="Điểm nghẽn workflow"
-        description="Cho thấy dự án đang kẹt ở bước nào nhiều nhất để admin giải thích nhanh luồng nghiệp vụ khi demo."
-      >
-        <div className="grid gap-4 md:grid-cols-3">
-          <AdminSnapshotMetric
-            label="Chờ Student phản hồi"
-            value={data.workflow.waitingStudentAcceptance}
-            helper="Offer đã gửi nhưng Student chưa xác nhận."
-            tone={data.workflow.waitingStudentAcceptance > 0 ? 'info' : 'neutral'}
-          />
-          <AdminSnapshotMetric
-            label="Chờ SME thanh toán"
-            value={data.workflow.waitingSmePayment}
-            helper="Offer đã được chấp nhận nhưng SME chưa hoàn tất thanh toán."
-            tone={data.workflow.waitingSmePayment > 0 ? 'warning' : 'neutral'}
-          />
-          <AdminSnapshotMetric
-            label="Dự án chờ review"
-            value={data.workflow.projectsInReview}
-            helper="Các dự án đang nằm ở bước Sketch Review, Final Review hoặc Admin Review."
-            tone={data.workflow.projectsInReview > 0 ? 'info' : 'neutral'}
-          />
-        </div>
-      </DataPanel>
-
-      <DataPanel
-        className="bg-gradient-to-br from-d4u-soft/55 via-white to-white"
-        title="Tổng quan gói & thanh toán"
-        description="Theo dõi trạng thái mua gói và thanh toán của SME."
-      >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,220px)_1fr] lg:items-start">
-          <div className="rounded-panel border border-d4u-cyan/20 bg-gradient-to-br from-d4u-soft via-white to-white p-5">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-d4u-text-3">Báo cáo nhanh</span>
-            <p className="mt-3 text-sm leading-6 text-d4u-text-2">
-              Theo dõi trạng thái mua gói và các giao dịch cần xác nhận.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <AdminSnapshotMetric
-              label="Tổng lượt mua gói"
-              value={data.packages.totalPurchases}
-              helper="Toàn bộ giao dịch mua gói đã phát sinh"
-              tone="info"
-            />
-            <AdminSnapshotMetric
-              label="Gói đang hoạt động"
-              value={data.packages.activePurchases}
-              helper="Gói đang có hiệu lực"
-              tone="success"
-            />
-            <AdminSnapshotMetric
-              label="Chờ xác nhận"
-              value={data.packages.pendingPurchases}
-              helper="Giao dịch đang chờ xác nhận"
-              tone={data.packages.pendingPurchases > 0 ? 'warning' : 'neutral'}
-            />
-            <AdminSnapshotMetric
-              label="Thanh toán thất bại"
-              value={data.packages.failedPurchases}
-              helper="Lượt mua chưa hoàn tất"
-              tone={data.packages.failedPurchases > 0 ? 'warning' : 'success'}
-            />
-          </div>
-        </div>
-      </DataPanel>
+      </div>
     </PageShell>
   );
 }

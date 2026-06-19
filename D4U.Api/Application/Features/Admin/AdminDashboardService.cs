@@ -21,13 +21,36 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
         var totalProjects = await dbContext.Projects.CountAsync(cancellationToken);
         var openProjects = await dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.OPEN, cancellationToken);
         var completedProjects = await dbContext.Projects.CountAsync(value => value.Status == ProjectStatus.COMPLETED, cancellationToken);
-        var totalPlatformRevenue = await dbContext.Disbursements
+        var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var totalProjectFeeRevenue = await dbContext.Disbursements
+            .Where(value => value.Status == "COMPLETED")
             .SumAsync(value => (decimal?)value.PlatformFeeAmount, cancellationToken) ?? 0m;
         var totalPackageRevenue = await dbContext.Payments
             .Where(value =>
                 value.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE &&
                 value.Status == PaymentStatus.SUCCESS)
             .SumAsync(value => (decimal?)value.Amount, cancellationToken) ?? 0m;
+        var totalWithdrawalFeeRevenue = await dbContext.WithdrawalRequests
+            .Where(value => value.Status == "COMPLETED")
+            .SumAsync(value => (decimal?)value.FeeAmount, cancellationToken) ?? 0m;
+        var grossMerchandiseValue = await dbContext.Disbursements
+            .Where(value => value.Status == "COMPLETED")
+            .SumAsync(value => (decimal?)value.GrossAmount, cancellationToken) ?? 0m;
+        var projectFeeRevenueThisMonth = await dbContext.Disbursements
+            .Where(value => value.Status == "COMPLETED" && (value.CompletedAt ?? value.CreatedAt) >= monthStart)
+            .SumAsync(value => (decimal?)value.PlatformFeeAmount, cancellationToken) ?? 0m;
+        var packageRevenueThisMonth = await dbContext.Payments
+            .Where(value =>
+                value.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE &&
+                value.Status == PaymentStatus.SUCCESS &&
+                (value.PaidAt ?? value.CreatedAt) >= monthStart)
+            .SumAsync(value => (decimal?)value.Amount, cancellationToken) ?? 0m;
+        var withdrawalFeeRevenueThisMonth = await dbContext.WithdrawalRequests
+            .Where(value => value.Status == "COMPLETED" && (value.ProcessedAt ?? value.TransferredAt ?? value.RequestedAt) >= monthStart)
+            .SumAsync(value => (decimal?)value.FeeAmount, cancellationToken) ?? 0m;
+        var revenueThisMonth = projectFeeRevenueThisMonth + packageRevenueThisMonth + withdrawalFeeRevenueThisMonth;
+        var totalRevenue = totalProjectFeeRevenue + totalPackageRevenue + totalWithdrawalFeeRevenue;
 
         var pendingVerifications = await dbContext.StudentVerifications.CountAsync(value => value.Status == "PENDING", cancellationToken);
         var pendingWithdrawals = await dbContext.WithdrawalRequests.CountAsync(value => value.Status == "PENDING", cancellationToken);
@@ -128,6 +151,68 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
             .Take(RecentItemsLimit)
             .ToListAsync(cancellationToken);
 
+        var recentProjectRevenue = await (
+            from disbursement in dbContext.Disbursements
+            join escrow in dbContext.Escrows on disbursement.EscrowId equals escrow.Id
+            join project in dbContext.Projects on escrow.ProjectId equals project.Id
+            where disbursement.Status == "COMPLETED"
+            orderby disbursement.CompletedAt descending, disbursement.CreatedAt descending
+            select new AdminDashboardRecentRevenueItemDto(
+                "PROJECT_FEE",
+                project.Title,
+                "Phí nền tảng từ dự án",
+                disbursement.PlatformFeeAmount,
+                disbursement.CompletedAt ?? disbursement.CreatedAt,
+                disbursement.Status))
+            .Take(RecentItemsLimit)
+            .ToListAsync(cancellationToken);
+
+        var recentPackageRevenue = await (
+            from payment in dbContext.Payments
+            join purchase in dbContext.FeaturePackagePurchases on payment.FeaturePackagePurchaseId equals purchase.Id
+            join package in dbContext.FeaturePackages on purchase.FeaturePackageId equals package.Id
+            join user in dbContext.Users on purchase.BuyerUserId equals user.Id
+            where payment.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE && payment.Status == PaymentStatus.SUCCESS
+            orderby payment.PaidAt descending, payment.CreatedAt descending
+            select new AdminDashboardRecentRevenueItemDto(
+                "PACKAGE",
+                package.Name,
+                user.FullName,
+                payment.Amount,
+                payment.PaidAt ?? payment.CreatedAt,
+                payment.Status.ToString()))
+            .Take(RecentItemsLimit)
+            .ToListAsync(cancellationToken);
+
+        var recentWithdrawalFeeRevenue = await (
+            from withdrawal in dbContext.WithdrawalRequests
+            join user in dbContext.Users on withdrawal.RequestedByUserId equals user.Id
+            where withdrawal.Status == "COMPLETED"
+            orderby withdrawal.ProcessedAt descending, withdrawal.TransferredAt descending, withdrawal.RequestedAt descending
+            select new AdminDashboardRecentRevenueItemDto(
+                "WITHDRAWAL_FEE",
+                "Phí rút tiền",
+                user.FullName,
+                withdrawal.FeeAmount,
+                withdrawal.ProcessedAt ?? withdrawal.TransferredAt ?? withdrawal.RequestedAt,
+                withdrawal.Status))
+            .Take(RecentItemsLimit)
+            .ToListAsync(cancellationToken);
+
+        var recentRevenueTransactions = recentProjectRevenue
+            .Concat(recentPackageRevenue)
+            .Concat(recentWithdrawalFeeRevenue)
+            .OrderByDescending(value => value.OccurredAt)
+            .Take(RecentItemsLimit)
+            .ToList();
+
+        var revenueTransactionCount =
+            await dbContext.Disbursements.CountAsync(value => value.Status == "COMPLETED", cancellationToken) +
+            await dbContext.Payments.CountAsync(
+                value => value.TargetType == PaymentTargetType.FEATURE_PACKAGE_PURCHASE && value.Status == PaymentStatus.SUCCESS,
+                cancellationToken) +
+            await dbContext.WithdrawalRequests.CountAsync(value => value.Status == "COMPLETED", cancellationToken);
+
         var queues = new AdminDashboardQueuesDto(
             pendingVerifications,
             pendingWithdrawals,
@@ -143,7 +228,7 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
                 totalProjects,
                 openProjects,
                 completedProjects,
-                totalPlatformRevenue + totalPackageRevenue),
+                totalRevenue),
             queues,
             new AdminDashboardPackageSnapshotDto(
                 totalPackagePurchases,
@@ -171,6 +256,15 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
             new AdminDashboardWorkflowBottlenecksDto(
                 waitingStudentAcceptance,
                 waitingSmePayment,
-                projectsInReview));
+                projectsInReview),
+            new AdminDashboardRevenueDto(
+                totalRevenue,
+                totalProjectFeeRevenue,
+                totalPackageRevenue,
+                totalWithdrawalFeeRevenue,
+                grossMerchandiseValue,
+                revenueThisMonth,
+                revenueTransactionCount,
+                recentRevenueTransactions));
     }
 }
