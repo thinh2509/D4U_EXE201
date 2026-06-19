@@ -1,5 +1,4 @@
 import {
-  AuditOutlined,
   BankOutlined,
   BookOutlined,
   CloseOutlined,
@@ -93,11 +92,10 @@ const menuByRole = {
       children: [
         { key: '/admin/dashboard', icon: <DashboardOutlined />, label: <Link to="/admin/dashboard">Dashboard</Link> },
         { key: '/admin/verifications', icon: <FileSearchOutlined />, label: <Link to="/admin/verifications">Duyệt xác thực</Link> },
-        { key: '/admin/portfolio', icon: <StarOutlined />, label: <Link to="/admin/portfolio">Portfolio</Link> },
+        { key: '/admin/projects', icon: <FolderOpenOutlined />, label: <Link to="/admin/projects">Dự án</Link> },
         { key: '/admin/package-support', icon: <CreditCardOutlined />, label: <Link to="/admin/package-support">Package support</Link> },
         { key: '/admin/withdrawals', icon: <WalletOutlined />, label: <Link to="/admin/withdrawals">Rút tiền</Link> },
         { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">Người dùng</Link> },
-        { key: '/admin/audit-logs', icon: <AuditOutlined />, label: <Link to="/admin/audit-logs">Audit logs</Link> },
       ],
     },
   ],
@@ -128,6 +126,7 @@ const pageTitleByPath = {
   '/sme/ratings': 'Đánh giá',
   '/admin/dashboard': 'Admin dashboard',
   '/admin/verifications': 'Duyệt xác thực',
+  '/admin/projects': 'Quản lý dự án',
   '/admin/portfolio': 'Duyệt portfolio',
   '/admin/package-support': 'Package support',
   '/admin/withdrawals': 'Xử lý rút tiền',

@@ -978,7 +978,7 @@ function AdminQueueCard({ card, onNavigate }) {
   );
 }
 
-function AdminSnapshotMetric({ label, value, helper, tone = 'neutral' }) {
+function AdminSnapshotMetric({ label, value, helper, tone = 'neutral', valueFormatter = formatCount }) {
   const toneClass = {
     warning: 'border-amber-200 bg-amber-50',
     success: 'border-emerald-200 bg-emerald-50',
@@ -996,7 +996,7 @@ function AdminSnapshotMetric({ label, value, helper, tone = 'neutral' }) {
     <div className={`rounded-card border p-4 ${toneClass[tone] || toneClass.neutral}`}>
       <span className="text-xs font-semibold text-d4u-text-2">{label}</span>
       <strong className={`mt-2 block text-[28px] font-bold leading-none tracking-tight ${valueClass[tone] || valueClass.neutral}`}>
-        {formatCount(value)}
+        {valueFormatter(value)}
       </strong>
       <p className="mt-2 text-sm leading-6 text-d4u-text-3">{helper}</p>
     </div>
@@ -1224,7 +1224,7 @@ function AdminDashboard({ content, data, onNavigate }) {
       label: 'Tổng dự án',
       value: formatCount(data.summary.totalProjects),
       helper: `${formatCount(data.summary.openProjects)} đang mở • ${formatCount(data.summary.completedProjects)} đã hoàn thành`,
-      path: '/admin/audit-logs',
+      path: '/admin/projects',
       icon: <FolderOpenOutlined />
     },
     {
@@ -1379,6 +1379,90 @@ function AdminDashboard({ content, data, onNavigate }) {
           {queueCards.map((card) => (
             <AdminQueueCard key={card.label} card={card} onNavigate={onNavigate} />
           ))}
+        </div>
+      </DataPanel>
+
+      <DataPanel
+        className="bg-gradient-to-br from-amber-50/80 via-white to-white"
+        title="Cảnh báo quá hạn xử lý"
+        description="Nhìn nhanh các hàng đợi đã chờ trên 24 giờ để admin ưu tiên xử lý khi demo hoặc vận hành."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <AdminSnapshotMetric
+            label="Xác thực quá hạn"
+            value={data.overdue.pendingVerificationsOverdue}
+            helper="Yêu cầu xác thực vẫn chờ xử lý sau 24 giờ."
+            tone={data.overdue.pendingVerificationsOverdue > 0 ? 'warning' : 'success'}
+          />
+          <AdminSnapshotMetric
+            label="Rút tiền quá hạn"
+            value={data.overdue.pendingWithdrawalsOverdue}
+            helper="Yêu cầu rút tiền pending quá 24 giờ."
+            tone={data.overdue.pendingWithdrawalsOverdue > 0 ? 'warning' : 'success'}
+          />
+          <AdminSnapshotMetric
+            label="Refund quá hạn"
+            value={data.overdue.pendingRefundsOverdue}
+            helper="Refund pending quá 24 giờ cần được kiểm tra."
+            tone={data.overdue.pendingRefundsOverdue > 0 ? 'warning' : 'success'}
+          />
+        </div>
+      </DataPanel>
+
+      <DataPanel
+        className="bg-gradient-to-br from-d4u-soft/45 via-white to-white"
+        title="Tiền đang chờ xử lý"
+        description="Giúp giảng viên thấy admin không chỉ theo dõi số lượng tác vụ mà còn theo dõi áp lực tiền đang nằm trong hệ thống."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <AdminSnapshotMetric
+            label="Escrow đang giữ"
+            value={data.money.escrowHeldAmount}
+            helper="Tổng tiền đang nằm trong escrow đã giữ hoặc đang chờ bước tiếp theo."
+            tone="info"
+            valueFormatter={(value) => formatCurrency(value, 'VND')}
+          />
+          <AdminSnapshotMetric
+            label="Chờ giải ngân"
+            value={data.money.pendingDisbursementAmount}
+            helper="Giá trị dự kiến chuyển cho Student khi các bước giải ngân hoàn tất."
+            tone={data.money.pendingDisbursementAmount > 0 ? 'warning' : 'neutral'}
+            valueFormatter={(value) => formatCurrency(value, 'VND')}
+          />
+          <AdminSnapshotMetric
+            label="Chờ refund"
+            value={data.money.pendingRefundAmount}
+            helper="Tổng tiền refund đang chờ admin hoặc hệ thống xử lý."
+            tone={data.money.pendingRefundAmount > 0 ? 'warning' : 'neutral'}
+            valueFormatter={(value) => formatCurrency(value, 'VND')}
+          />
+        </div>
+      </DataPanel>
+
+      <DataPanel
+        className="bg-gradient-to-br from-white via-d4u-soft/35 to-white"
+        title="Điểm nghẽn workflow"
+        description="Cho thấy dự án đang kẹt ở bước nào nhiều nhất để admin giải thích nhanh luồng nghiệp vụ khi demo."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <AdminSnapshotMetric
+            label="Chờ Student phản hồi"
+            value={data.workflow.waitingStudentAcceptance}
+            helper="Offer đã gửi nhưng Student chưa xác nhận."
+            tone={data.workflow.waitingStudentAcceptance > 0 ? 'info' : 'neutral'}
+          />
+          <AdminSnapshotMetric
+            label="Chờ SME thanh toán"
+            value={data.workflow.waitingSmePayment}
+            helper="Offer đã được chấp nhận nhưng SME chưa hoàn tất thanh toán."
+            tone={data.workflow.waitingSmePayment > 0 ? 'warning' : 'neutral'}
+          />
+          <AdminSnapshotMetric
+            label="Dự án chờ review"
+            value={data.workflow.projectsInReview}
+            helper="Các dự án đang nằm ở bước Sketch Review, Final Review hoặc Admin Review."
+            tone={data.workflow.projectsInReview > 0 ? 'info' : 'neutral'}
+          />
         </div>
       </DataPanel>
 

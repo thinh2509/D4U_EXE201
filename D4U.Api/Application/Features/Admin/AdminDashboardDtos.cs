@@ -7,7 +7,10 @@ public sealed record AdminDashboardStatsResponse(
     AdminDashboardQueuesDto Queues,
     AdminDashboardPackageSnapshotDto Packages,
     AdminDashboardRecentItemsDto Recent,
-    AdminDashboardActionsDto Actions);
+    AdminDashboardActionsDto Actions,
+    AdminDashboardOverdueDto Overdue,
+    AdminDashboardMoneyPipelineDto Money,
+    AdminDashboardWorkflowBottlenecksDto Workflow);
 
 public sealed record AdminDashboardSummaryDto(
     int TotalUsers,
@@ -60,3 +63,18 @@ public sealed record AdminDashboardRecentPackagePurchaseDto(
 
 public sealed record AdminDashboardActionsDto(
     int NeedsAttentionCount);
+
+public sealed record AdminDashboardOverdueDto(
+    int PendingVerificationsOverdue,
+    int PendingWithdrawalsOverdue,
+    int PendingRefundsOverdue);
+
+public sealed record AdminDashboardMoneyPipelineDto(
+    decimal EscrowHeldAmount,
+    decimal PendingDisbursementAmount,
+    decimal PendingRefundAmount);
+
+public sealed record AdminDashboardWorkflowBottlenecksDto(
+    int WaitingStudentAcceptance,
+    int WaitingSmePayment,
+    int ProjectsInReview);

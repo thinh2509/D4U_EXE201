@@ -215,7 +215,13 @@ public sealed class AdminOperationsService(IUnitOfWork unitOfWork) : IAdminOpera
                 on project.SmeProfileId equals smeProfile.Id
             join smeUser in unitOfWork.Repository<User>().Query().AsNoTracking()
                 on smeProfile.UserId equals smeUser.Id
-            select new AdminProjectBaseRow(project, category.Name, smeProfile, smeUser);
+            select new
+            {
+                Project = project,
+                CategoryName = category.Name,
+                SmeProfile = smeProfile,
+                SmeUser = smeUser
+            };
 
         if (TryParseEnumFilter<ProjectStatus>(status, out var statusFilter))
         {
@@ -251,6 +257,7 @@ public sealed class AdminOperationsService(IUnitOfWork unitOfWork) : IAdminOpera
 
         var rows = await query
             .OrderByDescending(row => row.Project.UpdatedAt)
+            .Select(row => new AdminProjectBaseRow(row.Project, row.CategoryName, row.SmeProfile, row.SmeUser))
             .ToListAsync(cancellationToken);
 
         var projectIds = rows.Select(row => row.Project.Id).ToList();

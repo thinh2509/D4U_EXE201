@@ -8,9 +8,13 @@ using Microsoft.EntityFrameworkCore;
 public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashboardService
 {
     private const int RecentItemsLimit = 5;
+    private static readonly TimeSpan AdminQueueOverdueThreshold = TimeSpan.FromHours(24);
 
     public async Task<AdminDashboardStatsResponse> GetStatsAsync(CancellationToken cancellationToken = default)
     {
+        var now = DateTimeOffset.UtcNow;
+        var overdueCutoff = now - AdminQueueOverdueThreshold;
+
         var totalUsers = await dbContext.Users.CountAsync(cancellationToken);
         var totalStudents = await dbContext.Users.CountAsync(value => value.Role == UserRole.STUDENT, cancellationToken);
         var totalSmes = await dbContext.Users.CountAsync(value => value.Role == UserRole.SME, cancellationToken);
@@ -33,12 +37,48 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
             value => value.Status == FeaturePackagePurchaseStatus.PENDING,
             cancellationToken);
 
+        var pendingVerificationsOverdue = await dbContext.StudentVerifications.CountAsync(
+            value => value.Status == "PENDING" && value.SubmittedAt <= overdueCutoff,
+            cancellationToken);
+        var pendingWithdrawalsOverdue = await dbContext.WithdrawalRequests.CountAsync(
+            value => value.Status == "PENDING" && value.RequestedAt <= overdueCutoff,
+            cancellationToken);
+        var pendingRefundsOverdue = await dbContext.Refunds.CountAsync(
+            value => value.Status == "PENDING" && value.CreatedAt <= overdueCutoff,
+            cancellationToken);
+
         var totalPackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(cancellationToken);
         var activePackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(
             value => value.Status == FeaturePackagePurchaseStatus.ACTIVE,
             cancellationToken);
         var failedPackagePurchases = await dbContext.FeaturePackagePurchases.CountAsync(
             value => value.Status == FeaturePackagePurchaseStatus.FAILED,
+            cancellationToken);
+
+        var escrowHeldAmount = await dbContext.Escrows
+            .Where(value =>
+                value.Status == EscrowStatus.FUNDED ||
+                value.Status == EscrowStatus.RELEASE_PENDING ||
+                value.Status == EscrowStatus.REFUND_PENDING)
+            .SumAsync(value => (decimal?)value.Amount, cancellationToken) ?? 0m;
+        var pendingDisbursementAmount = await dbContext.Escrows
+            .Where(value => value.Status == EscrowStatus.RELEASE_PENDING)
+            .SumAsync(value => (decimal?)(value.Amount - (value.PlatformFeeAmount ?? 0m)), cancellationToken) ?? 0m;
+        var pendingRefundAmount = await dbContext.Refunds
+            .Where(value => value.Status == "PENDING")
+            .SumAsync(value => (decimal?)value.Amount, cancellationToken) ?? 0m;
+
+        var waitingStudentAcceptance = await dbContext.ProjectOffers.CountAsync(
+            value => value.Status == OfferStatus.WAITING_ACCEPTANCE,
+            cancellationToken);
+        var waitingSmePayment = await dbContext.ProjectOffers.CountAsync(
+            value => value.Status == OfferStatus.PENDING_PAYMENT,
+            cancellationToken);
+        var projectsInReview = await dbContext.Projects.CountAsync(
+            value =>
+                value.Status == ProjectStatus.SKETCH_REVIEW ||
+                value.Status == ProjectStatus.FINAL_REVIEW ||
+                value.Status == ProjectStatus.ADMIN_REVIEW,
             cancellationToken);
 
         var latestVerifications = await (
@@ -119,6 +159,18 @@ public sealed class AdminDashboardService(D4UDbContext dbContext) : IAdminDashbo
                 queues.PendingWithdrawals +
                 queues.ProcessingWithdrawals +
                 queues.PendingRefunds +
-                queues.PendingPackagePurchases));
+                queues.PendingPackagePurchases),
+            new AdminDashboardOverdueDto(
+                pendingVerificationsOverdue,
+                pendingWithdrawalsOverdue,
+                pendingRefundsOverdue),
+            new AdminDashboardMoneyPipelineDto(
+                escrowHeldAmount,
+                pendingDisbursementAmount,
+                pendingRefundAmount),
+            new AdminDashboardWorkflowBottlenecksDto(
+                waitingStudentAcceptance,
+                waitingSmePayment,
+                projectsInReview));
     }
 }

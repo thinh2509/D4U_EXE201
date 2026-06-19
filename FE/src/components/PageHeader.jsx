@@ -39,7 +39,7 @@ export function PageHeader({ icon, title, description, extra, eyebrow }) {
       </div>
 
       {extra ? (
-        <div className={joinClasses('flex w-full flex-wrap items-center gap-2 sm:justify-end lg:w-auto lg:max-w-[40%]')}>
+        <div className={joinClasses('flex w-full flex-wrap items-center gap-2 sm:justify-end lg:w-auto lg:shrink-0')}>
           {extra}
         </div>
       ) : null}
