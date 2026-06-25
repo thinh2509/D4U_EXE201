@@ -1,4 +1,4 @@
-import { BulbOutlined, CalendarOutlined, InfoCircleOutlined, RobotOutlined } from '@ant-design/icons';
+﻿import { BulbOutlined, CalendarOutlined, InfoCircleOutlined, RobotOutlined } from '@ant-design/icons';
 import { Alert, App, Button, Divider, Form, Input, InputNumber, List, Select, Space, Tag, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,7 +6,7 @@ import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { minimumSketchLeadTimeDays } from '../../constants/offerTiming.js';
 import { aiApi } from '../../services/aiApi.js';
 import { projectApi } from '../../services/projectApi.js';
-import { getApiErrorMessage } from '../../utils/apiError.js';
+import { getApiErrorMessage, getPlanLimitErrorMessage, isPlanLimitError } from '../../utils/apiError.js';
 import { buildLocalizedDesignCategoryLabel } from '../../utils/designCategoryLocalization.js';
 import { normalizeDateInput, toDateTimeLocalValue } from '../../utils/format.js';
 import { getProjectDeadlineErrors } from '../../utils/projectDeadlineValidation.js';
@@ -65,13 +65,13 @@ function buildBriefWithDeliverables(suggestion) {
     .map((item) => `- ${item}`)
     .join('\n');
 
-  return `${suggestion.suggestedBrief}\n\nSản phẩm bàn giao:\n${deliverables}`;
+  return `${suggestion.suggestedBrief}\n\nSáº£n pháº©m bÃ n giao:\n${deliverables}`;
 }
 
 function formatDeadlineSummary(value) {
-  if (!value) return 'Chưa chọn';
+  if (!value) return 'ChÆ°a chá»n';
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Ngày giờ chưa hợp lệ';
+  if (Number.isNaN(parsed.getTime())) return 'NgÃ y giá» chÆ°a há»£p lá»‡';
 
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
@@ -79,17 +79,17 @@ function formatDeadlineSummary(value) {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(parsed).replace(',', ' ·');
+  }).format(parsed).replace(',', ' Â·');
 }
 
 function CreateProjectHeader({ deadlineOnly, mode }) {
-  const title = deadlineOnly ? 'Điều chỉnh deadline dự án' : mode === 'edit' ? 'Cập nhật dự án' : 'Tạo dự án mới';
+  const title = deadlineOnly ? 'Äiá»u chá»‰nh deadline dá»± Ã¡n' : mode === 'edit' ? 'Cáº­p nháº­t dá»± Ã¡n' : 'Táº¡o dá»± Ã¡n má»›i';
   const subtitle = deadlineOnly
-    ? 'Điều chỉnh các mốc Sketch, Final và review để timeline vẫn đủ an toàn trước khi offer được gửi hoặc khóa.'
-    : 'Thiết lập brief, danh mục, ngân sách và timeline rõ ràng để Student đọc hiểu nhanh ngay từ đầu.';
+    ? 'Äiá»u chá»‰nh cÃ¡c má»‘c Sketch, Final vÃ  review Ä‘á»ƒ timeline váº«n Ä‘á»§ an toÃ n trÆ°á»›c khi offer Ä‘Æ°á»£c gá»­i hoáº·c khÃ³a.'
+    : 'Thiáº¿t láº­p brief, danh má»¥c, ngÃ¢n sÃ¡ch vÃ  timeline rÃµ rÃ ng Ä‘á»ƒ Student Ä‘á»c hiá»ƒu nhanh ngay tá»« Ä‘áº§u.';
   const steps = deadlineOnly
-    ? ['Kiểm tra timeline', 'Cập nhật deadline', 'Lưu thay đổi']
-    : ['Thông tin dự án', 'AI gợi ý brief', 'Review & lưu'];
+    ? ['Kiá»ƒm tra timeline', 'Cáº­p nháº­t deadline', 'LÆ°u thay Ä‘á»•i']
+    : ['ThÃ´ng tin dá»± Ã¡n', 'AI gá»£i Ã½ brief', 'Review & lÆ°u'];
 
   return (
     <section className="rounded-panel border border-d4u-border bg-gradient-to-br from-white via-d4u-soft/55 to-d4u-soft-2/80 p-5 shadow-soft sm:p-6">
@@ -137,9 +137,9 @@ function buildDeadlineValidator(fieldName, getValues) {
 
 function DeadlineSummaryCard({ values, deadlineLocked }) {
   const summaryItems = [
-    { label: 'Hạn Sketch', value: formatDeadlineSummary(values.sketchDeadlineAt) },
-    { label: 'Hạn Final', value: formatDeadlineSummary(values.finalDeadlineAt) },
-    { label: 'Hạn hoàn tất review', value: formatDeadlineSummary(values.totalDeadlineAt) }
+    { label: 'Háº¡n Sketch', value: formatDeadlineSummary(values.sketchDeadlineAt) },
+    { label: 'Háº¡n Final', value: formatDeadlineSummary(values.finalDeadlineAt) },
+    { label: 'Háº¡n hoÃ n táº¥t review', value: formatDeadlineSummary(values.totalDeadlineAt) }
   ];
 
   return (
@@ -151,7 +151,7 @@ function DeadlineSummaryCard({ values, deadlineLocked }) {
         <div>
           <h2 className="text-base font-semibold text-d4u-text-1">Timeline summary</h2>
           <p className="text-sm leading-6 text-d4u-text-2">
-            Kiểm tra nhanh 3 mốc chính trước khi lưu thay đổi.
+            Kiá»ƒm tra nhanh 3 má»‘c chÃ­nh trÆ°á»›c khi lÆ°u thay Ä‘á»•i.
           </p>
         </div>
       </div>
@@ -170,7 +170,7 @@ function DeadlineSummaryCard({ values, deadlineLocked }) {
           className="mt-4"
           type="error"
           showIcon
-          message="Deadline của dự án này đã bị khóa vì đã có offer hoặc project đã vượt qua giai đoạn cho phép chỉnh sửa."
+          message="Deadline cá»§a dá»± Ã¡n nÃ y Ä‘Ã£ bá»‹ khÃ³a vÃ¬ Ä‘Ã£ cÃ³ offer hoáº·c project Ä‘Ã£ vÆ°á»£t qua giai Ä‘oáº¡n cho phÃ©p chá»‰nh sá»­a."
         />
       ) : null}
     </section>
@@ -185,22 +185,22 @@ function DeadlineRuleNote() {
           <InfoCircleOutlined />
         </span>
         <div>
-          <h2 className="text-base font-semibold text-d4u-text-1">Quy tắc deadline</h2>
+          <h2 className="text-base font-semibold text-d4u-text-1">Quy táº¯c deadline</h2>
           <p className="text-sm leading-6 text-d4u-text-2">
-            Các mốc cần đủ xa để offer và thanh toán vẫn còn cửa sổ xử lý an toàn.
+            CÃ¡c má»‘c cáº§n Ä‘á»§ xa Ä‘á»ƒ offer vÃ  thanh toÃ¡n váº«n cÃ²n cá»­a sá»• xá»­ lÃ½ an toÃ n.
           </p>
         </div>
       </div>
 
       <ul className="mt-4 space-y-3 text-sm leading-6 text-d4u-text-2">
         <li className="rounded-2xl border border-d4u-border/80 bg-d4u-soft/55 px-4 py-3">
-          Hạn Sketch phải sau thời điểm hiện tại ít nhất <strong>{minimumSketchLeadTimeDays} ngày</strong>.
+          Háº¡n Sketch pháº£i sau thá»i Ä‘iá»ƒm hiá»‡n táº¡i Ã­t nháº¥t <strong>{minimumSketchLeadTimeDays} ngÃ y</strong>.
         </li>
         <li className="rounded-2xl border border-d4u-border/80 bg-d4u-soft/55 px-4 py-3">
-          Hạn Final phải sau hạn Sketch.
+          Háº¡n Final pháº£i sau háº¡n Sketch.
         </li>
         <li className="rounded-2xl border border-d4u-border/80 bg-d4u-soft/55 px-4 py-3">
-          Hạn hoàn tất review phải sau hạn Final.
+          Háº¡n hoÃ n táº¥t review pháº£i sau háº¡n Final.
         </li>
       </ul>
     </section>
@@ -208,7 +208,7 @@ function DeadlineRuleNote() {
 }
 
 export function SmeProjectFormPage({ mode }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -253,7 +253,7 @@ export function SmeProjectFormPage({ mode }) {
         const response = await projectApi.listDesignCategories();
         setCategories(response);
       } catch (requestError) {
-        message.error(getApiErrorMessage(requestError, 'Không thể tải danh mục thiết kế.'));
+        message.error(getApiErrorMessage(requestError, 'KhÃ´ng thá»ƒ táº£i danh má»¥c thiáº¿t káº¿.'));
       } finally {
         setLoadingCategories(false);
       }
@@ -292,9 +292,9 @@ export function SmeProjectFormPage({ mode }) {
         totalDeadline: values.totalDeadline ? normalizeDateInput(values.totalDeadline) : null
       });
       setAiSuggestion(suggestion);
-      message.success('Đã tạo gợi ý AI. Vui lòng xem lại trước khi áp dụng vào form.');
+      message.success('ÄÃ£ táº¡o gá»£i Ã½ AI. Vui lÃ²ng xem láº¡i trÆ°á»›c khi Ã¡p dá»¥ng vÃ o form.');
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Không thể gọi AI assistant.'));
+      message.error(getApiErrorMessage(requestError, 'KhÃ´ng thá»ƒ gá»i AI assistant.'));
     } finally {
       setAiLoading(false);
     }
@@ -314,11 +314,11 @@ export function SmeProjectFormPage({ mode }) {
     });
 
     if (!matchedCategoryId) {
-      message.warning('AI chưa tự khớp được danh mục thiết kế. Vui lòng chọn danh mục trước khi lưu.');
+      message.warning('AI chÆ°a tá»± khá»›p Ä‘Æ°á»£c danh má»¥c thiáº¿t káº¿. Vui lÃ²ng chá»n danh má»¥c trÆ°á»›c khi lÆ°u.');
       return;
     }
 
-    message.success('Đã áp dụng gợi ý AI vào form. SME cần review trước khi lưu hoặc publish.');
+    message.success('ÄÃ£ Ã¡p dá»¥ng gá»£i Ã½ AI vÃ o form. SME cáº§n review trÆ°á»›c khi lÆ°u hoáº·c publish.');
   };
 
   const saveProject = async (values) => {
@@ -337,10 +337,19 @@ export function SmeProjectFormPage({ mode }) {
           ? await projectApi.updateDeadlines(projectId, payload)
           : await projectApi.updateDraft(projectId, payload)
         : await projectApi.createDraft(payload);
-      message.success(deadlineOnly ? 'Đã cập nhật deadline dự án.' : mode === 'edit' ? 'Đã cập nhật dự án.' : 'Đã tạo draft dự án.');
+      message.success(deadlineOnly ? 'ÄÃ£ cáº­p nháº­t deadline dá»± Ã¡n.' : mode === 'edit' ? 'ÄÃ£ cáº­p nháº­t dá»± Ã¡n.' : 'ÄÃ£ táº¡o draft dá»± Ã¡n.');
       navigate(`/sme/projects/${saved.id}`);
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Không thể lưu dự án.'));
+      if (isPlanLimitError(requestError)) {
+        modal.error({
+          centered: true,
+          title: '\u0056\u01b0\u1ee3t gi\u1edbi h\u1ea1n g\u00f3i hi\u1ec7n t\u1ea1i',
+          content: getPlanLimitErrorMessage(requestError),
+          okText: '\u0110\u00e3 hi\u1ec3u',
+        });
+      } else {
+        message.error(getApiErrorMessage(requestError, 'Kh\u00f4ng th\u1ec3 l\u01b0u d\u1ef1 \u00e1n.'));
+      }
     } finally {
       setSaving(false);
     }
@@ -364,17 +373,17 @@ export function SmeProjectFormPage({ mode }) {
       {!deadlineOnly ? (
         <section className="rounded-panel border border-d4u-border bg-d4u-surface p-5 shadow-soft">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-d4u-text-1">Thông tin cơ bản</h2>
+            <h2 className="text-lg font-semibold text-d4u-text-1">ThÃ´ng tin cÆ¡ báº£n</h2>
             <p className="mt-1 text-sm leading-6 text-d4u-text-2">
-              Giúp Student hiểu nhanh loại dự án, phạm vi và mức ngân sách bạn dự kiến.
+              GiÃºp Student hiá»ƒu nhanh loáº¡i dá»± Ã¡n, pháº¡m vi vÃ  má»©c ngÃ¢n sÃ¡ch báº¡n dá»± kiáº¿n.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <Form.Item
               name="designCategoryId"
-              label="Danh mục thiết kế"
-              rules={[{ required: true, message: 'Vui lòng chọn danh mục thiết kế.' }]}
+              label="Danh má»¥c thiáº¿t káº¿"
+              rules={[{ required: true, message: 'Vui lÃ²ng chá»n danh má»¥c thiáº¿t káº¿.' }]}
             >
               <Select
                 size="large"
@@ -390,24 +399,24 @@ export function SmeProjectFormPage({ mode }) {
                     root: 'w-[min(520px,calc(100vw-2rem))] max-w-[min(520px,calc(100vw-2rem))] rounded-card border border-d4u-border bg-white shadow-soft'
                   }
                 }}
-                placeholder="Chọn danh mục phù hợp"
-                notFoundContent={loadingCategories ? 'Đang tải...' : 'Chưa có danh mục khả dụng'}
+                placeholder="Chá»n danh má»¥c phÃ¹ há»£p"
+                notFoundContent={loadingCategories ? 'Äang táº£i...' : 'ChÆ°a cÃ³ danh má»¥c kháº£ dá»¥ng'}
               />
             </Form.Item>
-            <Form.Item name="projectType" label="Loại dự án" rules={[{ required: true, message: 'Vui lòng chọn loại dự án.' }]}>
+            <Form.Item name="projectType" label="Loáº¡i dá»± Ã¡n" rules={[{ required: true, message: 'Vui lÃ²ng chá»n loáº¡i dá»± Ã¡n.' }]}>
               <Select
                 size="large"
                 disabled={deadlineOnly}
                 options={[
-                  { value: 'OPEN', label: 'Công khai - nhận ứng tuyển' },
-                  { value: 'PRIVATE', label: 'Riêng tư - mời sinh viên' }
+                  { value: 'OPEN', label: 'CÃ´ng khai - nháº­n á»©ng tuyá»ƒn' },
+                  { value: 'PRIVATE', label: 'RiÃªng tÆ° - má»i sinh viÃªn' }
                 ]}
               />
             </Form.Item>
           </div>
 
-          <Form.Item name="title" label="Tiêu đề dự án" rules={[{ required: true, message: 'Vui lòng nhập tiêu đề.' }]}>
-            <Input size="large" disabled={deadlineOnly} placeholder="Ví dụ: Thiết kế bộ nhận diện cho quán cà phê take-away" />
+          <Form.Item name="title" label="TiÃªu Ä‘á» dá»± Ã¡n" rules={[{ required: true, message: 'Vui lÃ²ng nháº­p tiÃªu Ä‘á».' }]}>
+            <Input size="large" disabled={deadlineOnly} placeholder="VÃ­ dá»¥: Thiáº¿t káº¿ bá»™ nháº­n diá»‡n cho quÃ¡n cÃ  phÃª take-away" />
           </Form.Item>
         </section>
       ) : null}
@@ -415,24 +424,24 @@ export function SmeProjectFormPage({ mode }) {
       {!deadlineOnly ? (
         <section className="rounded-panel border border-d4u-border bg-d4u-surface p-5 shadow-soft">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-d4u-text-1">Brief & mục tiêu</h2>
+            <h2 className="text-lg font-semibold text-d4u-text-1">Brief & má»¥c tiÃªu</h2>
             <p className="mt-1 text-sm leading-6 text-d4u-text-2">
-              Nêu bối cảnh, đầu ra và mục đích sử dụng để Student hiểu đúng hướng thiết kế.
+              NÃªu bá»‘i cáº£nh, Ä‘áº§u ra vÃ  má»¥c Ä‘Ã­ch sá»­ dá»¥ng Ä‘á»ƒ Student hiá»ƒu Ä‘Ãºng hÆ°á»›ng thiáº¿t káº¿.
             </p>
           </div>
 
           <Form.Item
             name="brief"
-            label="Mô tả yêu cầu / Brief dự án"
+            label="MÃ´ táº£ yÃªu cáº§u / Brief dá»± Ã¡n"
             rules={[
-              { required: true, message: 'Vui lòng nhập brief dự án.' },
-              { min: 20, message: 'Brief tối thiểu 20 ký tự.' }
+              { required: true, message: 'Vui lÃ²ng nháº­p brief dá»± Ã¡n.' },
+              { min: 20, message: 'Brief tá»‘i thiá»ƒu 20 kÃ½ tá»±.' }
             ]}
           >
-            <Input.TextArea rows={8} disabled={deadlineOnly} placeholder="Mô tả bối cảnh thương hiệu, thông điệp chính, deliverables và tiêu chí nghiệm thu." />
+            <Input.TextArea rows={8} disabled={deadlineOnly} placeholder="MÃ´ táº£ bá»‘i cáº£nh thÆ°Æ¡ng hiá»‡u, thÃ´ng Ä‘iá»‡p chÃ­nh, deliverables vÃ  tiÃªu chÃ­ nghiá»‡m thu." />
           </Form.Item>
-          <Form.Item name="usagePurpose" label="Mục đích sử dụng">
-            <Input.TextArea rows={4} disabled={deadlineOnly} placeholder="Ví dụ: dùng cho social media, menu in ấn, landing page, poster sự kiện..." />
+          <Form.Item name="usagePurpose" label="Má»¥c Ä‘Ã­ch sá»­ dá»¥ng">
+            <Input.TextArea rows={4} disabled={deadlineOnly} placeholder="VÃ­ dá»¥: dÃ¹ng cho social media, menu in áº¥n, landing page, poster sá»± kiá»‡n..." />
           </Form.Item>
         </section>
       ) : null}
@@ -440,12 +449,12 @@ export function SmeProjectFormPage({ mode }) {
       <section className="rounded-panel border border-d4u-border bg-d4u-surface p-5 shadow-soft">
         <div className="mb-5 flex flex-col gap-2">
           <h2 className="text-lg font-semibold text-d4u-text-1">
-            {deadlineOnly ? 'Cập nhật deadline & review' : 'Ngân sách & deadline'}
+            {deadlineOnly ? 'Cáº­p nháº­t deadline & review' : 'NgÃ¢n sÃ¡ch & deadline'}
           </h2>
           <p className="text-sm leading-6 text-d4u-text-2">
             {deadlineOnly
-              ? 'Điều chỉnh 3 mốc chính bằng validator realtime để timeline luôn hợp lệ trước khi lưu.'
-              : 'Thiết lập ngân sách và các mốc Sketch, Final, review để workflow vận hành rõ ràng.'}
+              ? 'Äiá»u chá»‰nh 3 má»‘c chÃ­nh báº±ng validator realtime Ä‘á»ƒ timeline luÃ´n há»£p lá»‡ trÆ°á»›c khi lÆ°u.'
+              : 'Thiáº¿t láº­p ngÃ¢n sÃ¡ch vÃ  cÃ¡c má»‘c Sketch, Final, review Ä‘á»ƒ workflow váº­n hÃ nh rÃµ rÃ ng.'}
           </p>
         </div>
 
@@ -455,13 +464,13 @@ export function SmeProjectFormPage({ mode }) {
             type={deadlineLocked ? 'error' : 'warning'}
             showIcon
             message={deadlineLocked
-              ? 'Deadline của dự án này đã bị khóa.'
-              : 'Nội dung, loại dự án và ngân sách đã được khóa. Bạn chỉ còn chỉnh 3 mốc thời gian trước khi offer được chấp nhận.'}
+              ? 'Deadline cá»§a dá»± Ã¡n nÃ y Ä‘Ã£ bá»‹ khÃ³a.'
+              : 'Ná»™i dung, loáº¡i dá»± Ã¡n vÃ  ngÃ¢n sÃ¡ch Ä‘Ã£ Ä‘Æ°á»£c khÃ³a. Báº¡n chá»‰ cÃ²n chá»‰nh 3 má»‘c thá»i gian trÆ°á»›c khi offer Ä‘Æ°á»£c cháº¥p nháº­n.'}
           />
         ) : null}
 
         {!deadlineOnly ? (
-          <Form.Item name="budgetAmount" label="Ngân sách" rules={[{ required: true, message: 'Vui lòng nhập ngân sách.' }]}>
+          <Form.Item name="budgetAmount" label="NgÃ¢n sÃ¡ch" rules={[{ required: true, message: 'Vui lÃ²ng nháº­p ngÃ¢n sÃ¡ch.' }]}>
             <InputNumber className="full-width" size="large" min={1} addonAfter="VND" disabled={deadlineOnly} />
           </Form.Item>
         ) : null}
@@ -469,16 +478,16 @@ export function SmeProjectFormPage({ mode }) {
         <div className="grid gap-5 md:grid-cols-2">
           <Form.Item
             name="sketchDeadlineAt"
-            label="Hạn nộp Sketch"
-            extra="Mốc Student gửi phiên bản Sketch đầu tiên. Cần cách thời điểm hiện tại ít nhất 2 ngày."
+            label="Háº¡n ná»™p Sketch"
+            extra="Má»‘c Student gá»­i phiÃªn báº£n Sketch Ä‘áº§u tiÃªn. Cáº§n cÃ¡ch thá»i Ä‘iá»ƒm hiá»‡n táº¡i Ã­t nháº¥t 2 ngÃ y."
             rules={[{ validator: buildDeadlineValidator('sketchDeadlineAt', getDeadlineValues) }]}
           >
             <Input size="large" type="datetime-local" disabled={deadlineLocked} />
           </Form.Item>
           <Form.Item
             name="finalDeadlineAt"
-            label="Hạn nộp Final"
-            extra="Mốc nộp phiên bản Final sau khi đã xử lý feedback."
+            label="Háº¡n ná»™p Final"
+            extra="Má»‘c ná»™p phiÃªn báº£n Final sau khi Ä‘Ã£ xá»­ lÃ½ feedback."
             dependencies={['sketchDeadlineAt']}
             rules={[{ validator: buildDeadlineValidator('finalDeadlineAt', getDeadlineValues) }]}
           >
@@ -488,8 +497,8 @@ export function SmeProjectFormPage({ mode }) {
 
         <Form.Item
           name="totalDeadlineAt"
-          label="Hạn hoàn tất review dự án"
-          extra="Đây là thời điểm SME cần hoàn tất review Final, không phải một lượt nộp bài riêng."
+          label="Háº¡n hoÃ n táº¥t review dá»± Ã¡n"
+          extra="ÄÃ¢y lÃ  thá»i Ä‘iá»ƒm SME cáº§n hoÃ n táº¥t review Final, khÃ´ng pháº£i má»™t lÆ°á»£t ná»™p bÃ i riÃªng."
           dependencies={['finalDeadlineAt']}
           rules={[{ validator: buildDeadlineValidator('totalDeadlineAt', getDeadlineValues) }]}
         >
@@ -497,9 +506,9 @@ export function SmeProjectFormPage({ mode }) {
         </Form.Item>
 
         <div className="flex flex-wrap justify-end gap-3 pt-2">
-          <Button size="large" onClick={() => navigate('/sme/projects')}>Hủy</Button>
+          <Button size="large" onClick={() => navigate('/sme/projects')}>Há»§y</Button>
           <Button type="primary" size="large" htmlType="submit" loading={saving} disabled={deadlineLocked}>
-            {deadlineOnly ? 'Lưu deadline' : mode === 'edit' ? 'Cập nhật dự án' : 'Lưu nháp'}
+            {deadlineOnly ? 'LÆ°u deadline' : mode === 'edit' ? 'Cáº­p nháº­t dá»± Ã¡n' : 'LÆ°u nhÃ¡p'}
           </Button>
         </div>
       </section>
@@ -538,58 +547,58 @@ export function SmeProjectFormPage({ mode }) {
         <section className="rounded-panel border border-d4u-border bg-d4u-surface p-6 shadow-soft">
           <div className="inline-flex items-center gap-2 text-base font-semibold text-d4u-text-1">
             <RobotOutlined />
-            <span>Trợ lý AI viết brief</span>
+            <span>Trá»£ lÃ½ AI viáº¿t brief</span>
           </div>
           <div className="mb-4 rounded-2xl border border-d4u-border bg-d4u-soft/60 p-4">
-            <strong className="block text-sm font-semibold text-d4u-text-1">AI hỗ trợ lên brief bằng tiếng Việt</strong>
+            <strong className="block text-sm font-semibold text-d4u-text-1">AI há»— trá»£ lÃªn brief báº±ng tiáº¿ng Viá»‡t</strong>
             <span className="mt-1 block text-sm leading-6 text-d4u-text-2">
-              Nhập ý tưởng thô, ngành hàng và mốc mong muốn. AI sẽ tạo một bản nháp để bạn chỉnh sửa trước khi lưu.
+              Nháº­p Ã½ tÆ°á»Ÿng thÃ´, ngÃ nh hÃ ng vÃ  má»‘c mong muá»‘n. AI sáº½ táº¡o má»™t báº£n nhÃ¡p Ä‘á»ƒ báº¡n chá»‰nh sá»­a trÆ°á»›c khi lÆ°u.
             </span>
           </div>
           <Alert
             className="mb-5"
             type="info"
             showIcon
-            message="AI chỉ gợi ý nội dung. SME vẫn quyết định brief, ngân sách, deadline và trạng thái publish cuối cùng."
+            message="AI chá»‰ gá»£i Ã½ ná»™i dung. SME váº«n quyáº¿t Ä‘á»‹nh brief, ngÃ¢n sÃ¡ch, deadline vÃ  tráº¡ng thÃ¡i publish cuá»‘i cÃ¹ng."
           />
 
           <Form form={aiForm} layout="vertical" onFinish={generateAiSuggestion} requiredMark={false}>
             <Form.Item
               name="rawIdea"
-              label="Ý tưởng thô"
+              label="Ã tÆ°á»Ÿng thÃ´"
               rules={[
-                { required: true, message: 'Vui lòng nhập ý tưởng.' },
-                { min: 20, message: 'Tối thiểu 20 ký tự.' }
+                { required: true, message: 'Vui lÃ²ng nháº­p Ã½ tÆ°á»Ÿng.' },
+                { min: 20, message: 'Tá»‘i thiá»ƒu 20 kÃ½ tá»±.' }
               ]}
             >
-              <Input.TextArea rows={6} maxLength={3000} showCount placeholder="Ví dụ: Tôi cần bộ nhận diện cho quán cà phê take-away dành cho sinh viên, phong cách trẻ trung và dễ nhớ." />
+              <Input.TextArea rows={6} maxLength={3000} showCount placeholder="VÃ­ dá»¥: TÃ´i cáº§n bá»™ nháº­n diá»‡n cho quÃ¡n cÃ  phÃª take-away dÃ nh cho sinh viÃªn, phong cÃ¡ch tráº» trung vÃ  dá»… nhá»›." />
             </Form.Item>
-            <Form.Item name="businessField" label="Ngành / lĩnh vực">
-              <Input placeholder="Ví dụ: F&B, giáo dục, mỹ phẩm, thời trang..." />
+            <Form.Item name="businessField" label="NgÃ nh / lÄ©nh vá»±c">
+              <Input placeholder="VÃ­ dá»¥: F&B, giÃ¡o dá»¥c, má»¹ pháº©m, thá»i trang..." />
             </Form.Item>
-            <Form.Item name="targetAudience" label="Khách hàng mục tiêu">
-              <Input placeholder="Ví dụ: sinh viên 18-24 tuổi, nhân viên văn phòng, phụ huynh..." />
+            <Form.Item name="targetAudience" label="KhÃ¡ch hÃ ng má»¥c tiÃªu">
+              <Input placeholder="VÃ­ dá»¥: sinh viÃªn 18-24 tuá»•i, nhÃ¢n viÃªn vÄƒn phÃ²ng, phá»¥ huynh..." />
             </Form.Item>
-            <Form.Item name="preferredStyle" label="Phong cách mong muốn">
-              <Input placeholder="Ví dụ: tối giản, trẻ trung, cao cấp, vui tươi..." />
+            <Form.Item name="preferredStyle" label="Phong cÃ¡ch mong muá»‘n">
+              <Input placeholder="VÃ­ dá»¥: tá»‘i giáº£n, tráº» trung, cao cáº¥p, vui tÆ°Æ¡i..." />
             </Form.Item>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Form.Item name="budgetAmount" label="Ngân sách tham khảo">
+              <Form.Item name="budgetAmount" label="NgÃ¢n sÃ¡ch tham kháº£o">
                 <InputNumber className="full-width" min={1} addonAfter="VND" />
               </Form.Item>
-              <Form.Item name="totalDeadline" label="Hạn hoàn tất mong muốn">
+              <Form.Item name="totalDeadline" label="Háº¡n hoÃ n táº¥t mong muá»‘n">
                 <Input type="datetime-local" />
               </Form.Item>
             </div>
 
             <div className="flex flex-col gap-3">
               <Button type="primary" size="large" htmlType="submit" loading={aiLoading} icon={<BulbOutlined />}>
-                Gợi ý bằng AI
+                Gá»£i Ã½ báº±ng AI
               </Button>
               <div className="inline-flex items-start gap-2 rounded-2xl border border-d4u-border bg-d4u-soft/55 px-4 py-3 text-sm leading-6 text-d4u-text-2">
                 <InfoCircleOutlined className="mt-1 text-d4u-teal-deep" />
-                <span>AI sẽ tạo bản nháp brief, bạn vẫn có thể chỉnh sửa trước khi lưu.</span>
+                <span>AI sáº½ táº¡o báº£n nhÃ¡p brief, báº¡n váº«n cÃ³ thá»ƒ chá»‰nh sá»­a trÆ°á»›c khi lÆ°u.</span>
               </div>
             </div>
           </Form>
@@ -600,14 +609,14 @@ export function SmeProjectFormPage({ mode }) {
               <Space direction="vertical" size={12} className="full-width">
                 <Space wrap>
                   <Tag color={aiSuggestion.provider === 'OpenAI' ? 'cyan' : 'gold'}>
-                    {aiSuggestion.provider === 'OpenAI' ? 'OpenAI' : 'Fallback tiếng Việt'}
+                    {aiSuggestion.provider === 'OpenAI' ? 'OpenAI' : 'Fallback tiáº¿ng Viá»‡t'}
                   </Tag>
                   <Tag>{aiSuggestion.suggestedCategoryHint}</Tag>
                 </Space>
                 <Title level={5}>{aiSuggestion.suggestedTitle}</Title>
                 <Paragraph className="preserve-lines">{aiSuggestion.suggestedBrief}</Paragraph>
                 <div>
-                  <Text strong>Sản phẩm bàn giao</Text>
+                  <Text strong>Sáº£n pháº©m bÃ n giao</Text>
                   <List
                     size="small"
                     dataSource={aiSuggestion.suggestedDeliverables}
@@ -615,14 +624,14 @@ export function SmeProjectFormPage({ mode }) {
                   />
                 </div>
                 <div>
-                  <Text strong>Mục đích sử dụng</Text>
+                  <Text strong>Má»¥c Ä‘Ã­ch sá»­ dá»¥ng</Text>
                   <Paragraph>{aiSuggestion.suggestedUsagePurpose}</Paragraph>
                 </div>
                 {aiSuggestion.deadlineNotes?.length ? (
                   <Alert
                     type="warning"
                     showIcon
-                    message="Lưu ý deadline"
+                    message="LÆ°u Ã½ deadline"
                     description={aiSuggestion.deadlineNotes.join(' ')}
                   />
                 ) : null}
@@ -630,12 +639,12 @@ export function SmeProjectFormPage({ mode }) {
                   <Alert
                     type="info"
                     showIcon
-                    message="Thông tin cần SME kiểm tra"
+                    message="ThÃ´ng tin cáº§n SME kiá»ƒm tra"
                     description={aiSuggestion.warnings.join(' ')}
                   />
                 ) : null}
                 <Button type="primary" onClick={applyAiSuggestionToForm}>
-                  Áp dụng vào form
+                  Ãp dá»¥ng vÃ o form
                 </Button>
               </Space>
             </div>

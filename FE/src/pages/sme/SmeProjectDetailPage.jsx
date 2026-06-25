@@ -1,4 +1,4 @@
-import {
+﻿import {
   Alert,
   App,
   Button,
@@ -25,7 +25,7 @@ import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { ErrorState, LoadingState } from '../../components/StateViews.jsx';
 import { packageApi } from '../../services/packageApi.js';
 import { projectApi } from '../../services/projectApi.js';
-import { getApiErrorMessage } from '../../utils/apiError.js';
+import { getApiErrorMessage, getPlanLimitErrorMessage, isPlanLimitError } from '../../utils/apiError.js';
 import { buildLocalizedDesignCategoryLabel, localizeDesignCategoryName } from '../../utils/designCategoryLocalization.js';
 import { formatCurrency } from '../../utils/format.js';
 import { getProjectDeadlineErrors } from '../../utils/projectDeadlineValidation.js';
@@ -266,7 +266,16 @@ export function SmeProjectDetailPage() {
       setProject(await projectApi.publishProject(projectId));
       message.success('Đã publish dự án.');
     } catch (requestError) {
-      message.error(getApiErrorMessage(requestError, 'Không thể publish dự án.'));
+      if (isPlanLimitError(requestError)) {
+        modal.error({
+          centered: true,
+          title: '\u0056\u01b0\u1ee3t gi\u1edbi h\u1ea1n g\u00f3i hi\u1ec7n t\u1ea1i',
+          content: getPlanLimitErrorMessage(requestError),
+          okText: '\u0110\u00e3 hi\u1ec3u',
+        });
+      } else {
+        message.error(getApiErrorMessage(requestError, 'Không thể publish dự án.'));
+      }
     } finally {
       setActing(false);
     }

@@ -66,7 +66,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         }
       }}
     >
-      <AntApp>
+      <AntApp
+        message={{
+          top: 88,
+          maxCount: 3,
+          duration: 3,
+        }}
+      >
         <GoogleOAuthProvider clientId={googleClientId}>
           <BrowserRouter>
             <AuthProvider>
