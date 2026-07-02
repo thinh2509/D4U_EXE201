@@ -37,77 +37,77 @@ function findActiveMatchingEntitlement(entitlements) {
 }
 
 function buildSmeSummaryStatus(profile, activeEntitlement, latestPurchase) {
-  if (activeEntitlement) return { label: 'Äang hoáº¡t Ä‘á»™ng', tone: 'success' };
-  if (latestPurchase?.paymentStatus === 'PENDING') return { label: 'Chá» xÃ¡c nháº­n', tone: 'warning' };
+  if (activeEntitlement) return { label: 'Đang hoạt động', tone: 'success' };
+  if (latestPurchase?.paymentStatus === 'PENDING') return { label: 'Chờ xác nhận', tone: 'warning' };
   if (latestPurchase?.entitlementStatus === 'EXPIRED' || latestPurchase?.status === 'EXPIRED') {
-    return { label: 'Háº¿t hiá»‡u lá»±c', tone: 'neutral' };
+    return { label: 'Hết hiệu lực', tone: 'neutral' };
   }
-  if (profile?.isFreePlan) return { label: 'Äang dÃ¹ng gÃ³i Free', tone: 'info' };
-  return { label: 'ChÆ°a kÃ­ch hoáº¡t', tone: 'neutral' };
+  if (profile?.isFreePlan) return { label: 'Đang dùng gói Free', tone: 'info' };
+  return { label: 'Chưa kích hoạt', tone: 'neutral' };
 }
 
 function getSmeProjectLimit(profile) {
   const activeCount = profile?.activeOpenProjectCount ?? 0;
   const maxCount = profile?.effectiveMaxActiveOpenProjects ?? (profile?.isFreePlan ? 2 : null);
 
-  if (maxCount == null) return `${activeCount} dá»± Ã¡n Ä‘ang má»Ÿ`;
-  return `${activeCount}/${maxCount} dá»± Ã¡n Ä‘ang má»Ÿ`;
+  if (maxCount == null) return `${activeCount} dự án đang mở`;
+  return `${activeCount}/${maxCount} dự án đang mở`;
 }
 
 function getSmeBudgetLimit(profile) {
   const maxBudget = profile?.subscriptionPlan?.maxProjectBudget;
 
-  if (maxBudget == null) return 'Kh?ng gi?i h?n ng?n s?ch';
-  return `T?i ?a ${formatCurrency(maxBudget, 'VND')} / d? ?n`;
+  if (maxBudget == null) return 'Không giới hạn ngân sách';
+  return `Tối đa ${formatCurrency(maxBudget, 'VND')} / dự án`;
 }
 
 function getSmePlanName(profile, activeEntitlement, featuredPackage) {
   if (activeEntitlement?.packageName) return activeEntitlement.packageName;
-  if (profile?.isFreePlan) return 'GÃ³i Free';
+  if (profile?.isFreePlan) return 'Gói Free';
   if (featuredPackage?.code === 'SME_GROWTH_30D' || featuredPackage?.code === 'SME_AI_MATCHING_30D') {
-    return 'SME AI Growth 30 ngÃ y';
+    return 'Gói SME AI 30 ngày';
   }
   if (featuredPackage?.name) return featuredPackage.name;
-  return 'SME AI Growth 30 ngÃ y';
+  return 'Gói SME AI 30 ngày';
 }
 
 function getSmePlanPrice(profile, activeEntitlement, featuredPackage) {
   if (activeEntitlement?.price != null) {
-    return `${formatCurrency(activeEntitlement.price, activeEntitlement.currency)}/30 ngÃ y`;
+    return `${formatCurrency(activeEntitlement.price, activeEntitlement.currency)}/30 ngày`;
   }
   if (profile?.isFreePlan) return '0 VND';
   if (featuredPackage?.price != null) {
-    return `${formatCurrency(featuredPackage.price, featuredPackage.currency)}/30 ngÃ y`;
+    return `${formatCurrency(featuredPackage.price, featuredPackage.currency)}/30 ngày`;
   }
-  return 'ChÆ°a cÃ³';
+  return 'Chưa có';
 }
 
 function getSmeExpiry(profile, activeEntitlement, latestPurchase) {
   if (activeEntitlement?.expiresAt) return formatDate(activeEntitlement.expiresAt);
-  if (latestPurchase?.paymentStatus === 'PENDING') return 'Sáº½ cáº­p nháº­t sau khi thanh toÃ¡n Ä‘Æ°á»£c xÃ¡c nháº­n';
-  if (profile?.isFreePlan) return 'KhÃ´ng háº¿t háº¡n';
-  return 'Hiá»‡n chÆ°a cÃ³ gÃ³i hoáº¡t Ä‘á»™ng';
+  if (latestPurchase?.paymentStatus === 'PENDING') return 'Sẽ cập nhật sau khi thanh toán được xác nhận';
+  if (profile?.isFreePlan) return 'Không hết hạn';
+  return 'Hiện chưa có gói hoạt động';
 }
 
 function getSmeSummaryDescription(profile, activeEntitlement, latestPurchase) {
   if (activeEntitlement) {
-    return `GÃ³i hiá»‡n cÃ³ hiá»‡u lá»±c Ä‘áº¿n ${formatDate(activeEntitlement.expiresAt)}. Báº¡n cÃ³ thá»ƒ dÃ¹ng AI Matching vÃ  má»Ÿ rá»™ng giá»›i háº¡n dá»± Ã¡n Ä‘ang má»Ÿ ngay trong workspace SME.`;
+    return `Gói hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}. Bạn có thể dùng AI Matching và mở rộng giới hạn dự án đang mở ngay trong khu vực làm việc SME.`;
   }
   if (latestPurchase?.paymentStatus === 'PENDING') {
-    return 'Giao dá»‹ch cá»§a báº¡n Ä‘ang chá» xÃ¡c nháº­n thanh toÃ¡n. TÃ­nh nÄƒng AI Matching vÃ  giá»›i háº¡n má»Ÿ rá»™ng sáº½ chá»‰ báº­t sau khi há»‡ thá»‘ng ghi nháº­n thanh toÃ¡n thÃ nh cÃ´ng.';
+    return 'Giao dịch của bạn đang chờ xác nhận thanh toán. Tính năng AI Matching và giới hạn mở rộng sẽ chỉ bật sau khi hệ thống ghi nhận thanh toán thành công.';
   }
   if (profile?.isFreePlan) {
-    return `B?n ?ang ? g?i Free v?i gi?i h?n c? b?n: ${getSmeProjectLimit(profile)} v? ${getSmeBudgetLimit(profile)}. N?ng c?p ?? m? AI Matching v? v?n h?nh project ng?n s?ch cao h?n.`;
+    return `Bạn đang ở gói Free với giới hạn cơ bản: ${getSmeProjectLimit(profile)} và ${getSmeBudgetLimit(profile)}. Nâng cấp để mở AI Matching và vận hành dự án có ngân sách cao hơn.`;
   }
-  return 'Mua gÃ³i SME AI Growth Ä‘á»ƒ má»Ÿ AI Matching, tÄƒng giá»›i háº¡n dá»± Ã¡n Ä‘ang má»Ÿ vÃ  váº­n hÃ nh pipeline tuyá»ƒn chá»n rÃµ rÃ ng hÆ¡n.';
+  return 'Mua gói SME AI để mở AI Matching, tăng giới hạn dự án đang mở và vận hành quy trình tuyển chọn rõ ràng hơn.';
 }
 
 function getSmePlanDescription(featuredPackage) {
   if (featuredPackage?.code === 'SME_AI_MATCHING_30D' || featuredPackage?.code === 'SME_GROWTH_30D') {
-    return 'Má»Ÿ AI Matching trong 30 ngÃ y Ä‘á»ƒ gá»£i Ã½ Student phÃ¹ há»£p hÆ¡n, Ä‘á»“ng thá»i tÄƒng giá»›i háº¡n sá»‘ dá»± Ã¡n Ä‘ang má»Ÿ cho SME.';
+    return 'Mở AI Matching trong 30 ngày để gợi ý Student phù hợp hơn, đồng thời tăng giới hạn số dự án đang mở cho SME.';
   }
   if (featuredPackage?.description) return featuredPackage.description;
-  return 'GÃ³i tráº£ phÃ­ dÃ nh cho SME muá»‘n má»Ÿ AI Matching vÃ  váº­n hÃ nh nhiá»u dá»± Ã¡n Ä‘ang má»Ÿ hÆ¡n trong cÃ¹ng má»™t giai Ä‘oáº¡n.';
+  return 'Gói trả phí dành cho SME muốn mở AI Matching và vận hành nhiều dự án đang mở hơn trong cùng một giai đoạn.';
 }
 
 function SmeBillingSummary({ profile, activeEntitlement, latestPurchase, featuredPackage }) {
@@ -124,10 +124,10 @@ function SmeBillingSummary({ profile, activeEntitlement, latestPurchase, feature
       title={getSmePlanName(profile, activeEntitlement, featuredPackage)}
       description={getSmeSummaryDescription(profile, activeEntitlement, latestPurchase)}
       stats={[
-        { label: 'Tráº¡ng thÃ¡i', value: status.label },
-        { label: 'GiÃ¡ gÃ³i', value: getSmePlanPrice(profile, activeEntitlement, featuredPackage) },
-        { label: 'Hiá»‡u lá»±c Ä‘áº¿n', value: getSmeExpiry(profile, activeEntitlement, latestPurchase) },
-        { label: 'Dá»± Ã¡n Ä‘ang má»Ÿ', value: getSmeProjectLimit(profile) },
+        { label: 'Trạng thái', value: status.label },
+        { label: 'Giá gói', value: getSmePlanPrice(profile, activeEntitlement, featuredPackage) },
+        { label: 'Hiệu lực đến', value: getSmeExpiry(profile, activeEntitlement, latestPurchase) },
+        { label: 'Dự án đang mở', value: getSmeProjectLimit(profile) },
         { label: 'Ngân sách tối đa', value: getSmeBudgetLimit(profile) },
       ]}
     />
@@ -151,50 +151,50 @@ function SmeBillingPlanCard({
   return (
     <BillingPlanCard
       status={status}
-      audienceLabel="SME Growth"
-      title={featuredPackage.name || 'SME AI Growth 30 ngÃ y'}
+      audienceLabel="Gói tăng trưởng SME"
+      title={featuredPackage.name || 'Gói SME AI 30 ngày'}
       description={getSmePlanDescription(featuredPackage)}
       features={[
         {
           icon: <ThunderboltOutlined />,
-          label: 'Má»Ÿ khÃ³a AI Matching cho doanh nghiá»‡p',
-          description: 'DÃ¹ng gá»£i Ã½ AI trÃªn tá»«ng dá»± Ã¡n Ä‘á»ƒ tÃ¬m Student phÃ¹ há»£p nhanh hÆ¡n vÃ  giáº£m thá»i gian lá»c há»“ sÆ¡ thá»§ cÃ´ng.',
+          label: 'Mở khóa AI Matching cho doanh nghiệp',
+          description: 'Dùng gợi ý AI trên từng dự án để tìm Student phù hợp nhanh hơn và giảm thời gian lọc hồ sơ thủ công.',
         },
         {
           icon: <PlusCircleOutlined />,
-          label: 'TÄƒng giá»›i háº¡n dá»± Ã¡n Ä‘ang má»Ÿ',
-          description: `Cho phÃ©p váº­n hÃ nh tá»‘i Ä‘a ${featuredPackage.maxActiveOpenProjectsOverride || 10} dá»± Ã¡n Ä‘ang má»Ÿ cÃ¹ng lÃºc trong thá»i háº¡n gÃ³i.`,
+          label: 'Tăng giới hạn dự án đang mở',
+          description: `Cho phép vận hành tối đa ${featuredPackage.maxActiveOpenProjectsOverride || 10} dự án đang mở cùng lúc trong thời hạn gói.`,
         },
         {
           icon: <SafetyCertificateOutlined />,
-          label: 'Chá»‰ kÃ­ch hoáº¡t sau khi thanh toÃ¡n Ä‘Æ°á»£c xÃ¡c nháº­n',
-          description: 'Há»‡ thá»‘ng chá»‰ má»Ÿ quyá»n dÃ¹ng gÃ³i khi giao dá»‹ch Ä‘Æ°á»£c xÃ¡c nháº­n thÃ nh cÃ´ng, khÃ´ng kÃ­ch hoáº¡t theo tráº¡ng thÃ¡i táº¡m.',
+          label: 'Chỉ kích hoạt sau khi thanh toán được xác nhận',
+          description: 'Hệ thống chỉ mở quyền dùng gói khi giao dịch được xác nhận thành công, không kích hoạt theo trạng thái tạm.',
         },
       ]}
       metrics={[
-        { icon: billingIcons.duration, label: 'Hiá»‡u lá»±c', value: `${featuredPackage.durationDays ?? 30} ngÃ y` },
-        { icon: <FileSearchOutlined />, label: 'Project limit', value: `${featuredPackage.maxActiveOpenProjectsOverride || 10} dá»± Ã¡n` },
-        { icon: billingIcons.payment, label: 'Thanh toÃ¡n', value: latestPurchase?.paymentStatus || 'ChÆ°a cÃ³' },
+        { icon: billingIcons.duration, label: 'Hiệu lực', value: `${featuredPackage.durationDays ?? 30} ngày` },
+        { icon: <FileSearchOutlined />, label: 'Giới hạn dự án', value: `${featuredPackage.maxActiveOpenProjectsOverride || 10} dự án` },
+        { icon: billingIcons.payment, label: 'Thanh toán', value: latestPurchase?.paymentStatus || 'Chưa có' },
       ]}
-      sideLabel="GiÃ¡ gÃ³i"
+      sideLabel="Giá gói"
       sideValue={formatCurrency(featuredPackage.price, featuredPackage.currency)}
-      sideSuffix="/30 ngÃ y"
-      sideStatusLabel="Tráº¡ng thÃ¡i hiá»‡n táº¡i"
+      sideSuffix="/30 ngày"
+      sideStatusLabel="Trạng thái hiện tại"
       sideStatusValue={status.label}
       sideStatusTone={status.tone}
       sideHighlights={[
-        'AI Matching cho tá»«ng dá»± Ã¡n SME',
-        `Tá»‘i Ä‘a ${featuredPackage.maxActiveOpenProjectsOverride || 10} dá»± Ã¡n Ä‘ang má»Ÿ cÃ¹ng lÃºc`,
-        'Tá»± cáº­p nháº­t ngay sau khi thanh toÃ¡n Ä‘Æ°á»£c xÃ¡c nháº­n',
+        'AI Matching cho từng dự án SME',
+        `Tối đa ${featuredPackage.maxActiveOpenProjectsOverride || 10} dự án đang mở cùng lúc`,
+        'Tự cập nhật ngay sau khi thanh toán được xác nhận',
       ]}
       extraContent={(
         <div className="rounded-2xl border border-d4u-border/70 bg-white/80 p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.04em] text-d4u-text-3">Äiá»u kiá»‡n kÃ­ch hoáº¡t</p>
-            {activeEntitlement?.expiresAt ? <BillingPill tone="success">Hiá»‡u lá»±c Ä‘áº¿n {formatDate(activeEntitlement.expiresAt)}</BillingPill> : null}
+            <p className="text-xs font-semibold uppercase tracking-[0.04em] text-d4u-text-3">Điều kiện kích hoạt</p>
+            {activeEntitlement?.expiresAt ? <BillingPill tone="success">Hiệu lực đến {formatDate(activeEntitlement.expiresAt)}</BillingPill> : null}
           </div>
           <p className="mt-2 text-sm leading-6 text-d4u-text-2">
-            Sau khi thanh toÃ¡n Ä‘Æ°á»£c xÃ¡c nháº­n, quyá»n dÃ¹ng AI Matching vÃ  giá»›i háº¡n dá»± Ã¡n Ä‘ang má»Ÿ má»›i Ä‘Æ°á»£c cáº­p nháº­t vÃ o tÃ i khoáº£n SME.
+            Sau khi thanh toán được xác nhận, quyền dùng AI Matching và giới hạn dự án đang mở mới được cập nhật vào tài khoản SME.
           </p>
         </div>
       )}
@@ -206,7 +206,7 @@ function SmeBillingPlanCard({
           loading={actingPackageId === featuredPackage.id}
           onClick={() => onStartPurchase(featuredPackage)}
         >
-          Mua gÃ³i
+          Mua gói
         </Button>
       ) : null}
 
@@ -217,9 +217,9 @@ function SmeBillingPlanCard({
           onClick={() => onReopenPurchasePayment(latestPurchase)}
         >
           {buildBillingPurchaseActionLabel(latestPurchase, {
-            defaultLabel: 'Mua gÃ³i',
-            reopenLabel: 'Má»Ÿ láº¡i PayOS',
-            retryLabel: 'Thanh toÃ¡n láº¡i',
+            defaultLabel: 'Mua gói',
+            reopenLabel: 'Mở lại thanh toán',
+            retryLabel: 'Thanh toán lại',
           })}
         </Button>
       ) : null}
@@ -230,21 +230,21 @@ function SmeBillingPlanCard({
 function SmeBillingHistory({ purchases, loading, actingPurchaseId, onReopenPurchasePayment }) {
   return (
     <BillingHistorySection
-      eyebrow="Lá»‹ch sá»­ thanh toÃ¡n"
-      title="Lá»‹ch sá»­ mua gÃ³i"
-      description="Theo dÃµi giao dá»‹ch gáº§n nháº¥t cá»§a SME Ä‘á»ƒ biáº¿t gÃ³i nÃ o Ä‘Ã£ kÃ­ch hoáº¡t, gÃ³i nÃ o Ä‘ang chá» xÃ¡c nháº­n vÃ  giao dá»‹ch nÃ o cáº§n má»Ÿ láº¡i thanh toÃ¡n."
+      eyebrow="Lịch sử thanh toán"
+      title="Lịch sử mua gói"
+      description="Theo dõi giao dịch gần nhất của SME để biết gói nào đã kích hoạt, gói nào đang chờ xác nhận và giao dịch nào cần mở lại thanh toán."
       purchases={purchases}
       loading={loading}
-      emptyText="ChÆ°a cÃ³ giao dá»‹ch mua gÃ³i nÃ o."
+      emptyText="Chưa có giao dịch mua gói nào."
       columns={[
         {
-          title: 'GÃ³i',
+          title: 'Gói',
           dataIndex: 'packageName',
           width: 240,
-          render: (value, row) => renderBillingPrimaryCell(value, row.createdAt ? `Mua ngÃ y ${formatDate(row.createdAt)}` : null),
+          render: (value, row) => renderBillingPrimaryCell(value, row.createdAt ? `Mua ngày ${formatDate(row.createdAt)}` : null),
         },
         {
-          title: 'Tráº¡ng thÃ¡i',
+          title: 'Trạng thái',
           dataIndex: 'status',
           width: 150,
           render: (value) => {
@@ -253,7 +253,7 @@ function SmeBillingHistory({ purchases, loading, actingPurchaseId, onReopenPurch
           },
         },
         {
-          title: 'Thanh toÃ¡n',
+          title: 'Thanh toán',
           dataIndex: 'paymentStatus',
           width: 170,
           render: (value) => {
@@ -262,19 +262,19 @@ function SmeBillingHistory({ purchases, loading, actingPurchaseId, onReopenPurch
           },
         },
         {
-          title: 'Sá»‘ tiá»n',
+          title: 'Số tiền',
           dataIndex: 'price',
           width: 150,
           render: (value, row) => <span className="text-[15px] font-bold text-d4u-teal-deep">{formatCurrency(value, row.currency)}</span>,
         },
         {
-          title: 'Háº¡n dÃ¹ng',
+          title: 'Hạn dùng',
           dataIndex: 'expiresAt',
           width: 180,
-          render: (value) => renderBillingDateCell(value, 'ChÆ°a kÃ­ch hoáº¡t'),
+          render: (value) => renderBillingDateCell(value, 'Chưa kích hoạt'),
         },
         {
-          title: 'Thao tÃ¡c',
+          title: 'Thao tác',
           width: 170,
           render: (_, row) => (
             shouldShowBillingRetryPurchase(row) ? (
@@ -284,9 +284,9 @@ function SmeBillingHistory({ purchases, loading, actingPurchaseId, onReopenPurch
                 onClick={() => onReopenPurchasePayment(row)}
               >
                 {buildBillingPurchaseActionLabel(row, {
-                  defaultLabel: 'Mua gÃ³i',
-                  reopenLabel: 'Má»Ÿ láº¡i PayOS',
-                  retryLabel: 'Thanh toÃ¡n láº¡i',
+                  defaultLabel: 'Mua gói',
+                  reopenLabel: 'Mở lại thanh toán',
+                  retryLabel: 'Thanh toán lại',
                 })}
               </Button>
             ) : null
@@ -333,7 +333,7 @@ export function SmeBillingPage() {
       );
       setEntitlements(entitlementRows.filter((item) => item.entitlementCode === 'SME_AI_MATCHING'));
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u gÃ³i SME.'));
+      setError(getApiErrorMessage(requestError, 'Không thể tải dữ liệu gói SME.'));
     } finally {
       setLoading(false);
     }
@@ -371,10 +371,10 @@ export function SmeBillingPage() {
       const purchase = await packageApi.purchasePackage(pkg.id);
       const payment = await packageApi.createPurchasePayment(purchase.id);
       openCheckout(payment.checkoutUrl);
-      message.success('ÄÃ£ táº¡o giao dá»‹ch thanh toÃ¡n cho gÃ³i SME AI Growth.');
+      message.success('Đã tạo giao dịch thanh toán cho gói SME AI.');
       await loadData();
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'KhÃ´ng thá»ƒ táº¡o giao dá»‹ch mua gÃ³i.'));
+      setError(getApiErrorMessage(requestError, 'Không thể tạo giao dịch mua gói.'));
     } finally {
       setActingPackageId(null);
     }
@@ -388,7 +388,7 @@ export function SmeBillingPage() {
       openCheckout(payment.checkoutUrl || purchase.checkoutUrl);
       await loadData();
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'KhÃ´ng thá»ƒ má»Ÿ láº¡i thanh toÃ¡n cho gÃ³i.'));
+      setError(getApiErrorMessage(requestError, 'Không thể mở lại thanh toán cho gói.'));
     } finally {
       setActingPurchaseId(null);
     }
@@ -402,36 +402,36 @@ export function SmeBillingPage() {
     <>
       <PageHeader
         icon={<CreditCardOutlined />}
-        title="GÃ³i & thanh toÃ¡n"
-        description="Quáº£n lÃ½ gÃ³i Free vÃ  gÃ³i tráº£ phÃ­ cá»§a SME Ä‘á»ƒ má»Ÿ AI Matching, theo dÃµi giá»›i háº¡n dá»± Ã¡n Ä‘ang má»Ÿ vÃ  xem láº¡i cÃ¡c giao dá»‹ch gáº§n nháº¥t."
+        title="Gói & thanh toán"
+        description="Quản lý gói Free và gói trả phí của SME để mở AI Matching, theo dõi giới hạn dự án đang mở và xem lại các giao dịch gần nhất."
         extra={<BillingRefreshButton onClick={loadData} />}
       />
 
       {!profile ? (
         <BillingInfoAlert
-          message="Báº¡n váº«n cÃ³ thá»ƒ xem gÃ³i vÃ  giao dá»‹ch ngay tá»« bÃ¢y giá»."
-          description="Äá»ƒ dÃ¹ng Ä‘áº§y Ä‘á»§ workflow SME nhÆ° táº¡o dá»± Ã¡n, theo dÃµi offer vÃ  váº­n hÃ nh dashboard, báº¡n váº«n cáº§n hoÃ n thiá»‡n há»“ sÆ¡ doanh nghiá»‡p."
+          message="Bạn vẫn có thể xem gói và giao dịch ngay từ bây giờ."
+          description="Để dùng đầy đủ workflow SME như tạo dự án, theo dõi offer và vận hành dashboard, bạn vẫn cần hoàn thiện hồ sơ doanh nghiệp."
         />
       ) : null}
 
       {activeEntitlement ? (
         <BillingSuccessAlert
-          message="GÃ³i SME cá»§a báº¡n Ä‘ang hoáº¡t Ä‘á»™ng."
-          description={`AI Matching vÃ  giá»›i háº¡n váº­n hÃ nh má»Ÿ rá»™ng hiá»‡n cÃ³ hiá»‡u lá»±c Ä‘áº¿n ${formatDate(activeEntitlement.expiresAt)}.`}
+          message="Gói SME của bạn đang hoạt động."
+          description={`AI Matching và giới hạn vận hành mở rộng hiện có hiệu lực đến ${formatDate(activeEntitlement.expiresAt)}.`}
         />
       ) : null}
 
       {!activeEntitlement && latestPurchase?.paymentStatus === 'PENDING' ? (
         <BillingInfoAlert
-          message="Thanh toÃ¡n cá»§a báº¡n Ä‘ang chá» xÃ¡c nháº­n."
-          description="GÃ³i chá»‰ Ä‘Æ°á»£c kÃ­ch hoáº¡t sau khi thanh toÃ¡n Ä‘Æ°á»£c xÃ¡c nháº­n thÃ nh cÃ´ng. Náº¿u cáº§n, báº¡n cÃ³ thá»ƒ má»Ÿ láº¡i phiÃªn thanh toÃ¡n hiá»‡n táº¡i."
+          message="Thanh toán của bạn đang chờ xác nhận."
+          description="Gói chỉ được kích hoạt sau khi thanh toán được xác nhận thành công. Nếu cần, bạn có thể mở lại phiên thanh toán hiện tại."
         />
       ) : null}
 
       {!activeEntitlement && latestPurchase?.paymentStatus !== 'PENDING' ? (
         <BillingInfoAlert
-          message={profile?.isFreePlan ? 'Báº¡n Ä‘ang dÃ¹ng gÃ³i Free.' : 'Hiá»‡n chÆ°a cÃ³ gÃ³i SME Ä‘ang hoáº¡t Ä‘á»™ng.'}
-          description={`B?n c? th? ti?p t?c d?ng g?i Free v?i gi?i h?n c? b?n: ${getSmeProjectLimit(profile)} v? ${getSmeBudgetLimit(profile)}. N?ng c?p ?? m? AI Matching v? t?ng kh? n?ng publish project.`}
+          message={profile?.isFreePlan ? 'Bạn đang dùng gói Free.' : 'Hiện chưa có gói SME đang hoạt động.'}
+          description={`Bạn có thể tiếp tục dùng gói Free với giới hạn cơ bản: ${getSmeProjectLimit(profile)} và ${getSmeBudgetLimit(profile)}. Nâng cấp để mở AI Matching và tăng khả năng đăng dự án.`}
         />
       ) : null}
 
@@ -456,7 +456,7 @@ export function SmeBillingPage() {
 
       {profile?.isFreePlan && !activeEntitlement ? (
         <div className="mt-4">
-          <BillingPill tone="neutral">Free hi?n t?i ph? h?p ?? b?t ??u: t?i ?a 2 d? ?n ?ang m? v? budget 5.000.000? cho m?i project.</BillingPill>
+          <BillingPill tone="neutral">Gói Free hiện tại phù hợp để bắt đầu: tối đa 2 dự án đang mở và ngân sách 5.000.000đ cho mỗi dự án.</BillingPill>
         </div>
       ) : null}
 

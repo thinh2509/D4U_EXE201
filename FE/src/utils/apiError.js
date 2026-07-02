@@ -98,23 +98,23 @@ function mapProviderErrorMessage(message, fallback) {
 
   if (
     lowered.includes('sme profile must be created before purchasing feature packages') ||
-    lowered.includes('báº¡n cáº§n táº¡o há»“ sÆ¡ doanh nghiá»‡p trÆ°á»›c khi mua gÃ³i tÃ­nh nÄƒng')
+    lowered.includes('bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói tính năng')
   ) {
-    return 'Báº¡n cáº§n táº¡o há»“ sÆ¡ doanh nghiá»‡p trÆ°á»›c khi mua gÃ³i AI.';
+    return 'Bạn cần tạo hồ sơ doanh nghiệp trước khi mua gói AI.';
   }
 
   if (
     lowered.includes('student profile must be created before purchasing feature packages') ||
-    lowered.includes('báº¡n cáº§n táº¡o há»“ sÆ¡ sinh viÃªn trÆ°á»›c khi mua gÃ³i tÃ­nh nÄƒng')
+    lowered.includes('bạn cần tạo hồ sơ sinh viên trước khi mua gói tính năng')
   ) {
-    return 'Báº¡n cáº§n táº¡o há»“ sÆ¡ sinh viÃªn trÆ°á»›c khi mua gÃ³i AI.';
+    return 'Bạn cần tạo hồ sơ sinh viên trước khi mua gói AI.';
   }
 
   if (
     lowered.includes('student verification must be approved before purchasing feature packages') ||
-    lowered.includes('báº¡n cáº§n hoÃ n táº¥t xÃ¡c thá»±c sinh viÃªn trÆ°á»›c khi mua gÃ³i tÃ­nh nÄƒng')
+    lowered.includes('bạn cần hoàn tất xác thực sinh viên trước khi mua gói tính năng')
   ) {
-    return 'Báº¡n cáº§n hoÃ n táº¥t xÃ¡c thá»±c sinh viÃªn trÆ°á»›c khi mua gÃ³i AI.';
+    return 'Bạn cần hoàn tất xác thực sinh viên trước khi mua gói AI.';
   }
 
   if (isPlanLimitError(normalized)) {
@@ -123,26 +123,26 @@ function mapProviderErrorMessage(message, fallback) {
 
   if (lowered.includes('payos payment creation failed')) {
     if (
-      lowered.includes('mÃ´ táº£ tá»‘i Ä‘a 25 kÃ½ tá»±') ||
+      lowered.includes('mô tả tối đa 25 ký tự') ||
       lowered.includes('mo ta toi da 25 ky tu') ||
       lowered.includes('description')
     ) {
-      return 'KhÃ´ng thá»ƒ táº¡o thanh toÃ¡n cho gÃ³i AI lÃºc nÃ y. Há»‡ thá»‘ng Ä‘ang Ä‘iá»u chá»‰nh thÃ´ng tin giao dá»‹ch Ä‘á»ƒ tÆ°Æ¡ng thÃ­ch vá»›i cá»•ng thanh toÃ¡n.';
+      return 'Không thể tạo thanh toán cho gói AI lúc này. Hệ thống đang điều chỉnh thông tin giao dịch để tương thích với cổng thanh toán.';
     }
 
-    return 'KhÃ´ng thá»ƒ táº¡o phiÃªn thanh toÃ¡n vá»›i PayOS lÃºc nÃ y. Vui lÃ²ng thá»­ láº¡i sau Ã­t phÃºt.';
+    return 'Không thể tạo phiên thanh toán với PayOS lúc này. Vui lòng thử lại sau ít phút.';
   }
 
   if (lowered.includes('405 not allowed')) {
-    return 'KhÃ´ng thá»ƒ káº¿t ná»‘i tá»›i cá»•ng thanh toÃ¡n lÃºc nÃ y. Vui lÃ²ng kiá»ƒm tra cáº¥u hÃ¬nh mÃ´i trÆ°á»ng hoáº·c thá»­ láº¡i sau.';
+    return 'Không thể kết nối tới cổng thanh toán lúc này. Vui lòng kiểm tra cấu hình môi trường hoặc thử lại sau.';
   }
 
   return normalized;
 }
 
-export function getApiErrorMessage(error, fallback = 'ÄÃ£ cÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i.') {
+export function getApiErrorMessage(error, fallback = 'Đã có lỗi xảy ra. Vui lòng thử lại.') {
   if (error?.response?.status === 413) {
-    return 'Dung lÆ°á»£ng file quÃ¡ lá»›n. Vui lÃ²ng chá»n file tá»‘i Ä‘a 20MB.';
+    return 'Dung lượng file quá lớn. Vui lòng chọn file tối đa 20MB.';
   }
 
   const data = error?.response?.data;
